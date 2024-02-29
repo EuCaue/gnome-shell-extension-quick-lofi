@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src/ambient.d.ts"],
+  "files": ["src/extension.ts", "src/prefs.ts", "./src/Player.ts"]
+}

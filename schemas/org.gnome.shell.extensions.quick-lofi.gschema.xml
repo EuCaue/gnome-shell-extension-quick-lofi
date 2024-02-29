@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.quick-lofi" path="/org/gnome/shell/extensions/quick-lofi/">
+    <key name="volume" type="i">
+      <default>50</default>
+      <summary>Volume</summary>
+      <description>Volume to set when playing lofi</description>
+    </key>
+  </schema>
+</schemalist>

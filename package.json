@@ -1,0 +1,42 @@
+{
+  "name": "quick-lofi",
+  "version": "0.0.0",
+  "description": "Play lofi easily.",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "clear": "rm -rf dist",
+    "build:app": "node esbuild.js",
+    "build": "npm run clear && npm run build:app",
+    "validate": "tsc --noEmit",
+    "lint": "prettier --check . & eslint . --ext .ts",
+    "format": "prettier --write . && eslint . --ext .ts --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eucaue/quick-lofi.git"
+  },
+  "author": "Álan Crístoffer e Sousa <acristoffers@startmail.com>",
+  "license": "LGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/eucaue/quick-lofi/issues"
+  },
+  "homepage": "https://github.com/eucaue/quick-lofi#readme",
+  "sideEffects": false,
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "adm-zip": "^0.5.10",
+    "esbuild": "^0.19.11",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@girs/gjs": "^3.2.8",
+    "@girs/gnome-shell": "^45.0.0-beta9"
+  }
+}
