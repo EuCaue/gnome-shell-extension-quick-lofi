@@ -6,5 +6,10 @@
       <summary>Volume</summary>
       <description>Volume to set when playing lofi</description>
     </key>
+    <key name="radios" type="as">
+      <default>['Lofi Girl - https://play.streamafrica.net/lofiradio', 'Lofi Hunter - https://live.hunter.fm/lofi_high', 'Lofi Hip-hop - http://hyades.shoutca.st:8043/stream']</default>
+      <summary>Radios</summary>
+      <description>List of available radio stations</description>
+    </key>
   </schema>
 </schemalist>
