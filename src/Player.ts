@@ -28,12 +28,15 @@ export class Player {
 
   public stopPlayer() {
     if (this.process !== null) {
+      console.log('stopPlayer');
       this.process.force_exit();
       this.isPlaying = false;
+      this.process = null;
     }
   }
 
   public startPlayer(url: string) {
+    this.stopPlayer();
     try {
       this.isPlaying = true;
       this.process = Gio.Subprocess.new(
@@ -44,9 +47,8 @@ export class Player {
           `--volume=${this._settings.get_int('volume')}`,
           `--input-ipc-server=${this.mpvSocket}`,
           '--no-video',
-          '--idle=once',
         ],
-        Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
+        Gio.SubprocessFlags.NONE,
       );
     } catch (e) {
       console.error('Error ===>', e);
