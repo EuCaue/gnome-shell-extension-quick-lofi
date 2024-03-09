@@ -42,7 +42,6 @@ class Indicator extends PanelMenu.Button {
   }
 
   private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem) {
-    // console.log('radios find >>>>>>>>>>', this._radios);
     const currentRadioUrl = this._radios.find((radio) => radio.radioName === child.label.text).radioUrl;
 
     if (child === activeChild) {
@@ -113,15 +112,9 @@ class Indicator extends PanelMenu.Button {
 
 export default class QuickLofi extends Extension {
   _indicator: Indicator = null;
-  _settings: Gio.Settings = null;
 
   enable() {
-    this._settings = this.getSettings();
     this._indicator = new Indicator();
-
-    // this._settings.connect('changed', () => {
-    //   console.log('volume changed');
-    // });
     Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 

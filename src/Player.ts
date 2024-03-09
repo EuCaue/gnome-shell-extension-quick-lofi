@@ -28,7 +28,6 @@ export class Player {
 
   public stopPlayer() {
     if (this.process !== null) {
-      console.log('stopPlayer');
       this.process.force_exit();
       this.isPlaying = false;
       this.process = null;
@@ -51,14 +50,12 @@ export class Player {
         Gio.SubprocessFlags.NONE,
       );
     } catch (e) {
-      console.error('Error ===>', e);
       this.isPlaying = false;
       this.process = null;
     }
   }
 
   public resume() {
-    console.log('play');
     const command = this.createCommand({
       command: ['set_property', 'pause', false],
     });
@@ -67,7 +64,6 @@ export class Player {
   }
 
   public pause() {
-    console.log('pause');
     const command = this.createCommand({
       command: ['set_property', 'pause', true],
     });
@@ -81,7 +77,7 @@ export class Player {
   }
 
   private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
-    //  HACK: use native socket with GJS in the future.
+    //  TODO: use native socket with GJS in the future.
     const socatCommand = ['|', 'socat', '-', this.mpvSocket];
     //  TODO: handle the errors and notify when success
     const [success, stdout, stderr] = GLib.spawn_sync(
