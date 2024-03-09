@@ -4,7 +4,6 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-type Radio = { radioName: string; radioUrl: string };
 const TIMEOUT_SECONDS = 5 as const;
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
@@ -55,8 +54,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         if (w.text.length >= 2) {
           const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
           this.updateRadio(index, 'radioName', w.text);
+          radiosExpander.set_title(w.text);
         }
-        console.log(w.text);
       });
       // check if it's a way to prevent to apply
       // TODO: do a better error handling.
@@ -67,8 +66,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
           const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
           this.updateRadio(index, 'radioUrl', w.text);
         } catch (e) {
-          // make a box with red borders
-          console.log('error >>>>>>>>>>>>>>', e);
+          //  TODO: Change border color to red
           w.set_text(radioUrl);
           // TODO: find a way to notify it's fails
           // main.notify("oops");
@@ -82,7 +80,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
   }
 
   private reloadRadios(radiosGroup: Adw.PreferencesGroup) {
-    console.log('reload radios');
     let index = 0;
     const l = this._radios.length;
     while (l >= index) {
@@ -101,9 +98,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
 
   private removeRadio(index: number) {
     this._radios.splice(index, 1);
-    console.log('remove radio >>>>>>>>>', this._radios);
     this._settings!.set_strv('radios', this._radios);
-    console.log('remove radio +++++++++ ', this._radios);
   }
 
   private updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
@@ -116,8 +111,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       if (field === 'radioName') {
         this._radios[index] = `${content} - ${radioUrl}`;
       }
-      console.log('>>>>>>>>>>>.. radio', radio);
-      console.log('>>>>>>>>>>>. radios', this._radios);
       this._settings.set_strv('radios', this._radios);
       return true;
     }
@@ -128,7 +121,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
   fillPreferencesWindow(window: Adw.PreferencesWindow) {
     this._settings = this.getSettings();
     this._radios = this._settings.get_strv('radios');
-    console.log(this._settings.get_strv('radios'));
 
     const page = new Adw.PreferencesPage({
       title: _('General'),
@@ -170,6 +162,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       iconName: 'list-add-symbolic',
       halign: Gtk.Align.CENTER,
       valign: Gtk.Align.CENTER,
+      marginTop: 10,
     });
 
     addButton.connect('clicked', () => {
@@ -183,10 +176,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         } else {
           const currentTitleName = nameRadioRow.get_title();
           nameRadioRow.set_title('Name must be at least 2 characters');
-          console.log('nameRadioRow error');
           GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
             nameRadioRow.set_title(currentTitleName);
-            console.log('nameRadioRow error timeout');
             return GLib.SOURCE_REMOVE;
           });
         }
@@ -194,25 +185,20 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         //  TODO: send notification error here
         const currentTitleUrl = urlRadioRow.get_title();
         //  TODO: write the css style for error
-        console.log('urlRadioRow error');
         urlRadioRow.set_title('Invalid URL');
         GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
           urlRadioRow.set_title(currentTitleUrl);
-          console.log('urlRadioRow error timeout');
           return GLib.SOURCE_REMOVE;
         });
         if (nameRadioRow.text.length < 2) {
           const currentTitleName = nameRadioRow.get_title();
           nameRadioRow.set_title('Name must be at least 2 characters');
-          console.log('nameRadioRow error');
           GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
             nameRadioRow.set_title(currentTitleName);
-            console.log('nameRadioRow error timeout');
             return GLib.SOURCE_REMOVE;
           });
         }
       }
-      console.log('bomdia');
     });
     addRadioGroup.add(nameRadioRow);
     addRadioGroup.add(urlRadioRow);
