@@ -44,8 +44,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         messsageDialog.connect('response', (_, response) => {
           if (response === Gtk4.ResponseType.OK) {
             //  TODO: send a notification
-            //  TODO: reload the list
             this.removeRadio(i);
+            this.reloadRadios(radiosGroup);
           }
           messsageDialog.destroy();
         });
@@ -81,14 +81,20 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     }
   }
 
-  //  TODO: find a way to reload the radios group;
   private reloadRadios(radiosGroup: Adw.PreferencesGroup) {
     console.log('reload radios');
-    let child = radiosGroup.get_first_child();
-    while (child) {
-      const next = child.get_next_sibling();
-      radiosGroup.remove(next);
-      child = next;
+    let index = 0;
+    const l = this._radios.length;
+    while (l >= index) {
+      const child = radiosGroup
+        .get_first_child()
+        .get_first_child()
+        .get_next_sibling()
+        .get_first_child()
+        .get_first_child();
+      if (child === null) break;
+      radiosGroup.remove(child);
+      index++;
     }
     this.populateRadios(radiosGroup);
   }
@@ -150,6 +156,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       title: _('Radios Settings'),
       description: _('Configure the radio list'),
     });
+
     this.populateRadios(radiosGroup);
 
     const addRadioGroup = new Adw.PreferencesGroup({
@@ -210,7 +217,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     addRadioGroup.add(nameRadioRow);
     addRadioGroup.add(urlRadioRow);
     addRadioGroup.add(addButton);
-    radiosGroup.add(addButton);
     page.add(radiosGroup);
     page.add(addRadioGroup);
 
