@@ -1,6 +1,6 @@
 {
   "name": "Quick Lofi",
-  "description": "Play lofi radios easily.",
+  "description": "Play lofi radios with ease.",
   "uuid": "quick-lofi@eucaue",
   "url": "https://github.com/eucaue/quick-lofi",
   "settings-schema": "org.gnome.shell.extensions.quick-lofi",
