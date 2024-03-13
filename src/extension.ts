@@ -18,8 +18,10 @@ class Indicator extends PanelMenu.Button {
   private mpvPlayer = new Player();
   private _radios?: Array<Radio>;
   private _settings: Gio.Settings;
+  private _extension: Extension;
+  private icon: St.Icon;
 
-  private _createRadiosArray(): void {
+  private _createRadios(): void {
     const radios: string[] = Extension.lookupByUUID(UUID).getSettings().get_strv('radios');
     radios.forEach((entry: string) => {
       const [radioName, radioUrl] = entry.split(' - ');
@@ -32,13 +34,14 @@ class Indicator extends PanelMenu.Button {
     this.mpvPlayer = new Player();
     this.mpvPlayer.init();
     this._radios = [];
-    this._settings = Extension.lookupByUUID(UUID).getSettings();
+    this._extension = Extension.lookupByUUID(UUID);
+    this._settings = this._extension.getSettings();
     this._settings.connect('changed', (_, key) => {
       if (key === 'radios') {
         this._updateMenuItems();
       }
     });
-    this._createRadiosArray();
+    this._createRadios();
   }
 
   private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem) {
@@ -56,6 +59,7 @@ class Indicator extends PanelMenu.Button {
       this.mpvPlayer.startPlayer(currentRadioUrl);
       activeChild = child;
       child.setIcon(ICONS.PAUSE);
+      const path = this._extension.path;
     }
   }
   private _handleButtonClick() {
@@ -64,7 +68,7 @@ class Indicator extends PanelMenu.Button {
       // right click open the preferences
       if (event.get_button() === 3) {
         this.menu.close(false);
-        Extension.lookupByUUID(UUID).openPreferences();
+        this._extension.openPreferences();
         return;
       }
     });
@@ -73,7 +77,7 @@ class Indicator extends PanelMenu.Button {
   private _updateMenuItems(): void {
     this.menu.box.remove_all_children();
     this._radios = [];
-    this._createRadiosArray();
+    this._createRadios();
     this._createMenuItems();
   }
 
@@ -94,9 +98,10 @@ class Indicator extends PanelMenu.Button {
 
   _init() {
     this._radios = [];
-    this._createRadiosArray();
+    this._extension = Extension.lookupByUUID(UUID);
+    this._createRadios();
     super._init(0.0, 'Quick Lofi');
-    const path = Extension.lookupByUUID(UUID).path;
+    const path = this._extension.path;
     const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
     this.add_child(
       new St.Icon({
