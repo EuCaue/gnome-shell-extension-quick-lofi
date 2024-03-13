@@ -172,9 +172,11 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
           this.reloadRadios(radiosGroup);
         } else {
           const currentTitleName = nameRadioRow.get_title();
+          nameRadioRow.add_css_class('error');
           nameRadioRow.set_title('Name must be at least 2 characters');
           GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
             nameRadioRow.set_title(currentTitleName);
+            nameRadioRow.remove_css_class('error');
             return GLib.SOURCE_REMOVE;
           });
         }
@@ -182,15 +184,19 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         const currentTitleUrl = urlRadioRow.get_title();
         //  TODO: write the css style for error
         urlRadioRow.set_title('Invalid URL');
+        urlRadioRow.add_css_class('error');
         GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
           urlRadioRow.set_title(currentTitleUrl);
+          urlRadioRow.remove_css_class('error');
           return GLib.SOURCE_REMOVE;
         });
         if (nameRadioRow.text.length < 2) {
           const currentTitleName = nameRadioRow.get_title();
           nameRadioRow.set_title('Name must be at least 2 characters');
+          nameRadioRow.add_css_class('error');
           GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
             nameRadioRow.set_title(currentTitleName);
+            nameRadioRow.remove_css_class('error');
             return GLib.SOURCE_REMOVE;
           });
         }

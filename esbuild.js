@@ -23,11 +23,14 @@ build({
   const iconDist = resolve(__dirname, 'dist/icon-symbolic.svg');
   const metaSrc = resolve(__dirname, 'src/metadata.json');
   const metaDist = resolve(__dirname, 'dist/metadata.json');
+  const stylesheetSrc = resolve(__dirname, 'stylesheet.css');
+  const stylesheetDist = resolve(__dirname, 'dist/stylesheet.css');
   const schemaSrc = resolve(__dirname, 'schemas/');
   const schemaDist = resolve(__dirname, 'dist/schemas/');
   const zipFilename = `${metadata.uuid}.zip`;
   const zipDist = resolve(__dirname, zipFilename);
   copyFileSync(metaSrc, metaDist);
+  copyFileSync(stylesheetSrc, stylesheetDist);
   copyFileSync(iconSrc, iconDist);
   cpSync(schemaSrc, schemaDist, { recursive: true });
 
