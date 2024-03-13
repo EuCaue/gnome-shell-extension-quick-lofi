@@ -42,7 +42,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         });
         messsageDialog.connect('response', (_, response) => {
           if (response === Gtk4.ResponseType.OK) {
-            //  TODO: send a notification
             this.removeRadio(i);
             this.reloadRadios(radiosGroup);
           }
@@ -68,8 +67,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         } catch (e) {
           //  TODO: Change border color to red
           w.set_text(radioUrl);
-          // TODO: find a way to notify it's fails
-          // main.notify("oops");
         }
       });
       radiosExpander.add_row(nameRadioRow);
@@ -182,7 +179,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
           });
         }
       } catch (e) {
-        //  TODO: send notification error here
         const currentTitleUrl = urlRadioRow.get_title();
         //  TODO: write the css style for error
         urlRadioRow.set_title('Invalid URL');
