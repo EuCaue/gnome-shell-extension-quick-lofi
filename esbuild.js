@@ -21,9 +21,11 @@ build({
 }).then(() => {
   const iconSrc = resolve(__dirname, 'icon-symbolic.svg');
   const iconDist = resolve(__dirname, 'dist/icon-symbolic.svg');
+  const iconPlayingSrc = resolve(__dirname, 'icon-playing-symbolic.svg');
+  const iconPlayingDist = resolve(__dirname, 'dist/icon-playing-symbolic.svg');
   const metaSrc = resolve(__dirname, 'src/metadata.json');
   const metaDist = resolve(__dirname, 'dist/metadata.json');
-  const stylesheetSrc = resolve(__dirname, 'stylesheet.css');
+  const stylesheetSrc = resolve(__dirname, 'src/stylesheet.css');
   const stylesheetDist = resolve(__dirname, 'dist/stylesheet.css');
   const schemaSrc = resolve(__dirname, 'schemas/');
   const schemaDist = resolve(__dirname, 'dist/schemas/');
@@ -32,6 +34,7 @@ build({
   copyFileSync(metaSrc, metaDist);
   copyFileSync(stylesheetSrc, stylesheetDist);
   copyFileSync(iconSrc, iconDist);
+  copyFileSync(iconPlayingSrc, iconPlayingDist);
   cpSync(schemaSrc, schemaDist, { recursive: true });
 
   const zip = new AdmZip();

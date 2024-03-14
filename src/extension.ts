@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
+import St1 from '@girs/st-13';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
@@ -35,6 +36,14 @@ class Indicator extends PanelMenu.Button {
     this.mpvPlayer.init();
     this._radios = [];
     this._extension = Extension.lookupByUUID(UUID);
+    const path = this._extension.path;
+    const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
+    this.icon = new St1.Icon({
+      gicon: gicon,
+      styleClass: 'system-status-icon',
+      iconSize: 20,
+    });
+    this.add_child(this.icon);
     this._settings = this._extension.getSettings();
     this._settings.connect('changed', (_, key) => {
       if (key === 'radios') {
@@ -51,15 +60,23 @@ class Indicator extends PanelMenu.Button {
       this.mpvPlayer.stopPlayer();
       activeChild.setIcon(ICONS.PLAY);
       activeChild = null;
+      const path = this._extension.path;
+      const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
+      this.icon.set_gicon(gicon);
     } else {
       if (activeChild) {
         activeChild.setIcon(ICONS.PLAY);
+        const path = this._extension.path;
+        const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
+        this.icon.set_gicon(gicon);
       }
 
       this.mpvPlayer.startPlayer(currentRadioUrl);
       activeChild = child;
       child.setIcon(ICONS.PAUSE);
       const path = this._extension.path;
+      const gicon = Gio.icon_new_for_string(path + '/icon-playing-symbolic.svg');
+      this.icon.set_gicon(gicon);
     }
   }
   private _handleButtonClick() {
@@ -101,15 +118,6 @@ class Indicator extends PanelMenu.Button {
     this._extension = Extension.lookupByUUID(UUID);
     this._createRadios();
     super._init(0.0, 'Quick Lofi');
-    const path = this._extension.path;
-    const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
-    this.add_child(
-      new St.Icon({
-        gicon,
-        styleClass: 'system-status-icon',
-        iconSize: 20,
-      }),
-    );
     this._createMenuItems();
     this._handleButtonClick();
   }
