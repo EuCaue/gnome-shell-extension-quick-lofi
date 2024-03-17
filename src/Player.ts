@@ -55,22 +55,6 @@ export class Player {
     }
   }
 
-  public resume() {
-    const command = this.createCommand({
-      command: ['set_property', 'pause', false],
-    });
-    this.sendCommandToMpvSocket(command);
-    this.isPlaying = true;
-  }
-
-  public pause() {
-    const command = this.createCommand({
-      command: ['set_property', 'pause', true],
-    });
-    this.sendCommandToMpvSocket(command);
-    this.isPlaying = false;
-  }
-
   private createCommand(command: PlayerCommand): PlayerCommandString {
     const cmd: PlayerCommandString = `echo '${JSON.stringify(command)}'`;
     return cmd;
