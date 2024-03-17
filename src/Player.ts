@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { UUID } from './consts';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -42,7 +43,6 @@ export class Player {
         [
           'mpv',
           url,
-          '--title=quicklofi',
           `--volume=${this._settings.get_int('volume')}`,
           `--input-ipc-server=${this.mpvSocket}`,
           '--no-video',
@@ -52,6 +52,10 @@ export class Player {
     } catch (e) {
       this.isPlaying = false;
       this.process = null;
+      Main.notifyError(
+        'MPV not found',
+        'Did you have mpv installed?\nhttps://github.com/EuCaue/quick-lofi?tab=readme-ov-file#dependencies',
+      );
     }
   }
 
@@ -63,13 +67,18 @@ export class Player {
   private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
     //  TODO: use native socket with GJS in the future.
     const socatCommand = ['|', 'socat', '-', this.mpvSocket];
-    //  TODO: handle the errors and notify when success
-    const [success, stdout, stderr] = GLib.spawn_sync(
+    const [success, _] = GLib.spawn_async(
       null,
       ['/bin/sh', '-c', mpvCommand + ' ' + socatCommand.join(' ')],
       null,
       GLib.SpawnFlags.SEARCH_PATH,
       null,
     );
+    if (!success) {
+      Main.notifyError(
+        'Socat not found',
+        'Did you have socat installed?\nhttps://github.com/EuCaue/quick-lofi?tab=readme-ov-file#dependencies',
+      );
+    }
   }
 }
