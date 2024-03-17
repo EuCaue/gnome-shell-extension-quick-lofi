@@ -59,13 +59,19 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       // check if it's a way to prevent to apply
       // TODO: do a better error handling.
       urlRadioRow.connect('apply', (w) => {
-        let isValidUrl: boolean;
         try {
-          isValidUrl = GLib.uri_is_valid(w.text, GLib.UriFlags.NONE);
+          GLib.uri_is_valid(w.text, GLib.UriFlags.NONE);
           const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
           this.updateRadio(index, 'radioUrl', w.text);
         } catch (e) {
-          //  TODO: Change border color to red
+          const currentTitleUrl = urlRadioRow.get_title();
+          urlRadioRow.set_title('Invalid URL');
+          urlRadioRow.add_css_class('error');
+          GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
+            urlRadioRow.set_title(currentTitleUrl);
+            urlRadioRow.remove_css_class('error');
+            return GLib.SOURCE_REMOVE;
+          });
           w.set_text(radioUrl);
         }
       });

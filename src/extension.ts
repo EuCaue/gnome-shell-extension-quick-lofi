@@ -1,7 +1,6 @@
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
-import St1 from '@girs/st-13';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
@@ -38,7 +37,7 @@ class Indicator extends PanelMenu.Button {
     this._extension = Extension.lookupByUUID(UUID);
     const path = this._extension.path;
     const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
-    this.icon = new St1.Icon({
+    this.icon = new St.Icon({
       gicon: gicon,
       styleClass: 'system-status-icon',
       iconSize: 20,
