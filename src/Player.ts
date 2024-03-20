@@ -3,6 +3,8 @@ import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { UUID } from './consts';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { Radio } from './extension';
+import Utils from "./Utils";
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -32,17 +34,29 @@ export class Player {
       this.process.force_exit();
       this.isPlaying = false;
       this.process = null;
+      Utils.deleteTempFile();
+      return;
+    }
+
+    if (this.process === null) {
+      const command = this.createCommand({
+        command: ['quit'],
+      });
+      this.sendCommandToMpvSocket(command);
+      Utils.deleteTempFile();
+      return
     }
   }
 
-  public startPlayer(url: string) {
+  public startPlayer(radio: Radio) {
     this.stopPlayer();
+    Utils.createTempFile(radio.radioName);
     try {
       this.isPlaying = true;
       this.process = Gio.Subprocess.new(
         [
           'mpv',
-          url,
+          radio.radioUrl,
           `--volume=${this._settings.get_int('volume')}`,
           `--input-ipc-server=${this.mpvSocket}`,
           '--no-video',
