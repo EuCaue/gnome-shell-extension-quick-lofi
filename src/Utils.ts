@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 
 export default class Utils {
   public static tempFile;
-  public static consssts readonly tempFilePath = '/tmp/current-radio-playing';
+  public static readonly tempFilePath = '/tmp/current-radio-playing';
 
 
   public static deleteTempFile(): void {

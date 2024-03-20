@@ -111,9 +111,6 @@ class Indicator extends PanelMenu.Button {
 
       if (currentPlayingRadio?.trim() === radio.radioName) {
         activeChild = menuItem;
-        // const path = this._extension.path;
-        // const gicon = Gio.icon_new_for_string(path + '/icon-playing-symbolic.svg');
-        // this.icon.set_gicon(gicon);
       }
 
       menuItem.connect('activate', this._togglePlayingStatus.bind(this));
