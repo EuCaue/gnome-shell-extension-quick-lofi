@@ -8,7 +8,6 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { ICONS, UUID } from './consts';
 import { Player } from './Player';
-import Utils from './Utils';
 let activeChild = null;
 export type Radio = { radioName: string; radioUrl: string };
 
@@ -17,7 +16,7 @@ class Indicator extends PanelMenu.Button {
     GObject.registerClass(this);
   }
 
-  private _mpvPlayer = new Player();
+  public mpvPlayer = new Player();
   private _radios?: Array<Radio>;
   private _settings: Gio.Settings;
   private _extension: Extension;
@@ -33,8 +32,8 @@ class Indicator extends PanelMenu.Button {
 
   constructor() {
     super(0.0, 'Quick Lofi');
-    this._mpvPlayer = new Player();
-    this._mpvPlayer.init();
+    this.mpvPlayer = new Player();
+    this.mpvPlayer.init();
     this._radios = [];
     this._extension = Extension.lookupByUUID(UUID);
     const path = this._extension.path;
@@ -58,7 +57,7 @@ class Indicator extends PanelMenu.Button {
     const currentRadio = this._radios.find((radio) => radio.radioName === child.label.text);
 
     if (child === activeChild) {
-      this._mpvPlayer.stopPlayer();
+      this.mpvPlayer.stopPlayer();
       activeChild.setIcon(ICONS.PLAY);
       activeChild = null;
       const path = this._extension.path;
@@ -72,7 +71,7 @@ class Indicator extends PanelMenu.Button {
         this.icon.set_gicon(gicon);
       }
 
-      this._mpvPlayer.startPlayer(currentRadio);
+      this.mpvPlayer.startPlayer(currentRadio);
       activeChild = child;
       child.setIcon(ICONS.PAUSE);
       const path = this._extension.path;
@@ -96,23 +95,15 @@ class Indicator extends PanelMenu.Button {
     this.menu.box.remove_all_children();
     this._radios = [];
     this._createRadios();
-    this._createMenuItems(null);
+    this._createMenuItems();
   }
 
-  private _createMenuItems(currentPlayingRadio: string | null) {
+  private _createMenuItems() {
     const scrollView = new St.ScrollView();
     const section1 = new PopupMenu.PopupMenuSection();
     scrollView.add_actor(section1.actor);
     this._radios.forEach((radio) => {
-      const menuItem = new PopupMenu.PopupImageMenuItem(
-        radio.radioName,
-        currentPlayingRadio === radio.radioName ? ICONS.PAUSE : ICONS.PLAY,
-      );
-
-      if (currentPlayingRadio?.trim() === radio.radioName) {
-        activeChild = menuItem;
-      }
-
+      const menuItem = new PopupMenu.PopupImageMenuItem(radio.radioName, ICONS.PLAY);
       menuItem.connect('activate', this._togglePlayingStatus.bind(this));
       section1.addMenuItem(menuItem);
     });
@@ -127,8 +118,7 @@ class Indicator extends PanelMenu.Button {
     this._extension = Extension.lookupByUUID(UUID);
     this._createRadios();
     super._init(0.0, 'Quick Lofi');
-    const currentPlayingRadio = Utils.readTempFile();
-    this._createMenuItems(currentPlayingRadio);
+    this._createMenuItems();
     this._handleButtonClick();
   }
 }
@@ -137,21 +127,20 @@ export default class QuickLofi extends Extension {
   _indicator: Indicator = null;
 
   _removeIndicator() {
-    if (this._indicator) {
+    if (this._indicator && (Main.sessionMode.currentMode === 'user' || Main.sessionMode.parentMode === 'user')) {
       console.log('[Quick Lofi] disabled');
+      this._indicator.mpvPlayer.stopPlayer();
       this._indicator.destroy();
       this._indicator = null;
     }
   }
 
   enable() {
-    console.log('[Quick Lofi] enabled');
-    this._indicator = new Indicator();
-    if (Utils.readTempFile()) {
-      const gicon = Gio.icon_new_for_string(this.path + '/icon-playing-symbolic.svg');
-      this._indicator.icon.set_gicon(gicon);
+    if (this._indicator === null) {
+      console.log('[Quick Lofi] enabled');
+      this._indicator = new Indicator();
+      Main.panel.addToStatusArea(this.uuid, this._indicator);
     }
-    Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 
   disable() {
