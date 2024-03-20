@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { UUID } from './consts';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import { Radio } from './extension';
+import { type Radio } from './extension';
 import Utils from "./Utils";
 
 type PlayerCommandString = string;
@@ -12,12 +12,12 @@ type PlayerCommand = {
 };
 
 export class Player {
-  isPlaying: boolean = false;
+  public isPlaying: boolean = false;
   private process: Gio.Subprocess | null = null;
   private readonly mpvSocket: string = '/tmp/quicklofi-socket';
   private readonly _settings = Extension.lookupByUUID(UUID).getSettings();
 
-  public init() {
+  public init(): void {
     this._settings.connect('changed::volume', (settings, key) => {
       if (this.process !== null) {
         const volume = settings.get_int(key);
@@ -29,7 +29,7 @@ export class Player {
     });
   }
 
-  public stopPlayer() {
+  public stopPlayer(): void {
     if (this.process !== null) {
       this.process.force_exit();
       this.isPlaying = false;
@@ -48,7 +48,7 @@ export class Player {
     }
   }
 
-  public startPlayer(radio: Radio) {
+  public startPlayer(radio: Radio): void {
     this.stopPlayer();
     Utils.createTempFile(radio.radioName);
     try {
