@@ -42,7 +42,11 @@ class Indicator extends PanelMenu.Button {
       iconSize: 20,
     });
     this.add_child(this._icon);
-    // FIXME: for some reason, this only work with this._settings, anything else does not work.
+    this._connectSettingsChangedEvent();
+  }
+
+  private _connectSettingsChangedEvent(): void {
+    // HACK: this only work with this._settings, anything else does not work.
     this._settings = Utils.getSettings();
     this._settings.connect('changed', (_, key) => {
       Utils.debug('VRUM');
@@ -128,7 +132,7 @@ export default class QuickLofi extends Extension {
 
   _removeIndicator() {
     if (this._indicator && (Main.sessionMode.currentMode === 'user' || Main.sessionMode.parentMode === 'user')) {
-      console.log('[Quick Lofi] disabled');
+      Utils.debug('disabled');
       this._indicator.mpvPlayer.stopPlayer();
       this._indicator.destroy();
       this._indicator = null;
@@ -137,7 +141,7 @@ export default class QuickLofi extends Extension {
 
   enable() {
     if (this._indicator === null) {
-      console.log('[Quick Lofi] enabled');
+      Utils.debug('enabled');
       this._indicator = new Indicator();
       Main.panel.addToStatusArea(this.uuid, this._indicator);
     }
