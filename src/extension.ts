@@ -8,6 +8,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { ICONS, UUID } from './consts';
 import { Player } from './Player';
+import Utils from './Utils';
 let activeChild = null;
 export type Radio = { radioName: string; radioUrl: string };
 
@@ -18,12 +19,11 @@ class Indicator extends PanelMenu.Button {
 
   public mpvPlayer = new Player();
   private _radios?: Array<Radio>;
-  private _settings: Gio.Settings;
-  private _extension: Extension;
-  public icon: St.Icon;
+  private _settings: Gio.Settings = Utils.getSettings();
+  private _icon: St.Icon;
 
   private _createRadios(): void {
-    const radios: string[] = Extension.lookupByUUID(UUID).getSettings().get_strv('radios');
+    const radios: string[] = Utils.getSettings().get_strv('radios');
     radios.forEach((entry: string) => {
       const [radioName, radioUrl] = entry.split(' - ');
       this._radios.push({ radioName, radioUrl });
@@ -35,22 +35,29 @@ class Indicator extends PanelMenu.Button {
     this.mpvPlayer = new Player();
     this.mpvPlayer.init();
     this._radios = [];
-    this._extension = Extension.lookupByUUID(UUID);
-    const path = this._extension.path;
-    const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
-    this.icon = new St.Icon({
+    const gicon = Gio.icon_new_for_string(Utils.getExtension().path + '/icon-symbolic.svg');
+    this._icon = new St.Icon({
       gicon: gicon,
       styleClass: 'system-status-icon',
       iconSize: 20,
     });
-    this.add_child(this.icon);
-    this._settings = this._extension.getSettings();
+    this.add_child(this._icon);
+    // FIXME: for some reason, this only work with this._settings, anything else does not work.
+    this._settings = Utils.getSettings();
     this._settings.connect('changed', (_, key) => {
+      Utils.debug('VRUM');
       if (key === 'radios') {
         this._updateMenuItems();
       }
     });
     this._createRadios();
+  }
+
+  private _updateIcon(playing: boolean) {
+    const extPath = Utils.getExtension().path;
+    const iconPath = `${extPath}/icon${playing ? '-playing' : ''}-symbolic.svg`;
+    const gicon = Gio.icon_new_for_string(iconPath);
+    this._icon.set_gicon(gicon);
   }
 
   private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem): void {
@@ -60,23 +67,17 @@ class Indicator extends PanelMenu.Button {
       this.mpvPlayer.stopPlayer();
       activeChild.setIcon(ICONS.PLAY);
       activeChild = null;
-      const path = this._extension.path;
-      const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
-      this.icon.set_gicon(gicon);
+      this._updateIcon(false);
     } else {
       if (activeChild) {
         activeChild.setIcon(ICONS.PLAY);
-        const path = this._extension.path;
-        const gicon = Gio.icon_new_for_string(path + '/icon-symbolic.svg');
-        this.icon.set_gicon(gicon);
+        this._updateIcon(false);
       }
 
       this.mpvPlayer.startPlayer(currentRadio);
       activeChild = child;
       child.setIcon(ICONS.PAUSE);
-      const path = this._extension.path;
-      const gicon = Gio.icon_new_for_string(path + '/icon-playing-symbolic.svg');
-      this.icon.set_gicon(gicon);
+      this._updateIcon(true);
     }
   }
   private _handleButtonClick(): void {
@@ -85,13 +86,13 @@ class Indicator extends PanelMenu.Button {
       // right click open the preferences
       if (event.get_button() === 3) {
         this.menu.close(false);
-        this._extension.openPreferences();
+        Utils.getExtension().openPreferences();
         return;
       }
     });
   }
 
-  private _updateMenuItems(): void {
+  public _updateMenuItems(): void {
     this.menu.box.remove_all_children();
     this._radios = [];
     this._createRadios();
@@ -115,7 +116,6 @@ class Indicator extends PanelMenu.Button {
 
   _init() {
     this._radios = [];
-    this._extension = Extension.lookupByUUID(UUID);
     this._createRadios();
     super._init(0.0, 'Quick Lofi');
     this._createMenuItems();
