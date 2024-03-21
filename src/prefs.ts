@@ -4,18 +4,29 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-const TIMEOUT_SECONDS = 5 as const;
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;
   private _radios: string[] = [];
 
-  private addRadio(radioName: string, radioUrl: string): void {
+  private _addRadio(radioName: string, radioUrl: string): void {
     this._radios.push(`${radioName} - ${radioUrl}`);
     this._settings!.set_strv('radios', this._radios);
   }
 
-  private populateRadios(radiosGroup: Adw.PreferencesGroup): void {
+  private _handleErrorRadioRow(radioRow: Adw.EntryRow, errorMessage: string): void {
+    const TIMEOUT_SECONDS = 3 as const;
+    const currentRadioRowTitle = radioRow.get_title();
+    radioRow.add_css_class('error');
+    radioRow.set_title(errorMessage);
+    GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
+      radioRow.set_title(currentRadioRowTitle);
+      radioRow.remove_css_class('error');
+      return GLib.SOURCE_REMOVE;
+    });
+  }
+
+  private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
     for (let i = 0; i < this._radios.length; i++) {
       const [radioName, radioUrl] = this._radios[i].split(' - ');
       const radiosExpander = new Adw.ExpanderRow({ title: _(radioName) });
@@ -42,36 +53,30 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         });
         messsageDialog.connect('response', (_, response) => {
           if (response === Gtk4.ResponseType.OK) {
-            this.removeRadio(i);
-            this.reloadRadios(radiosGroup);
+            this._removeRadio(i);
+            this._reloadRadios(radiosGroup);
           }
           messsageDialog.destroy();
         });
       });
 
       nameRadioRow.connect('apply', (w) => {
-        if (w.text.length >= 2) {
-          const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
-          this.updateRadio(index, 'radioName', w.text);
-          radiosExpander.set_title(w.text);
+        if (w.text.length < 2) {
+          this._handleErrorRadioRow(w, 'Name must be at least 2 characters');
+          w.set_text(radioName);
+          return;
         }
+        const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
+        this._updateRadio(index, 'radioName', w.text);
+        radiosExpander.set_title(w.text);
       });
-      // check if it's a way to prevent to apply
-      // TODO: do a better error handling.
       urlRadioRow.connect('apply', (w) => {
         try {
           GLib.uri_is_valid(w.text, GLib.UriFlags.NONE);
           const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
-          this.updateRadio(index, 'radioUrl', w.text);
+          this._updateRadio(index, 'radioUrl', w.text);
         } catch (e) {
-          const currentTitleUrl = urlRadioRow.get_title();
-          urlRadioRow.set_title('Invalid URL');
-          urlRadioRow.add_css_class('error');
-          GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
-            urlRadioRow.set_title(currentTitleUrl);
-            urlRadioRow.remove_css_class('error');
-            return GLib.SOURCE_REMOVE;
-          });
+          this._handleErrorRadioRow(w, 'Invalid URL');
           w.set_text(radioUrl);
         }
       });
@@ -82,7 +87,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     }
   }
 
-  private reloadRadios(radiosGroup: Adw.PreferencesGroup) {
+  private _reloadRadios(radiosGroup: Adw.PreferencesGroup) {
     let index = 0;
     const l = this._radios.length;
     while (l >= index) {
@@ -96,15 +101,15 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       radiosGroup.remove(child);
       index++;
     }
-    this.populateRadios(radiosGroup);
+    this._populateRadios(radiosGroup);
   }
 
-  private removeRadio(index: number) {
+  private _removeRadio(index: number) {
     this._radios.splice(index, 1);
     this._settings!.set_strv('radios', this._radios);
   }
 
-  private updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
+  private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
     if (index !== -1) {
       const radio = this._radios[index];
       const [radioName, radioUrl] = radio.split(' - ');
@@ -130,13 +135,13 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       icon_name: 'dialog-information-symbolic',
     });
 
-    const paddingGroup = new Adw.PreferencesGroup({
+    const volumeGroup = new Adw.PreferencesGroup({
       title: _('Player Settings'),
       description: _('Configure the player settings'),
     });
-    page.add(paddingGroup);
+    page.add(volumeGroup);
 
-    const paddingInner = new Adw.SpinRow({
+    const volumeLevel = new Adw.SpinRow({
       title: _('Volume'),
       subtitle: _('Volume to set when playing lofi'),
       adjustment: new Gtk.Adjustment({
@@ -145,14 +150,14 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         step_increment: 1,
       }),
     });
-    paddingGroup.add(paddingInner);
+    volumeGroup.add(volumeLevel);
 
     const radiosGroup = new Adw.PreferencesGroup({
       title: _('Radios Settings'),
       description: _('Configure the radio list'),
     });
 
-    this.populateRadios(radiosGroup);
+    this._populateRadios(radiosGroup);
 
     const addRadioGroup = new Adw.PreferencesGroup({
       title: _('Add Radio to the list'),
@@ -171,40 +176,18 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     addButton.connect('clicked', () => {
       try {
         GLib.uri_is_valid(urlRadioRow.text, GLib.UriFlags.NONE); // test if it's a valid URL
-        if (nameRadioRow.text.length >= 2) {
-          this.addRadio(nameRadioRow.text, urlRadioRow.text);
-          nameRadioRow.set_text('');
-          urlRadioRow.set_text('');
-          this.reloadRadios(radiosGroup);
-        } else {
-          const currentTitleName = nameRadioRow.get_title();
-          nameRadioRow.add_css_class('error');
-          nameRadioRow.set_title('Name must be at least 2 characters');
-          GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
-            nameRadioRow.set_title(currentTitleName);
-            nameRadioRow.remove_css_class('error');
-            return GLib.SOURCE_REMOVE;
-          });
-        }
-      } catch (e) {
-        const currentTitleUrl = urlRadioRow.get_title();
-        //  TODO: write the css style for error
-        urlRadioRow.set_title('Invalid URL');
-        urlRadioRow.add_css_class('error');
-        GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
-          urlRadioRow.set_title(currentTitleUrl);
-          urlRadioRow.remove_css_class('error');
-          return GLib.SOURCE_REMOVE;
-        });
         if (nameRadioRow.text.length < 2) {
-          const currentTitleName = nameRadioRow.get_title();
-          nameRadioRow.set_title('Name must be at least 2 characters');
-          nameRadioRow.add_css_class('error');
-          GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
-            nameRadioRow.set_title(currentTitleName);
-            nameRadioRow.remove_css_class('error');
-            return GLib.SOURCE_REMOVE;
-          });
+          this._handleErrorRadioRow(nameRadioRow, 'Name must be at least 2 characters');
+          return;
+        }
+        this._addRadio(nameRadioRow.text, urlRadioRow.text);
+        nameRadioRow.set_text('');
+        urlRadioRow.set_text('');
+        this._reloadRadios(radiosGroup);
+      } catch (e) {
+        this._handleErrorRadioRow(urlRadioRow, 'Invalid URL');
+        if (nameRadioRow.text.length < 2) {
+          this._handleErrorRadioRow(nameRadioRow, 'Name must be at least 2 characters');
         }
       }
     });
@@ -215,6 +198,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     page.add(addRadioGroup);
 
     window.add(page);
-    this._settings!.bind('volume', paddingInner, 'value', Gio.SettingsBindFlags.DEFAULT);
+    this._settings!.bind('volume', volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
   }
 }
