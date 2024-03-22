@@ -8,7 +8,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { Player } from './Player';
 import Utils from './Utils';
-let activeChild: PopupMenu.PopupImageMenuItem | null = null;
+// let activeChild: PopupMenu.PopupImageMenuItem | null = null;
 export type Radio = { radioName: string; radioUrl: string };
 
 class Indicator extends PanelMenu.Button {
@@ -19,6 +19,7 @@ class Indicator extends PanelMenu.Button {
   private _radios?: Array<Radio>;
   private _settings: Gio.Settings = Utils.getSettings();
   private _icon: St.Icon;
+  private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
 
   constructor() {
     super(0.0, 'Quick Lofi');
@@ -57,7 +58,7 @@ class Indicator extends PanelMenu.Button {
 
   private _updateIcon(playing: boolean) {
     const extPath = Utils.getExtension().path;
-    const iconPath = `${extPath}/${playing ? Utils.ICONS.INDICATOR_PLAYING : this.ICONS.INDICATOR_DEFAULT}`;
+    const iconPath = `${extPath}/${playing ? Utils.ICONS.INDICATOR_PLAYING : Utils.ICONS.INDICATOR_DEFAULT}`;
     const gicon = Gio.icon_new_for_string(iconPath);
     this._icon.set_gicon(gicon);
   }
@@ -65,19 +66,19 @@ class Indicator extends PanelMenu.Button {
   private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem): void {
     const currentRadio = this._radios.find((radio) => radio.radioName === child.label.text);
 
-    if (child === activeChild) {
+    if (child === this._activeRadioPopupItem) {
       this.mpvPlayer.stopPlayer();
-      activeChild.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
-      activeChild = null;
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      this._activeRadioPopupItem = null;
       this._updateIcon(false);
     } else {
-      if (activeChild) {
-        activeChild.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      if (this._activeRadioPopupItem) {
+        this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
         this._updateIcon(false);
       }
 
       this.mpvPlayer.startPlayer(currentRadio);
-      activeChild = child;
+      this._activeRadioPopupItem = child;
       child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PAUSE));
       this._updateIcon(true);
     }
@@ -138,6 +139,7 @@ export default class QuickLofi extends Extension {
       this._indicator.mpvPlayer.stopPlayer();
       this._indicator.destroy();
       this._indicator = null;
+      // activeChild = null;
     }
   }
 
