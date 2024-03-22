@@ -11,8 +11,8 @@
 > Play **lofi music** on your Gnome desktop with just a click!
 
 ## Demo
-[quick-lofi-demo.webm](https://github.com/EuCaue/quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
 
+[quick-lofi-demo.webm](https://github.com/EuCaue/quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
 
 ## Dependencies
 
@@ -57,6 +57,7 @@ npm install
 ```bash
 npm run build && gnome-extensions install --force quick-lofi@eucaue.zip && clear && dbus-run-session -- gnome-shell --nested --wayland
 ```
+
 ---
 
 Any new file that should be added to the extension should be added to `esbuild.js` file, to be bundled with the extension.
