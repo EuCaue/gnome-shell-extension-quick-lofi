@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 console.debug(`Building ${metadata.name} v${metadata.version}...`);
 
 build({
-  entryPoints: ['src/extension.ts', 'src/prefs.ts', 'src/consts.ts'],
+  entryPoints: ['src/extension.ts', 'src/prefs.ts'],
   outdir: 'dist',
   bundle: true,
   treeShaking: false,

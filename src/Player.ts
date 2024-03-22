@@ -1,9 +1,8 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import { UUID } from './consts';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { type Radio } from './extension';
+import Utils from './Utils';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -12,13 +11,13 @@ type PlayerCommand = {
 
 export class Player {
   public isPlaying: boolean = false;
-  private process: Gio.Subprocess | null = null;
-  private readonly mpvSocket: string = '/tmp/quicklofi-socket';
-  private readonly _settings = Extension.lookupByUUID(UUID).getSettings();
+  private _process: Gio.Subprocess | null = null;
+  private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
+  private readonly _settings = Utils.getSettings();
 
   public init(): void {
     this._settings.connect('changed::volume', (settings, key) => {
-      if (this.process !== null) {
+      if (this._process !== null) {
         const volume = settings.get_int(key);
         const command = this.createCommand({
           command: ['set_property', 'volume', volume],
@@ -29,10 +28,10 @@ export class Player {
   }
 
   public stopPlayer(): void {
-    if (this.process !== null) {
-      this.process.force_exit();
+    if (this._process !== null) {
+      this._process.force_exit();
       this.isPlaying = false;
-      this.process = null;
+      this._process = null;
       return;
     }
   }
@@ -41,19 +40,19 @@ export class Player {
     this.stopPlayer();
     try {
       this.isPlaying = true;
-      this.process = Gio.Subprocess.new(
+      this._process = Gio.Subprocess.new(
         [
           'mpv',
           radio.radioUrl,
           `--volume=${this._settings.get_int('volume')}`,
-          `--input-ipc-server=${this.mpvSocket}`,
+          `--input-ipc-server=${this._mpvSocket}`,
           '--no-video',
         ],
         Gio.SubprocessFlags.NONE,
       );
     } catch (e) {
       this.isPlaying = false;
-      this.process = null;
+      this._process = null;
       Main.notifyError(
         'MPV not found',
         'Did you have mpv installed?\nhttps://github.com/EuCaue/quick-lofi?tab=readme-ov-file#dependencies',
@@ -68,7 +67,7 @@ export class Player {
 
   private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
     //  TODO: use native socket with GJS in the future.
-    const socatCommand = ['|', 'socat', '-', this.mpvSocket];
+    const socatCommand = ['|', 'socat', '-', this._mpvSocket];
     const [success, _] = GLib.spawn_async(
       null,
       ['/bin/sh', '-c', mpvCommand + ' ' + socatCommand.join(' ')],
