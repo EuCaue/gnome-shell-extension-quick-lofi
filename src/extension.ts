@@ -6,36 +6,26 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { ICONS, UUID } from './consts';
 import { Player } from './Player';
 import Utils from './Utils';
-let activeChild = null;
+let activeChild: PopupMenu.PopupImageMenuItem | null = null;
 export type Radio = { radioName: string; radioUrl: string };
 
 class Indicator extends PanelMenu.Button {
   static {
     GObject.registerClass(this);
   }
-
   public mpvPlayer = new Player();
   private _radios?: Array<Radio>;
   private _settings: Gio.Settings = Utils.getSettings();
   private _icon: St.Icon;
-
-  private _createRadios(): void {
-    const radios: string[] = Utils.getSettings().get_strv('radios');
-    radios.forEach((entry: string) => {
-      const [radioName, radioUrl] = entry.split(' - ');
-      this._radios.push({ radioName, radioUrl });
-    });
-  }
 
   constructor() {
     super(0.0, 'Quick Lofi');
     this.mpvPlayer = new Player();
     this.mpvPlayer.init();
     this._radios = [];
-    const gicon = Gio.icon_new_for_string(Utils.getExtension().path + '/icon-symbolic.svg');
+    const gicon = Gio.icon_new_for_string(Utils.getExtension().path + Utils.ICONS.INDICATOR_DEFAULT);
     this._icon = new St.Icon({
       gicon: gicon,
       styleClass: 'system-status-icon',
@@ -43,6 +33,14 @@ class Indicator extends PanelMenu.Button {
     });
     this.add_child(this._icon);
     this._connectSettingsChangedEvent();
+  }
+
+  private _createRadios(): void {
+    const radios: string[] = Utils.getSettings().get_strv('radios');
+    radios.forEach((entry: string) => {
+      const [radioName, radioUrl] = entry.split(' - ');
+      this._radios.push({ radioName, radioUrl });
+    });
   }
 
   private _connectSettingsChangedEvent(): void {
@@ -59,7 +57,7 @@ class Indicator extends PanelMenu.Button {
 
   private _updateIcon(playing: boolean) {
     const extPath = Utils.getExtension().path;
-    const iconPath = `${extPath}/icon${playing ? '-playing' : ''}-symbolic.svg`;
+    const iconPath = `${extPath}/${playing ? Utils.ICONS.INDICATOR_PLAYING : this.ICONS.INDICATOR_DEFAULT}`;
     const gicon = Gio.icon_new_for_string(iconPath);
     this._icon.set_gicon(gicon);
   }
@@ -69,26 +67,25 @@ class Indicator extends PanelMenu.Button {
 
     if (child === activeChild) {
       this.mpvPlayer.stopPlayer();
-      activeChild.setIcon(ICONS.PLAY);
+      activeChild.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
       activeChild = null;
       this._updateIcon(false);
     } else {
       if (activeChild) {
-        activeChild.setIcon(ICONS.PLAY);
+        activeChild.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
         this._updateIcon(false);
       }
 
       this.mpvPlayer.startPlayer(currentRadio);
       activeChild = child;
-      child.setIcon(ICONS.PAUSE);
+      child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PAUSE));
       this._updateIcon(true);
     }
   }
   private _handleButtonClick(): void {
-    this.connect('button-press-event', (actor, event) => {
-      // 1 = left click, 2 = midle click, 3 = right click;
-      // right click open the preferences
-      if (event.get_button() === 3) {
+    this.connect('button-press-event', (_, event) => {
+      const RIGHT_CLICK = 3;
+      if (event.get_button() === RIGHT_CLICK) {
         this.menu.close(false);
         Utils.getExtension().openPreferences();
         return;
@@ -108,7 +105,10 @@ class Indicator extends PanelMenu.Button {
     const section1 = new PopupMenu.PopupMenuSection();
     scrollView.add_actor(section1.actor);
     this._radios.forEach((radio) => {
-      const menuItem = new PopupMenu.PopupImageMenuItem(radio.radioName, ICONS.PLAY);
+      const menuItem = new PopupMenu.PopupImageMenuItem(
+        radio.radioName,
+        Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY),
+      );
       menuItem.connect('activate', this._togglePlayingStatus.bind(this));
       section1.addMenuItem(menuItem);
     });
@@ -131,8 +131,10 @@ export default class QuickLofi extends Extension {
   _indicator: Indicator = null;
 
   _removeIndicator() {
-    if (this._indicator && (Main.sessionMode.currentMode === 'user' || Main.sessionMode.parentMode === 'user')) {
-      Utils.debug('disabled');
+    // do not disable extension while is in lock screen, to continue playing music, but disable when it's not in lock screen.
+    const isUserMode = Main.sessionMode.currentMode === 'user' || Main.sessionMode.parentMode === 'user';
+    if (this._indicator && isUserMode) {
+      Utils.debug('extension disabled');
       this._indicator.mpvPlayer.stopPlayer();
       this._indicator.destroy();
       this._indicator = null;
@@ -141,7 +143,7 @@ export default class QuickLofi extends Extension {
 
   enable() {
     if (this._indicator === null) {
-      Utils.debug('enabled');
+      Utils.debug('extension enabled');
       this._indicator = new Indicator();
       Main.panel.addToStatusArea(this.uuid, this._indicator);
     }
