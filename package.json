@@ -1,7 +1,7 @@
 {
   "name": "quick-lofi",
   "version": "0.0.0",
-  "description": "Play lofi easily.",
+  "description": "Relax to lo-fi tunes with just a click.",
   "type": "module",
   "private": true,
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
     "type": "git",
     "url": "git+https://github.com/eucaue/quick-lofi.git"
   },
-  "author": "Álan Crístoffer e Sousa <acristoffers@startmail.com>",
+  "author": "Cauê Souza <souzacaue@proton.me>",
   "license": "LGPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/eucaue/quick-lofi/issues"

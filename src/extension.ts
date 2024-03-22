@@ -8,7 +8,6 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { Player } from './Player';
 import Utils from './Utils';
-// let activeChild: PopupMenu.PopupImageMenuItem | null = null;
 export type Radio = { radioName: string; radioUrl: string };
 
 class Indicator extends PanelMenu.Button {
@@ -139,7 +138,6 @@ export default class QuickLofi extends Extension {
       this._indicator.mpvPlayer.stopPlayer();
       this._indicator.destroy();
       this._indicator = null;
-      // activeChild = null;
     }
   }
 
