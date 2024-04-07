@@ -114,7 +114,7 @@ class Indicator extends PanelMenu.Button {
     });
     this.menu.box.add_child(scrollView);
     this.menu.box.style = `
-        max-height: 200px;
+        max-height: 13em;
     `;
   }
 
