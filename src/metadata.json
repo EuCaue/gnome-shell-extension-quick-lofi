@@ -1,6 +1,6 @@
 {
   "name": "Quick Lofi",
-  "description": "Relax to lo-fi tunes with just a click.",
+  "description": "Relax to lo-fi tunes with just a click.\n\nYou need to install MPV and SOCAT: https://github.com/EuCaue/quick-lofi?tab=readme-ov-file#dependencies",
   "uuid": "quick-lofi@eucaue",
   "url": "https://github.com/eucaue/quick-lofi",
   "settings-schema": "org.gnome.shell.extensions.quick-lofi",
