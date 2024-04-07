@@ -14,10 +14,11 @@ export class Player {
   private _process: Gio.Subprocess | null = null;
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
   private readonly _settings = Utils.getSettings();
+  private _isCommandRunning: boolean = false;
 
   public init(): void {
     this._settings.connect('changed::volume', (settings, key) => {
-      if (this._process !== null) {
+      if (this._process !== null && !this._isCommandRunning) {
         const volume = settings.get_int(key);
         const command = this.createCommand({
           command: ['set_property', 'volume', volume],
@@ -67,6 +68,7 @@ export class Player {
 
   private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
     //  TODO: use native socket with GJS in the future.
+    this._isCommandRunning = true;
     const socatCommand = ['|', 'socat', '-', this._mpvSocket];
     const [success, _] = GLib.spawn_async(
       null,
@@ -75,6 +77,7 @@ export class Player {
       GLib.SpawnFlags.SEARCH_PATH,
       null,
     );
+    this._isCommandRunning = false;
     if (!success) {
       Main.notifyError(
         'Socat not found',
