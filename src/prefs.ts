@@ -2,6 +2,8 @@ import Gtk from 'gi://Gtk';
 import Gtk4 from '@girs/gtk-4.0';
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
+import Gdk from '@girs/gdk-4.0';
+
 import GLib from 'gi://GLib';
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
@@ -29,7 +31,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
     for (let i = 0; i < this._radios.length; i++) {
       const [radioName, radioUrl] = this._radios[i].split(' - ');
-      const radiosExpander = new Adw.ExpanderRow({ title: _(radioName) });
+      const radiosExpander = new Adw.ExpanderRow({ title: _(radioName), cursor: new Gdk.Cursor({ name: 'pointer' }) });
       const nameRadioRow = new Adw.EntryRow({
         title: _('Radio Name'),
         text: _(radioName),
@@ -39,6 +41,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       const removeButton = new Gtk4.Button({
         label: `Remove ${radioName}`,
         iconName: 'user-trash-symbolic',
+        cursor: new Gdk.Cursor({ name: 'pointer' }),
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
       });
@@ -144,6 +147,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     const volumeLevel = new Adw.SpinRow({
       title: _('Volume'),
       subtitle: _('Volume to set when playing lofi'),
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
       adjustment: new Gtk.Adjustment({
         lower: 0,
         upper: 100,
@@ -168,6 +172,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     const addButton = new Gtk4.Button({
       label: _('Add Radio'),
       iconName: 'list-add-symbolic',
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
       halign: Gtk.Align.CENTER,
       valign: Gtk.Align.CENTER,
       marginTop: 10,
