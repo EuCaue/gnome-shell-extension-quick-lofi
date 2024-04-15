@@ -2,9 +2,9 @@ import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
-import Main from '@girs/gnome-shell/ui/main';
-import PanelMenu from '@girs/gnome-shell/ui/panelMenu';
-import PopupMenu from '@girs/gnome-shell/ui/popupMenu';
+import * as Main from '@girs/gnome-shell/ui/main';
+import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
+import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import Player from './Player';
 import Utils from './Utils';
 
