@@ -1,20 +1,20 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import Main from '@girs/gnome-shell/ui/main';
 import { type Radio } from './extension';
-import Utils from './Utils';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
 
-export class Player {
-  public isPlaying: boolean = false;
-  private _process: Gio.Subprocess | null = null;
+export default class Player {
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
-  private readonly _settings = Utils.getSettings();
+  private _isPlaying: boolean = false;
   private _isCommandRunning: boolean = false;
+  private _process: Gio.Subprocess | null = null;
+
+  constructor(private _settings: Gio.Settings) {}
 
   public init(): void {
     this._settings.connect('changed::volume', (settings, key) => {
@@ -31,7 +31,7 @@ export class Player {
   public stopPlayer(): void {
     if (this._process !== null) {
       this._process.force_exit();
-      this.isPlaying = false;
+      this._isPlaying = false;
       this._process = null;
       return;
     }
@@ -40,7 +40,7 @@ export class Player {
   public startPlayer(radio: Radio): void {
     this.stopPlayer();
     try {
-      this.isPlaying = true;
+      this._isPlaying = true;
       this._process = Gio.Subprocess.new(
         [
           'mpv',
@@ -52,7 +52,7 @@ export class Player {
         Gio.SubprocessFlags.NONE,
       );
     } catch (e) {
-      this.isPlaying = false;
+      this._isPlaying = false;
       this._process = null;
       Main.notifyError(
         'MPV not found',
