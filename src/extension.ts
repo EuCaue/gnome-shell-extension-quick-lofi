@@ -1,42 +1,47 @@
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-
-import { Player } from './Player';
+import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
+import Main from '@girs/gnome-shell/ui/main';
+import PanelMenu from '@girs/gnome-shell/ui/panelMenu';
+import PopupMenu from '@girs/gnome-shell/ui/popupMenu';
+import Player from './Player';
 import Utils from './Utils';
+
 export type Radio = { radioName: string; radioUrl: string };
 
 class Indicator extends PanelMenu.Button {
   static {
     GObject.registerClass(this);
   }
-  public mpvPlayer = new Player();
-  private _radios?: Array<Radio>;
-  private _settings: Gio.Settings = Utils.getSettings();
-  private _icon: St.Icon;
+  public mpvPlayer: Player;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
+  private _radios?: Array<Radio>;
+  private _settings: Gio.Settings;
+  private _icon: St.Icon;
+  private _extension: Extension;
 
-  constructor() {
+  constructor(ext: Extension) {
     super(0.0, 'Quick Lofi');
-    this.mpvPlayer = new Player();
+    this._extension = ext;
+    this.mpvPlayer = new Player(this._extension.getSettings());
     this.mpvPlayer.init();
     this._radios = [];
-    const gicon = Gio.icon_new_for_string(Utils.getExtension().path + Utils.ICONS.INDICATOR_DEFAULT);
+    const gicon = Gio.icon_new_for_string(this._extension.path + Utils.ICONS.INDICATOR_DEFAULT);
     this._icon = new St.Icon({
       gicon: gicon,
       styleClass: 'system-status-icon',
       iconSize: 20,
     });
     this.add_child(this._icon);
+    this._createRadios();
     this._connectSettingsChangedEvent();
+    this._createMenuItems();
+    this._handleButtonClick();
   }
 
   private _createRadios(): void {
-    const radios: string[] = Utils.getSettings().get_strv('radios');
+    const radios: string[] = this._extension.getSettings().get_strv('radios');
     radios.forEach((entry: string) => {
       const [radioName, radioUrl] = entry.split(' - ');
       this._radios.push({ radioName, radioUrl });
@@ -45,18 +50,16 @@ class Indicator extends PanelMenu.Button {
 
   private _connectSettingsChangedEvent(): void {
     // HACK: this only work with this._settings, anything else does not work.
-    this._settings = Utils.getSettings();
+    this._settings = this._extension.getSettings();
     this._settings.connect('changed', (_, key) => {
-      Utils.debug('VRUM');
       if (key === 'radios') {
         this._updateMenuItems();
       }
     });
-    this._createRadios();
   }
 
   private _updateIcon(playing: boolean) {
-    const extPath = Utils.getExtension().path;
+    const extPath = this._extension.path;
     const iconPath = `${extPath}/${playing ? Utils.ICONS.INDICATOR_PLAYING : Utils.ICONS.INDICATOR_DEFAULT}`;
     const gicon = Gio.icon_new_for_string(iconPath);
     this._icon.set_gicon(gicon);
@@ -82,12 +85,13 @@ class Indicator extends PanelMenu.Button {
       this._updateIcon(true);
     }
   }
+
   private _handleButtonClick(): void {
     this.connect('button-press-event', (_, event) => {
       const RIGHT_CLICK = 3;
       if (event.get_button() === RIGHT_CLICK) {
         this.menu.close(false);
-        Utils.getExtension().openPreferences();
+        this._extension.openPreferences();
         return;
       }
     });
@@ -114,39 +118,32 @@ class Indicator extends PanelMenu.Button {
     });
     this.menu.box.add_child(scrollView);
     this.menu.box.style = `
-        max-height: 13em;
+        max-height: 12em;
     `;
-  }
-
-  _init() {
-    this._radios = [];
-    this._createRadios();
-    super._init(0.0, 'Quick Lofi');
-    this._createMenuItems();
-    this._handleButtonClick();
   }
 }
 
 export default class QuickLofi extends Extension {
-  _indicator: Indicator = null;
+  _indicator: Indicator | null = null;
+  _settings: Gio.Settings | null = null;
+
+  constructor(props: ExtensionMetadata) {
+    super(props);
+  }
 
   _removeIndicator() {
-    // do not disable extension while is in lock screen, to continue playing music, but disable when it's not in lock screen.
-    const isUserMode = Main.sessionMode.currentMode === 'user' || Main.sessionMode.parentMode === 'user';
-    if (this._indicator && isUserMode) {
-      Utils.debug('extension disabled');
-      this._indicator.mpvPlayer.stopPlayer();
-      this._indicator.destroy();
-      this._indicator = null;
-    }
+    Utils.debug('extension disabled');
+    this._indicator?.mpvPlayer.stopPlayer();
+    this._indicator.destroy();
+    this._indicator = null;
+    this._settings = null;
   }
 
   enable() {
-    if (this._indicator === null) {
-      Utils.debug('extension enabled');
-      this._indicator = new Indicator();
-      Main.panel.addToStatusArea(this.uuid, this._indicator);
-    }
+    Utils.debug('extension enabled');
+    this._settings = this.getSettings();
+    this._indicator = new Indicator(this);
+    Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 
   disable() {

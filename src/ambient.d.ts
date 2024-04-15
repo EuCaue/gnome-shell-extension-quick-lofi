@@ -1,5 +1,9 @@
 import '@girs/gjs';
 import '@girs/gjs/dom';
+import '@girs/gtk-4.0';
 import '@girs/gdk-4.0';
 import '@girs/gnome-shell/ambient';
+import '@girs/gnome-shell/ui/main';
+import '@girs/gnome-shell/ui/papelMenu';
+import '@girs/gnome-shell/ui/popupMenu';
 import '@girs/gnome-shell/extensions/global';
