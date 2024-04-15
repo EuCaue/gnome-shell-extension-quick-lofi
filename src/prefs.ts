@@ -1,11 +1,9 @@
-import Gtk from 'gi://Gtk';
-import Gtk4 from '@girs/gtk-4.0';
+import Gtk4 from 'gi://Gtk';
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
-import Gdk from '@girs/gdk-4.0';
-
+import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
-import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences, gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;
@@ -42,8 +40,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         label: `Remove ${radioName}`,
         iconName: 'user-trash-symbolic',
         cursor: new Gdk.Cursor({ name: 'pointer' }),
-        halign: Gtk.Align.CENTER,
-        valign: Gtk.Align.CENTER,
+        halign: Gtk4.Align.CENTER,
+        valign: Gtk4.Align.CENTER,
       });
 
       removeButton.connect('clicked', () => {
@@ -142,18 +140,20 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       title: _('Player Settings'),
       description: _('Configure the player settings'),
     });
+
     page.add(volumeGroup);
 
     const volumeLevel = new Adw.SpinRow({
       title: _('Volume'),
       subtitle: _('Volume to set when playing lofi'),
       cursor: new Gdk.Cursor({ name: 'pointer' }),
-      adjustment: new Gtk.Adjustment({
+      adjustment: new Gtk4.Adjustment({
         lower: 0,
         upper: 100,
         step_increment: 1,
       }),
     });
+
     volumeGroup.add(volumeLevel);
 
     const radiosGroup = new Adw.PreferencesGroup({
@@ -173,8 +173,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       label: _('Add Radio'),
       iconName: 'list-add-symbolic',
       cursor: new Gdk.Cursor({ name: 'pointer' }),
-      halign: Gtk.Align.CENTER,
-      valign: Gtk.Align.CENTER,
+      halign: Gtk4.Align.CENTER,
+      valign: Gtk4.Align.CENTER,
       marginTop: 10,
     });
 
@@ -201,6 +201,11 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     addRadioGroup.add(addButton);
     page.add(radiosGroup);
     page.add(addRadioGroup);
+
+    window.connect('close-request', () => {
+      this._settings = null;
+      this._radios = null;
+    });
 
     window.add(page);
     this._settings!.bind('volume', volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
