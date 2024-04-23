@@ -107,7 +107,7 @@ class Indicator extends PanelMenu.Button {
   private _createMenuItems() {
     const scrollView = new St.ScrollView();
     const section1 = new PopupMenu.PopupMenuSection();
-    scrollView.add_actor(section1.actor);
+    scrollView.add_child(section1.actor);
     this._radios.forEach((radio) => {
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
