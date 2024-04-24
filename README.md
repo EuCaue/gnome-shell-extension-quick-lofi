@@ -12,7 +12,7 @@
 
 ## Demo
 
-[quick-lofi-demo.webm](https://github.com/EuCaue/quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
+[quick-lofi-demo.webm](https://github.com/EuCaue/gnome-shell-quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
 
 ## Dependencies
 

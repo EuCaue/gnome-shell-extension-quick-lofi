@@ -2,7 +2,7 @@
   "name": "Quick Lofi",
   "description": "Relax to lo-fi tunes with just a click.\n\nYou need MPV and socat for this extension to work.\n\nFedora: sudo dnf install mpv socat\nUbuntu: sudo apt install mpv socat\nArch Linux: sudo pacman -S mpv socat",
   "uuid": "quick-lofi@eucaue",
-  "url": "https://github.com/eucaue/quick-lofi",
+  "url": "https://github.com/eucaue/gnome-shell-quick-lofi",
   "settings-schema": "org.gnome.shell.extensions.quick-lofi",
   "shell-version": ["46"]
 }

@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eucaue/quick-lofi.git"
+    "url": "git+https://github.com/eucaue/gnome-shell-quick-lofi.git"
   },
   "author": "Cauê Souza <souzacaue@proton.me>",
   "license": "LGPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/eucaue/quick-lofi/issues"
+    "url": "https://github.com/eucaue/gnome-shell-quick-lofi/issues"
   },
-  "homepage": "https://github.com/eucaue/quick-lofi#readme",
+  "homepage": "https://github.com/eucaue/gnome-shell-quick-lofi#readme",
   "sideEffects": false,
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.1.0",
