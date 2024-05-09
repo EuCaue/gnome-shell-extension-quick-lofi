@@ -46,7 +46,7 @@ export default class Player {
       this._process = null;
       Main.notifyError(
         'MPV not found',
-        'Did you have mpv installed?\nhttps://github.com/EuCaue/gnome-shell-quick-lofi?tab=readme-ov-file#dependencies',
+        'Did you have mpv installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
       );
     }
   }
@@ -71,7 +71,7 @@ export default class Player {
     if (!success) {
       Main.notifyError(
         'Socat not found',
-        'Did you have socat installed?\nhttps://github.com/EuCaue/gnome-shell-quick-lofi?tab=readme-ov-file#dependencies',
+        'Did you have socat installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
       );
     }
   }
