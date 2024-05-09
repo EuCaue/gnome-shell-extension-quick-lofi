@@ -10,7 +10,6 @@ type PlayerCommand = {
 
 export default class Player {
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
-  private _isPlaying: boolean = false;
   private _isCommandRunning: boolean = false;
   private _process: Gio.Subprocess | null = null;
 
@@ -31,7 +30,6 @@ export default class Player {
   public stopPlayer(): void {
     if (this._process !== null) {
       this._process.force_exit();
-      this._isPlaying = false;
       this._process = null;
       return;
     }
@@ -40,19 +38,11 @@ export default class Player {
   public startPlayer(radio: Radio): void {
     this.stopPlayer();
     try {
-      this._isPlaying = true;
-      this._process = Gio.Subprocess.new(
-        [
-          'mpv',
-          radio.radioUrl,
-          `--volume=${this._settings.get_int('volume')}`,
-          `--input-ipc-server=${this._mpvSocket}`,
-          '--no-video',
-        ],
-        Gio.SubprocessFlags.NONE,
+      const [, argv] = GLib.shell_parse_argv(
+        `mpv --volume=${this._settings.get_int('volume')} --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' ${radio.radioUrl}`,
       );
+      this._process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
     } catch (e) {
-      this._isPlaying = false;
       this._process = null;
       Main.notifyError(
         'MPV not found',
