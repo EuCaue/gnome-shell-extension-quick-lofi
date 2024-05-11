@@ -16,7 +16,8 @@
 
 ## Dependencies
 
-The app depends on `mpv` to play the music, you can install it with the following command:
+The app depends on `mpv` to play the music,
+which you can install it with the following command:
 
 ```bash
 # Fedora
@@ -29,7 +30,8 @@ sudo apt install mpv
 sudo pacman -S mpv
 ```
 
-And for now, this depends too on the `socat` package, you can install it with the following command:
+Additionally, for now, it depends on the `socat` package.
+You can install it using the following command:
 
 ```bash
 # Fedora
@@ -46,13 +48,12 @@ sudo pacman -S socat
 
 1. Install Dependencies
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 2. Build and run the extension
-
-<small>This will build the extension, install it and open a nested gnome-shell. (wayland-only)</small>
+   <small>This command will build the extension, install it, and open a nested gnome-shell. (wayland-only)</small>
 
 ```bash
 npm run build && gnome-extensions install --force quick-lofi@eucaue.zip && clear && dbus-run-session -- gnome-shell --nested --wayland
@@ -60,6 +61,7 @@ npm run build && gnome-extensions install --force quick-lofi@eucaue.zip && clear
 
 ---
 
-Any new file that should be added to the extension should be added to `esbuild.js` file, to be bundled with the extension.
+Any new file that should be added to the extension should be added to
+the `esbuild.js` file to be bundled with the extension.
 
 [GJS Docs](https://gjs.guide/)
