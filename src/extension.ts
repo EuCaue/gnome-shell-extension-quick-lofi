@@ -17,14 +17,13 @@ class Indicator extends PanelMenu.Button {
   public mpvPlayer: Player;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
   private _radios?: Array<Radio>;
-  private _settings: Gio.Settings;
   private _icon: St.Icon;
   private _extension: Extension;
 
   constructor(ext: Extension) {
     super(0.0, 'Quick Lofi');
     this._extension = ext;
-    this.mpvPlayer = new Player(this._extension.getSettings());
+    this.mpvPlayer = new Player(this._extension._settings);
     this.mpvPlayer.init();
     this._radios = [];
     const gicon = Gio.icon_new_for_string(this._extension.path + Utils.ICONS.INDICATOR_DEFAULT);
@@ -41,7 +40,7 @@ class Indicator extends PanelMenu.Button {
   }
 
   private _createRadios(): void {
-    const radios: string[] = this._extension.getSettings().get_strv('radios');
+    const radios: string[] = this._extension._settings.get_strv('radios');
     radios.forEach((entry: string) => {
       const [radioName, radioUrl] = entry.split(' - ');
       this._radios.push({ radioName, radioUrl });
@@ -50,15 +49,14 @@ class Indicator extends PanelMenu.Button {
 
   private _connectSettingsChangedEvent(): void {
     // HACK: this only work with this._settings, anything else does not work.
-    this._settings = this._extension.getSettings();
-    this._settings.connect('changed', (_, key) => {
+    this._extension._settings.connect('changed', (_, key) => {
       if (key === 'radios') {
         this._updateMenuItems();
       }
     });
   }
 
-  private _updateIcon(playing: boolean) {
+  private _updateIcon(playing: boolean): void {
     const extPath = this._extension.path;
     const iconPath = `${extPath}/${playing ? Utils.ICONS.INDICATOR_PLAYING : Utils.ICONS.INDICATOR_DEFAULT}`;
     const gicon = Gio.icon_new_for_string(iconPath);
@@ -104,7 +102,7 @@ class Indicator extends PanelMenu.Button {
     this._createMenuItems();
   }
 
-  private _createMenuItems() {
+  private _createMenuItems(): void {
     const scrollView = new St.ScrollView();
     const section1 = new PopupMenu.PopupMenuSection();
     scrollView.add_child(section1.actor);
