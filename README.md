@@ -10,7 +10,10 @@
 
 > Play **lofi music** on your Gnome desktop with just a click!
 
+[<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
+
 ## Demo
+
 
 [quick-lofi-demo.webm](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
 
