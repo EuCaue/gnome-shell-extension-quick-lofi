@@ -9,6 +9,11 @@
     "clear": "rm -rf dist",
     "build:app": "node esbuild.js",
     "build": "npm run clear && npm run build:app",
+    "install:extension": "gnome-extensions install --force quick-lofi@eucaue.zip",
+    "wayland-session": "dbus-run-session -- gnome-shell --nested --wayland",
+    "dev": "npm run build && npm run install:extension && npm run wayland-session",
+    "prod": "npm run build && npm run install:extension",
+    "compile-schemas": "glib-compile-schemas schemas/",
     "validate": "tsc --noEmit",
     "lint": "prettier --check . & eslint . --ext .ts",
     "format": "prettier --write . && eslint . --ext .ts --fix"
