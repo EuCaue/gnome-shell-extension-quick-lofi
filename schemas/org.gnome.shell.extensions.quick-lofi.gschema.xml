@@ -6,10 +6,24 @@
       <summary>Volume</summary>
       <description>Volume to set when playing lofi</description>
     </key>
+
     <key name="radios" type="as">
       <default>['Lofi Girl - https://play.streamafrica.net/lofiradio', 'Lofi Hunter - https://live.hunter.fm/lofi_high', 'Lofi Hip-hop - http://hyades.shoutca.st:8043/stream']</default>
       <summary>Radios</summary>
       <description>List of available radio stations</description>
     </key>
+
+    <key name="set-popup-max-height" type="b">
+      <default>true</default>
+      <summary>Overflow quick lofi popup</summary>
+      <description>If enabled, it will make the popup have a max height</description>
+    </key>
+
+    <key name="popup-max-height" type="s">
+      <default>"13em"</default>
+      <summary>Height for Quick Lofi popup</summary>
+      <description>This will set the height for the popup</description>
+    </key>
+
   </schema>
 </schemalist>

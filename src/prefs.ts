@@ -156,6 +156,41 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
 
     volumeGroup.add(volumeLevel);
 
+    const popupGroup = new Adw.PreferencesGroup({
+      title: _('Popup Settings'),
+      description: _('Configure the popup behavior'),
+    });
+
+    const setPopupMaxHeightRow = new Adw.SwitchRow({
+      title: _('Set Popup Max Height'),
+      subtitle: _('Enable to set a maximum height for the popup'),
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+
+    const popupMaxHeight = new Adw.EntryRow({
+      title: _('Popup Max Height'),
+      text: this._settings.get_string('popup-max-height'),
+      visible: this._settings.get_boolean('set-popup-max-height'),
+      showApplyButton: true,
+    });
+
+    popupMaxHeight.connect('apply', (w) => {
+      const VALID_CSS_TYPES: Array<string> = ['px', 'pt', 'em', 'ex', 'rem', 'pc', 'in', 'cm', 'mm'];
+      const regex = new RegExp(`^\\d+(\\.\\d+)?(${VALID_CSS_TYPES.join('|')})$`);
+      if (!regex.test(w.text)) {
+        const defaultValue = this._settings.get_default_value('popup-max-height').get_string()[0];
+        this._handleErrorRadioRow(w, 'Invalid CSS value');
+        w.set_text(defaultValue);
+        this._settings.set_string('popup-max-height', defaultValue);
+        return;
+      }
+      this._settings.set_string('popup-max-height', w.text);
+      return;
+    });
+    popupGroup.add(setPopupMaxHeightRow);
+    popupGroup.add(popupMaxHeight);
+    page.add(popupGroup);
+
     const radiosGroup = new Adw.PreferencesGroup({
       title: _('Radios Settings'),
       description: _('Configure the radio list'),
@@ -209,5 +244,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
 
     window.add(page);
     this._settings!.bind('volume', volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind('set-popup-max-height', setPopupMaxHeightRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind('set-popup-max-height', popupMaxHeight, 'visible', Gio.SettingsBindFlags.DEFAULT);
   }
 }

@@ -47,12 +47,27 @@ class Indicator extends PanelMenu.Button {
     });
   }
 
+  private _handlePopupMaxHeight(): void {
+    const isPopupMaxHeightSet = this._extension._settings.get_boolean('set-popup-max-height');
+    const popupMaxHeight = this._extension._settings.get_string('popup-max-height');
+    const styleString = isPopupMaxHeightSet ? popupMaxHeight : 'auto';
+    this.menu.box.style = `
+        max-height: ${styleString};
+      `;
+  }
+
   private _connectSettingsChangedEvent(): void {
     // HACK: this only work with this._settings, anything else does not work.
     this._extension._settings.connect('changed', (_, key) => {
       if (key === 'radios') {
         this._updateMenuItems();
       }
+    });
+    this._extension._settings.connect('changed::set-popup-max-height', () => {
+      this._handlePopupMaxHeight();
+    });
+    this._extension._settings.connect('changed::popup-max-height', () => {
+      this._handlePopupMaxHeight();
     });
   }
 
@@ -115,9 +130,7 @@ class Indicator extends PanelMenu.Button {
       section1.addMenuItem(menuItem);
     });
     this.menu.box.add_child(scrollView);
-    this.menu.box.style = `
-        max-height: 12em;
-    `;
+    this._handlePopupMaxHeight();
   }
 }
 
