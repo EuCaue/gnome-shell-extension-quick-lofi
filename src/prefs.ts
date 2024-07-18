@@ -35,7 +35,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         text: _(radioName),
         showApplyButton: true,
       });
-      const urlRadioRow = new Adw.EntryRow({ title: _('Radio Name'), text: _(radioUrl), showApplyButton: true });
+      const urlRadioRow = new Adw.EntryRow({ title: _('Radio URL'), text: _(radioUrl), showApplyButton: true });
       const removeButton = new Gtk4.Button({
         label: `Remove ${radioName}`,
         iconName: 'user-trash-symbolic',
