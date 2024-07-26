@@ -1,3 +1,5 @@
+import Gio from 'gi://Gio';
+
 export default class Utils {
   public static readonly ICONS = {
     INDICATOR_DEFAULT: '/icon-symbolic.svg',
@@ -8,5 +10,10 @@ export default class Utils {
 
   public static debug(...message: any[]): void {
     console.log('[ QUICK LOFI DEBUG ] >>> ', ...message);
+  }
+
+  public static isCurrentRadioPlaying(settings: Gio.Settings, radioIndex: number): boolean {
+    const currentRadioPlayingIndex = settings.get_int('current-radio-playing');
+    return currentRadioPlayingIndex !== -1 && radioIndex === currentRadioPlayingIndex;
   }
 }

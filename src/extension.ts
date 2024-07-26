@@ -57,7 +57,6 @@ class Indicator extends PanelMenu.Button {
   }
 
   private _connectSettingsChangedEvent(): void {
-    // HACK: this only work with this._settings, anything else does not work.
     this._extension._settings.connect('changed', (_, key) => {
       if (key === 'radios') {
         this._updateMenuItems();
@@ -78,20 +77,20 @@ class Indicator extends PanelMenu.Button {
     this._icon.set_gicon(gicon);
   }
 
-  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem): void {
+  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, index: number): void {
     const currentRadio = this._radios.find((radio) => radio.radioName === child.label.text);
-
     if (child === this._activeRadioPopupItem) {
       this.mpvPlayer.stopPlayer();
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
       this._activeRadioPopupItem = null;
       this._updateIcon(false);
+      this._extension._settings.set_int('current-radio-playing', -1);
     } else {
       if (this._activeRadioPopupItem) {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
         this._updateIcon(false);
       }
-
+      this._extension._settings.set_int('current-radio-playing', index);
       this.mpvPlayer.startPlayer(currentRadio);
       this._activeRadioPopupItem = child;
       child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PAUSE));
@@ -121,12 +120,15 @@ class Indicator extends PanelMenu.Button {
     const scrollView = new St.ScrollView();
     const section1 = new PopupMenu.PopupMenuSection();
     scrollView.add_child(section1.actor);
-    this._radios.forEach((radio) => {
+    this._radios.forEach((radio, index) => {
+      const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, index);
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
-        Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY),
+        Gio.icon_new_for_string(isRadioPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_PLAY),
       );
-      menuItem.connect('activate', this._togglePlayingStatus.bind(this));
+      menuItem.connect('activate', (item) => {
+        this._togglePlayingStatus(item, index);
+      });
       section1.addMenuItem(menuItem);
     });
     this.menu.box.add_child(scrollView);
@@ -144,6 +146,7 @@ export default class QuickLofi extends Extension {
 
   _removeIndicator() {
     Utils.debug('extension disabled');
+    this._settings.set_int('current-radio-playing', -1);
     this._indicator?.mpvPlayer.stopPlayer();
     this._indicator.destroy();
     this._indicator = null;

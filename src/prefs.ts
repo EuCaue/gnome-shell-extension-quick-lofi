@@ -3,7 +3,9 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
 import { ExtensionPreferences, gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import Utils from './Utils';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;
@@ -27,6 +29,10 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
   }
 
   private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
+    const listBox = radiosGroup.get_last_child().get_last_child().get_first_child() as Gtk4.ListBox;
+    const dropTarget = Gtk4.DropTarget.new(Gtk4.ListBoxRow as unknown, Gdk.DragAction.MOVE);
+    let dragIndex: number = -1;
+    listBox.add_controller(dropTarget);
     for (let i = 0; i < this._radios.length; i++) {
       const [radioName, radioUrl] = this._radios[i].split(' - ');
       const radiosExpander = new Adw.ExpanderRow({ title: _(radioName), cursor: new Gdk.Cursor({ name: 'pointer' }) });
@@ -84,8 +90,97 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       radiosExpander.add_row(nameRadioRow);
       radiosExpander.add_row(urlRadioRow);
       radiosExpander.add_row(removeButton);
+      let dragX: number;
+      let dragY: number;
+      const dropController = new Gtk4.DropControllerMotion();
+
+      const dragSource = new Gtk4.DragSource({
+        actions: Gdk.DragAction.MOVE,
+      });
+
+      // adding controllers
+      radiosExpander.add_controller(dragSource);
+      radiosExpander.add_controller(dropController);
+
+      // Drag handling
+      dragSource.connect('prepare', (_source, x, y) => {
+        dragX = x;
+        dragY = y;
+
+        const value = new GObject.Value();
+        value.init(Gtk4.ListBoxRow);
+        value.set_object(radiosExpander);
+        dragIndex = radiosExpander.get_index();
+
+        return Gdk.ContentProvider.new_for_value(value);
+      });
+
+      dragSource.connect('drag-begin', (_source, drag) => {
+        const dragWidget = new Gtk4.ListBox();
+
+        dragWidget.set_size_request(radiosExpander.get_width(), radiosExpander.get_height());
+        dragWidget.add_css_class('boxed-list');
+
+        const dragRow = new Adw.ActionRow({ title: radiosExpander.title });
+        dragRow.add_prefix(
+          new Gtk4.Image({
+            icon_name: 'list-drag-handle-symbolic',
+            css_classes: ['dim-label'],
+          }),
+        );
+
+        dragWidget.append(dragRow);
+        dragWidget.drag_highlight_row(dragRow);
+
+        const icon = Gtk4.DragIcon.get_for_drag(drag) as Gtk4.DragIcon;
+        icon.child = dragWidget;
+
+        drag.set_hotspot(dragX, dragY);
+      });
+
+      dropController.connect('enter', () => {
+        listBox.drag_highlight_row(radiosExpander);
+      });
+
+      dropController.connect('leave', () => {
+        listBox.drag_unhighlight_row();
+      });
       radiosGroup.add(radiosExpander);
     }
+
+    // Drop Handling
+    dropTarget.connect('drop', (_drop, dragedExpanderRow, _x, y) => {
+      const targetRow = listBox.get_row_at_y(y);
+      const targetIndex = targetRow.get_index();
+
+      // If value or the target row is null, do not accept the drop
+      if (!dragedExpanderRow || !targetRow) {
+        return false;
+      }
+
+      const previousRadios = [...this._radios];
+      const [movedRadio] = this._radios.splice(dragIndex, 1);
+      this._radios.splice(targetIndex, 0, movedRadio);
+      targetRow.set_state_flags(Gtk4.StateFlags.NORMAL, true);
+      listBox.remove(dragedExpanderRow);
+      listBox.insert(dragedExpanderRow, targetIndex);
+      this._settings!.set_strv('radios', this._radios);
+
+      if (Utils.isCurrentRadioPlaying(this._settings, dragIndex)) {
+        this._settings.set_int('current-radio-playing', targetIndex);
+      } else if (Utils.isCurrentRadioPlaying(this._settings, targetIndex)) {
+        if (targetIndex === 0) {
+          this._settings.set_int('current-radio-playing', 1);
+          return;
+        }
+        this._settings.set_int('current-radio-playing', dragIndex);
+      } else if (this._settings.get_int('current-radio-playing') !== -1) {
+        const current = this._settings.get_int('current-radio-playing');
+        const currentRadioPlayingIndex = this._radios.indexOf(previousRadios[current]);
+        this._settings.set_int('current-radio-playing', currentRadioPlayingIndex);
+      }
+      return true;
+    });
   }
 
   private _reloadRadios(radiosGroup: Adw.PreferencesGroup) {

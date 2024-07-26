@@ -13,6 +13,11 @@
       <description>List of available radio stations</description>
     </key>
 
+    <key name="current-radio-playing" type="i">
+      <default>-1</default>
+      <summary>Current Radio Playing</summary>
+    </key>
+
     <key name="set-popup-max-height" type="b">
       <default>true</default>
       <summary>Overflow quick lofi popup</summary>
