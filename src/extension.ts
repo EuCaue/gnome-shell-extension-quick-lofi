@@ -85,12 +85,15 @@ class Indicator extends PanelMenu.Button {
       this._activeRadioPopupItem = null;
       this._updateIcon(false);
       this._extension._settings.set_int('current-radio-playing', -1);
+      child.set_style('font-weight: normal');
     } else {
       if (this._activeRadioPopupItem) {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+        this._activeRadioPopupItem.set_style('font-weight: normal');
         this._updateIcon(false);
       }
       this._extension._settings.set_int('current-radio-playing', index);
+      child.set_style('font-weight: bold');
       this.mpvPlayer.startPlayer(currentRadio);
       this._activeRadioPopupItem = child;
       child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PAUSE));
@@ -110,7 +113,8 @@ class Indicator extends PanelMenu.Button {
   }
 
   public _updateMenuItems(): void {
-    this.menu.box.remove_all_children();
+    this._activeRadioPopupItem = null;
+    this.menu.box.destroy_all_children();
     this._radios = [];
     this._createRadios();
     this._createMenuItems();
@@ -126,6 +130,7 @@ class Indicator extends PanelMenu.Button {
         radio.radioName,
         Gio.icon_new_for_string(isRadioPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_PLAY),
       );
+      if (isRadioPlaying) menuItem.set_style('font-weight: bold');
       menuItem.connect('activate', (item) => {
         this._togglePlayingStatus(item, index);
       });
