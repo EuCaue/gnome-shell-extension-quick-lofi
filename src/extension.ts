@@ -26,11 +26,10 @@ class Indicator extends PanelMenu.Button {
     this.mpvPlayer = new Player(this._extension._settings);
     this.mpvPlayer.init();
     this._radios = [];
-    const gicon = Gio.icon_new_for_string(this._extension.path + Utils.ICONS.INDICATOR_DEFAULT);
     this._icon = new St.Icon({
-      gicon: gicon,
-      styleClass: 'system-status-icon',
+      gicon: Gio.icon_new_for_string(this._extension.path + Utils.ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
+      styleClass: 'system-status-icon indicator-icon',
     });
     this.add_child(this._icon);
     this._createRadios();
