@@ -28,7 +28,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     });
   }
 
-  private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
+  private _populateRadios(radiosGroup: Adw.PreferencesGroup, window: Adw.PreferencesWindow): void {
     const listBox = radiosGroup.get_last_child().get_last_child().get_first_child() as Gtk4.ListBox;
     const dropTarget = Gtk4.DropTarget.new(Gtk4.ListBoxRow as unknown, Gdk.DragAction.MOVE);
     let dragIndex: number = -1;
@@ -51,19 +51,20 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       });
 
       removeButton.connect('clicked', () => {
-        const messsageDialog = new Gtk4.MessageDialog({
-          text: _(`Are you sure you want to delete ${radioName} ?`),
-          destroyWithParent: true,
-          modal: true,
-          visible: true,
-          buttons: Gtk4.ButtonsType.OK_CANCEL,
+        const dialog = new Adw.AlertDialog({
+          heading: _(`Are you sure you want to delete ${radioName} ?`),
+          closeResponse: 'cancel',
         });
-        messsageDialog.connect('response', (_, response) => {
-          if (response === Gtk4.ResponseType.OK) {
+        dialog.add_response('cancel', 'Cancel');
+        dialog.add_response('ok', 'Ok');
+        dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
+        dialog.choose(window, null, () => {});
+        dialog.connect('response', (dialog, response) => {
+          if (response === 'ok') {
             this._removeRadio(i);
-            this._reloadRadios(radiosGroup);
+            this._reloadRadios(radiosGroup, window);
           }
-          messsageDialog.destroy();
+          dialog.close();
         });
       });
 
@@ -183,7 +184,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     });
   }
 
-  private _reloadRadios(radiosGroup: Adw.PreferencesGroup) {
+  private _reloadRadios(radiosGroup: Adw.PreferencesGroup, window: Adw.PreferencesWindow) {
     let index = 0;
     const l = this._radios.length;
     while (l >= index) {
@@ -197,7 +198,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       radiosGroup.remove(child);
       index++;
     }
-    this._populateRadios(radiosGroup);
+    this._populateRadios(radiosGroup, window);
   }
 
   private _removeRadio(index: number) {
@@ -291,7 +292,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       description: _('Configure the radio list'),
     });
 
-    this._populateRadios(radiosGroup);
+    this._populateRadios(radiosGroup, window);
 
     const addRadioGroup = new Adw.PreferencesGroup({
       title: _('Add Radio to the list'),
@@ -318,7 +319,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         this._addRadio(nameRadioRow.text, urlRadioRow.text);
         nameRadioRow.set_text('');
         urlRadioRow.set_text('');
-        this._reloadRadios(radiosGroup);
+        this._reloadRadios(radiosGroup, window);
       } catch (e) {
         this._handleErrorRadioRow(urlRadioRow, 'Invalid URL');
         if (nameRadioRow.text.length < 2) {
