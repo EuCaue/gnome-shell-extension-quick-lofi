@@ -12,8 +12,19 @@ export default class Utils {
     console.log('[ QUICK LOFI DEBUG ] >>> ', ...message);
   }
 
-  public static isCurrentRadioPlaying(settings: Gio.Settings, radioIndex: number): boolean {
-    const currentRadioPlayingIndex = settings.get_int('current-radio-playing');
-    return currentRadioPlayingIndex !== -1 && radioIndex === currentRadioPlayingIndex;
+  public static isCurrentRadioPlaying(settings: Gio.Settings, radioID: string): boolean {
+    const currentRadioPlaying = settings.get_string('current-radio-playing');
+    return currentRadioPlaying.length > 0 && radioID === currentRadioPlaying;
+  }
+
+  public static generateNanoIdWithSymbols(size: number): string {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const charactersLength = characters.length;
+    let result = '';
+
+    for (let i = 0; i < size; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
   }
 }

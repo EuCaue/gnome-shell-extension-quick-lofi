@@ -13,8 +13,8 @@
       <description>List of available radio stations</description>
     </key>
 
-    <key name="current-radio-playing" type="i">
-      <default>-1</default>
+    <key name="current-radio-playing" type="s">
+      <default>""</default>
       <summary>Current Radio Playing</summary>
     </key>
 

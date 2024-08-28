@@ -8,7 +8,7 @@ import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import Player from './Player';
 import Utils from './Utils';
 
-export type Radio = { radioName: string; radioUrl: string };
+export type Radio = { radioName: string; radioUrl: string; id: string };
 
 class Indicator extends PanelMenu.Button {
   static {
@@ -41,8 +41,8 @@ class Indicator extends PanelMenu.Button {
   private _createRadios(): void {
     const radios: string[] = this._extension._settings.get_strv('radios');
     radios.forEach((entry: string) => {
-      const [radioName, radioUrl] = entry.split(' - ');
-      this._radios.push({ radioName, radioUrl });
+      const [radioName, radioUrl, id] = entry.split(' - ');
+      this._radios.push({ radioName, radioUrl, id });
     });
   }
 
@@ -76,14 +76,14 @@ class Indicator extends PanelMenu.Button {
     this._icon.set_gicon(gicon);
   }
 
-  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, index: number): void {
-    const currentRadio = this._radios.find((radio) => radio.radioName === child.label.text);
+  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, radioID: string): void {
+    const currentRadio = this._radios.find((radio) => radio.id === radioID);
     if (child === this._activeRadioPopupItem) {
       this.mpvPlayer.stopPlayer();
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
       this._activeRadioPopupItem = null;
       this._updateIcon(false);
-      this._extension._settings.set_int('current-radio-playing', -1);
+      this._extension._settings.set_string('current-radio-playing', '');
       child.set_style('font-weight: normal');
     } else {
       if (this._activeRadioPopupItem) {
@@ -91,7 +91,7 @@ class Indicator extends PanelMenu.Button {
         this._activeRadioPopupItem.set_style('font-weight: normal');
         this._updateIcon(false);
       }
-      this._extension._settings.set_int('current-radio-playing', index);
+      this._extension._settings.set_string('current-radio-playing', radioID);
       child.set_style('font-weight: bold');
       this.mpvPlayer.startPlayer(currentRadio);
       this._activeRadioPopupItem = child;
@@ -113,6 +113,7 @@ class Indicator extends PanelMenu.Button {
 
   public _updateMenuItems(): void {
     this._activeRadioPopupItem = null;
+    // @ts-expect-error nothing
     this.menu.box.destroy_all_children();
     this._radios = [];
     this._createRadios();
@@ -123,18 +124,21 @@ class Indicator extends PanelMenu.Button {
     const scrollView = new St.ScrollView();
     const section1 = new PopupMenu.PopupMenuSection();
     scrollView.add_child(section1.actor);
-    this._radios.forEach((radio, index) => {
-      const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, index);
+    this._radios.forEach((radio) => {
+      // @ts-expect-error nothing
+      const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, radio.id);
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
         Gio.icon_new_for_string(isRadioPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_PLAY),
       );
       if (isRadioPlaying) menuItem.set_style('font-weight: bold');
       menuItem.connect('activate', (item) => {
-        this._togglePlayingStatus(item, index);
+        // @ts-expect-error nothing
+        this._togglePlayingStatus(item, radio.id);
       });
       section1.addMenuItem(menuItem);
     });
+    // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
     this._handlePopupMaxHeight();
   }
@@ -148,9 +152,26 @@ export default class QuickLofi extends Extension {
     super(props);
   }
 
+  private _migrateRadios(): void {
+    const radios = this._settings.get_strv('radios');
+
+    const updatedRadios = radios.map((radio) => {
+      if (radio.split(' - ').length === 3) {
+        return radio;
+      }
+      if (radio.includes(' - ')) {
+        const [name, url] = radio.split(' - ');
+        const id = Utils.generateNanoIdWithSymbols(10);
+        return `${name} - ${url} - ${id}`;
+      }
+    });
+    if (JSON.stringify(radios) === JSON.stringify(updatedRadios)) return;
+    this._settings.set_strv('radios', updatedRadios);
+  }
+
   _removeIndicator() {
     Utils.debug('extension disabled');
-    this._settings.set_int('current-radio-playing', -1);
+    this._settings.set_string('current-radio-playing', '');
     this._indicator?.mpvPlayer.stopPlayer();
     this._indicator.destroy();
     this._indicator = null;
@@ -160,6 +181,7 @@ export default class QuickLofi extends Extension {
   enable() {
     Utils.debug('extension enabled');
     this._settings = this.getSettings();
+    this._migrateRadios();
     this._indicator = new Indicator(this);
     Main.panel.addToStatusArea(this.uuid, this._indicator);
   }

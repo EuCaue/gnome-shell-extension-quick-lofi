@@ -12,7 +12,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _radios: string[] = [];
 
   private _addRadio(radioName: string, radioUrl: string): void {
-    this._radios.push(`${radioName} - ${radioUrl}`);
+    const radioID = Utils.generateNanoIdWithSymbols(10);
+    this._radios.push(`${radioName} - ${radioUrl} - ${radioID}`);
     this._settings!.set_strv('radios', this._radios);
   }
 
@@ -34,8 +35,11 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     let dragIndex: number = -1;
     listBox.add_controller(dropTarget);
     for (let i = 0; i < this._radios.length; i++) {
-      const [radioName, radioUrl] = this._radios[i].split(' - ');
-      const radiosExpander = new Adw.ExpanderRow({ title: _(radioName), cursor: new Gdk.Cursor({ name: 'pointer' }) });
+      const [radioName, radioUrl, radioID] = this._radios[i].split(' - ');
+      const radiosExpander = new Adw.ExpanderRow({
+        title: _(radioName),
+        cursor: new Gdk.Cursor({ name: 'pointer' }),
+      });
       const nameRadioRow = new Adw.EntryRow({
         title: _('Radio Name'),
         text: _(radioName),
@@ -61,7 +65,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
         dialog.choose(window, null, () => {});
         dialog.connect('response', (dialog, response) => {
           if (response === 'ok') {
-            this._removeRadio(i);
+            this._removeRadio(i, radioID);
             this._reloadRadios(radiosGroup, window);
           }
           dialog.close();
@@ -154,32 +158,16 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       const targetRow = listBox.get_row_at_y(y);
       const targetIndex = targetRow.get_index();
 
-      // If value or the target row is null, do not accept the drop
       if (!dragedExpanderRow || !targetRow) {
         return false;
       }
 
-      const previousRadios = [...this._radios];
       const [movedRadio] = this._radios.splice(dragIndex, 1);
       this._radios.splice(targetIndex, 0, movedRadio);
       targetRow.set_state_flags(Gtk4.StateFlags.NORMAL, true);
       listBox.remove(dragedExpanderRow);
       listBox.insert(dragedExpanderRow, targetIndex);
       this._settings!.set_strv('radios', this._radios);
-
-      if (Utils.isCurrentRadioPlaying(this._settings, dragIndex)) {
-        this._settings.set_int('current-radio-playing', targetIndex);
-      } else if (Utils.isCurrentRadioPlaying(this._settings, targetIndex)) {
-        if (targetIndex === 0) {
-          this._settings.set_int('current-radio-playing', 1);
-          return;
-        }
-        this._settings.set_int('current-radio-playing', dragIndex);
-      } else if (this._settings.get_int('current-radio-playing') !== -1) {
-        const current = this._settings.get_int('current-radio-playing');
-        const currentRadioPlayingIndex = this._radios.indexOf(previousRadios[current]);
-        this._settings.set_int('current-radio-playing', currentRadioPlayingIndex);
-      }
       return true;
     });
   }
@@ -201,20 +189,23 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     this._populateRadios(radiosGroup, window);
   }
 
-  private _removeRadio(index: number) {
+  private _removeRadio(index: number, radioID: string) {
     this._radios.splice(index, 1);
+    if (radioID === this._settings.get_string('current-radio-playing')) {
+      this._settings!.set_string('current-radio-playing', '');
+    }
     this._settings!.set_strv('radios', this._radios);
   }
 
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
     if (index !== -1) {
       const radio = this._radios[index];
-      const [radioName, radioUrl] = radio.split(' - ');
+      const [radioName, radioUrl, radioID] = radio.split(' - ');
       if (field === 'radioUrl') {
-        this._radios[index] = `${radioName} - ${content}`;
+        this._radios[index] = `${radioName} - ${content} - ${radioID}`;
       }
       if (field === 'radioName') {
-        this._radios[index] = `${content} - ${radioUrl}`;
+        this._radios[index] = `${content} - ${radioUrl} - ${radioID}`;
       }
       this._settings.set_strv('radios', this._radios);
       return true;
