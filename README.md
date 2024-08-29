@@ -10,10 +10,10 @@
 
 > Play **lofi music** on your Gnome desktop with just a click!
 
+
 [<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
 
 ## Demo
-
 
 [quick-lofi-demo.webm](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
 
@@ -47,24 +47,52 @@ sudo apt install socat
 sudo pacman -S socat
 ```
 
+## Installing manually the extension
+
+1.  Clone the repo
+
+    ```bash
+    git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+    ```
+
+2.  Installing the packages
+
+    ```bash
+    npm install
+    ```
+
+3.  Installing the extension
+
+    ```bash
+    npm run compile-schemas && npm run prod
+    ```
+
+---
+
 ## Development
 
-1. Install Dependencies
+1. Clone the repo
+
+   ```bash
+   git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+   ```
+
+2. Install Dependencies
 
    ```bash
    npm install
    ```
 
-2. Build and run the extension
-   <small>This command will build the extension, install it, and open a nested gnome-shell. (wayland-only)</small>
+3. Build and run the extension
 
-```bash
-npm run build && gnome-extensions install --force quick-lofi@eucaue.zip && clear && dbus-run-session -- gnome-shell --nested --wayland
-```
+   ```bash
+   npm run dev
+   ```
 
 ---
 
-Any new file that should be added to the extension should be added to
-the `esbuild.js` file to be bundled with the extension.
-
-[GJS Docs](https://gjs.guide/)
+<small>
+  <center>
+    Made with ❤️  by  <a href="https://www.github.com/EuCaue" target="_blank">EuCaue</a>
+  </center>
+</small>
