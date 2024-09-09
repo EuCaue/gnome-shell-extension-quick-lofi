@@ -2,8 +2,8 @@ import Gio from 'gi://Gio';
 
 export default class Utils {
   public static readonly ICONS = {
-    INDICATOR_DEFAULT: '/icon-symbolic.svg',
-    INDICATOR_PLAYING: '/icon-playing-symbolic.svg',
+    INDICATOR_DEFAULT: '/icons/icon-symbolic.svg',
+    INDICATOR_PLAYING: '/icons/icon-playing-symbolic.svg',
     POPUP_PLAY: 'media-playback-start-symbolic',
     POPUP_PAUSE: 'media-playback-stop-symbolic',
   };

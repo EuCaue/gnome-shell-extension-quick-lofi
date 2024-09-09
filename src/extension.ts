@@ -180,6 +180,7 @@ export default class QuickLofi extends Extension {
 
   enable() {
     Utils.debug('extension enabled');
+    this._settings.set_string('current-radio-playing', '');
     this._settings = this.getSettings();
     this._migrateRadios();
     this._indicator = new Indicator(this);

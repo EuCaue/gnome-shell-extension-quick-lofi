@@ -22,8 +22,6 @@ async function main() {
   });
 
   const filesToCopy = [
-    { src: 'icon-symbolic.svg', dist: 'dist/icon-symbolic.svg' },
-    { src: 'icon-playing-symbolic.svg', dist: 'dist/icon-playing-symbolic.svg' },
     { src: 'src/metadata.json', dist: 'dist/metadata.json' },
     { src: 'src/stylesheet.css', dist: 'dist/stylesheet.css' },
   ];
@@ -33,6 +31,7 @@ async function main() {
   });
 
   cpSync(resolve(__dirname, 'schemas/'), resolve(__dirname, 'dist/schemas/'), { recursive: true });
+  cpSync(resolve(__dirname, 'icons/'), resolve(__dirname, 'dist/icons/'), { recursive: true });
 
   const zipFilename = `${metadata.uuid}.zip`;
   const zipDist = resolve(__dirname, zipFilename);
