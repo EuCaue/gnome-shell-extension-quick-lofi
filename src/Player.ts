@@ -12,6 +12,7 @@ export default class Player {
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
   private _isCommandRunning: boolean = false;
   private _process: Gio.Subprocess | null = null;
+  private _debounceTimeout: number | null = null;
 
   constructor(private _settings: Gio.Settings) {}
 
@@ -57,22 +58,31 @@ export default class Player {
   }
 
   private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
-    //  TODO: use native socket with GJS in the future.
-    this._isCommandRunning = true;
-    const socatCommand = ['|', 'socat', '-', this._mpvSocket];
-    const [success, _] = GLib.spawn_async(
-      null,
-      ['/bin/sh', '-c', mpvCommand + ' ' + socatCommand.join(' ')],
-      null,
-      GLib.SpawnFlags.SEARCH_PATH,
-      null,
-    );
-    this._isCommandRunning = false;
-    if (!success) {
-      Main.notifyError(
-        'Socat not found',
-        'Did you have socat installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
-      );
+    if (this._debounceTimeout !== null) {
+      GLib.Source.remove(this._debounceTimeout);
     }
+
+    this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+      this._isCommandRunning = true;
+      const socatCommand = ['|', 'socat', '-', this._mpvSocket];
+      const [success, _] = GLib.spawn_async(
+        null,
+        ['/bin/sh', '-c', mpvCommand + ' ' + socatCommand.join(' ')],
+        null,
+        GLib.SpawnFlags.SEARCH_PATH,
+        null,
+      );
+      this._isCommandRunning = false;
+
+      if (!success) {
+        Main.notifyError(
+          'Socat not found',
+          'Did you have socat installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
+        );
+      }
+
+      this._debounceTimeout = null;
+      return GLib.SOURCE_REMOVE;
+    });
   }
 }
