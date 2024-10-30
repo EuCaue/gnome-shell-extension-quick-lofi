@@ -25,17 +25,15 @@ class Indicator extends PanelMenu.Button {
     super(0.0, 'Quick Lofi');
     this._extension = ext;
     this.mpvPlayer = new Player(this._extension._settings);
-    this.mpvPlayer.init();
-    this._radios = [];
+    this.mpvPlayer.initVolumeControl();
     this._icon = new St.Icon({
       gicon: Gio.icon_new_for_string(this._extension.path + Utils.ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
       styleClass: 'system-status-icon indicator-icon',
     });
     this.add_child(this._icon);
-    this._createRadios();
-    this._connectSettingsChangedEvent();
-    this._createMenuItems();
+    this._createMenu();
+    this._bindSettingsChangeEvents();
     this._handleButtonClick();
   }
 
@@ -56,10 +54,10 @@ class Indicator extends PanelMenu.Button {
       `;
   }
 
-  private _connectSettingsChangedEvent(): void {
-    this._extension._settings.connect('changed', (_, key) => {
+  private _bindSettingsChangeEvents(): void {
+    this._extension._settings.connect('changed', (_: any, key: string): void => {
       if (key === 'radios') {
-        this._updateMenuItems();
+        this._createMenu();
       }
     });
     this._extension._settings.connect('changed::set-popup-max-height', () => {
@@ -112,7 +110,7 @@ class Indicator extends PanelMenu.Button {
     });
   }
 
-  public _updateMenuItems(): void {
+  public _createMenu(): void {
     this._activeRadioPopupItem = null;
     // @ts-expect-error nothing
     this.menu.box.destroy_all_children();

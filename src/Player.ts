@@ -16,7 +16,7 @@ export default class Player {
 
   constructor(private _settings: Gio.Settings) {}
 
-  public init(): void {
+  public initVolumeControl(): void {
     this._settings.connect('changed::volume', (settings, key) => {
       if (this._process !== null && !this._isCommandRunning) {
         const volume = settings.get_int(key);
@@ -62,7 +62,7 @@ export default class Player {
       GLib.Source.remove(this._debounceTimeout);
     }
 
-    this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+    this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 550, () => {
       this._isCommandRunning = true;
       const socatCommand = ['|', 'socat', '-', this._mpvSocket];
       const [success, _] = GLib.spawn_async(
