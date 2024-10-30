@@ -11,6 +11,11 @@ import Utils from './Utils';
 
 export type Radio = { radioName: string; radioUrl: string; id: string };
 
+interface QuickLofiExtension extends Extension {
+  path: string;
+  _settings: Gio.Settings;
+}
+
 class Indicator extends PanelMenu.Button {
   static {
     GObject.registerClass(this);
@@ -19,9 +24,9 @@ class Indicator extends PanelMenu.Button {
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
   private _radios?: Array<Radio>;
   private _icon: St.Icon;
-  private _extension: Extension;
+  private _extension: QuickLofiExtension;
 
-  constructor(ext: Extension) {
+  constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
     this._extension = ext;
     this.mpvPlayer = new Player(this._extension._settings);
@@ -49,6 +54,7 @@ class Indicator extends PanelMenu.Button {
     const isPopupMaxHeightSet = this._extension._settings.get_boolean('set-popup-max-height');
     const popupMaxHeight = this._extension._settings.get_string('popup-max-height');
     const styleString = isPopupMaxHeightSet ? popupMaxHeight : 'auto';
+    // @ts-expect-error nothing
     this.menu.box.style = `
         max-height: ${styleString};
       `;
@@ -128,7 +134,7 @@ class Indicator extends PanelMenu.Button {
     volumeSlider.connect('notify::value', (slider) => {
       const currentVolume = (slider.value * 100).toFixed(0);
       volumeLabel.text = `Volume: ${currentVolume}`;
-      this._extension._settings.set_int('volume', currentVolume);
+      this._extension._settings.set_int('volume', Number(currentVolume));
     });
     const volumeLabel = new St.Label({ text: `Volume: ${volumeSlider.value * 100}` });
     volumeBoxLayout.add_child(volumeLabel);
@@ -143,7 +149,6 @@ class Indicator extends PanelMenu.Button {
     const popupSection = new PopupMenu.PopupMenuSection();
     scrollView.add_child(popupSection.actor);
     this._radios.forEach((radio) => {
-      // @ts-expect-error nothing
       const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, radio.id);
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,

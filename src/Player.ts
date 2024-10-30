@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import Main from '@girs/gnome-shell/ui/main';
+import * as Main from '@girs/gnome-shell/ui/main';
 import { type Radio } from './extension';
 
 type PlayerCommandString = string;

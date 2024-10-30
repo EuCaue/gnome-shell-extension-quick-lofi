@@ -30,18 +30,18 @@
   "homepage": "https://github.com/eucaue/gnome-shell-extension-quick-lofi#readme",
   "sideEffects": false,
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.17.0",
-    "@typescript-eslint/parser": "^7.17.0",
-    "adm-zip": "^0.5.14",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "adm-zip": "^0.5.16",
     "esbuild": "^0.19.12",
-    "eslint": "^8.57.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.3.3",
-    "typescript": "^5.5.4"
+    "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@girs/gdk-4.0": "^4.0.0-4.0.0-beta.14",
+    "@girs/gdk-4.0": "^4.0.0-4.0.0-beta.16",
     "@girs/gjs": "4.0.0-beta.14",
     "@girs/gnome-shell": "46.0.2"
   }
