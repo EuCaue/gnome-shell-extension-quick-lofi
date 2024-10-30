@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import St from 'gi://St';
 import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
 import * as Main from '@girs/gnome-shell/ui/main';
+import * as Slider from '@girs/gnome-shell/ui/slider';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import Player from './Player';
@@ -120,10 +121,29 @@ class Indicator extends PanelMenu.Button {
     this._createMenuItems();
   }
 
+  private _createVolumeSlider(popup: PopupMenu.PopupMenuBase): void {
+    const separator = new PopupMenu.PopupSeparatorMenuItem();
+    const volumeLevel = this._extension._settings.get_int('volume');
+    const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
+    const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
+    const volumeSlider = new Slider.Slider(volumeLevel / 100);
+    volumeSlider.connect('notify::value', (slider) => {
+      const currentVolume = (slider.value * 100).toFixed(0);
+      volumeLabel.text = `Volume: ${currentVolume}`;
+      this._extension._settings.set_int('volume', currentVolume);
+    });
+    const volumeLabel = new St.Label({ text: `Volume: ${volumeSlider.value * 100}` });
+    volumeBoxLayout.add_child(volumeLabel);
+    volumeBoxLayout.add_child(volumeSlider);
+    volumePopupItem.add_child(volumeBoxLayout);
+    popup.addMenuItem(separator);
+    popup.addMenuItem(volumePopupItem);
+  }
+
   private _createMenuItems(): void {
     const scrollView = new St.ScrollView();
-    const section1 = new PopupMenu.PopupMenuSection();
-    scrollView.add_child(section1.actor);
+    const popupSection = new PopupMenu.PopupMenuSection();
+    scrollView.add_child(popupSection.actor);
     this._radios.forEach((radio) => {
       // @ts-expect-error nothing
       const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, radio.id);
@@ -136,8 +156,9 @@ class Indicator extends PanelMenu.Button {
         // @ts-expect-error nothing
         this._togglePlayingStatus(item, radio.id);
       });
-      section1.addMenuItem(menuItem);
+      popupSection.addMenuItem(menuItem);
     });
+    this._createVolumeSlider(popupSection);
     // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
     this._handlePopupMaxHeight();
@@ -180,8 +201,8 @@ export default class QuickLofi extends Extension {
 
   enable() {
     Utils.debug('extension enabled');
-    this._settings.set_string('current-radio-playing', '');
     this._settings = this.getSettings();
+    this._settings.set_string('current-radio-playing', '');
     this._migrateRadios();
     this._indicator = new Indicator(this);
     Main.panel.addToStatusArea(this.uuid, this._indicator);
