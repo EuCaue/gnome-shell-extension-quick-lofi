@@ -1,4 +1,5 @@
 import GObject from 'gi://GObject';
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
@@ -197,6 +198,10 @@ export default class QuickLofi extends Extension {
     Utils.debug('extension disabled');
     this._settings.set_string('current-radio-playing', '');
     this._indicator?.mpvPlayer.stopPlayer();
+    if (this._indicator.mpvPlayer.debounceTimeout) {
+      GLib.Source.remove(this._indicator.mpvPlayer.debounceTimeout);
+      this._indicator.mpvPlayer.debounceTimeout = null;
+    }
     this._indicator.destroy();
     this._indicator = null;
     this._settings = null;
