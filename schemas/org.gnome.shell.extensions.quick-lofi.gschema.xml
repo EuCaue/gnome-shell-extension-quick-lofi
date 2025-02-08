@@ -8,9 +8,14 @@
     </key>
 
     <key name="radios" type="as">
-      <default>['Lofi Girl - https://play.streamafrica.net/lofiradio', 'Lofi Hunter - https://live.hunter.fm/lofi_high', 'Lofi Hip-hop - http://hyades.shoutca.st:8043/stream']</default>
+      <default>['Lofi Radio - https://play.streamafrica.net/lofiradio', 'Lofi Hunter - https://live.hunter.fm/lofi_high', 'Lofi Hip-hop - http://hyades.shoutca.st:8043/stream']</default>
       <summary>Radios</summary>
       <description>List of available radio stations</description>
+    </key>
+
+    <key name="last-radio-playing" type="s">
+      <default>""</default>
+      <summary>Current Radio Playing</summary>
     </key>
 
     <key name="current-radio-playing" type="s">

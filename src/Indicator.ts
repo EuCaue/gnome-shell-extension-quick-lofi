@@ -74,15 +74,25 @@ export default class Indicator extends PanelMenu.Button {
     this._icon.set_gicon(gicon);
   }
 
-  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, radioID: string): void {
+  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, radioID: string, mouseButton: number): void {
     const currentRadio = this._radios.find((radio) => radio.id === radioID);
-    if (child === this._activeRadioPopupItem) {
+    //  TODO: simplify or improve this logic
+    if (child === this._activeRadioPopupItem && mouseButton === 3) {
       this.mpvPlayer.stopPlayer();
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
       this._activeRadioPopupItem = null;
       this._updateIcon(false);
       this._extension._settings.set_string('current-radio-playing', '');
       child.set_style('font-weight: normal');
+    } else if (child === this._activeRadioPopupItem && mouseButton === 1) {
+      const currentState: string = (this._activeRadioPopupItem.get_child_at_index(0) as St.Icon).icon_name;
+      const isPlaying = currentState === Utils.ICONS.POPUP_STOP;
+      this._activeRadioPopupItem.setIcon(
+        Gio.icon_new_for_string(isPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_STOP),
+      );
+      this._activeRadioPopupItem.set_style(`font-weight: ${isPlaying ? 'bold' : 'normal'}`);
+      this._updateIcon(false);
+      this.mpvPlayer.playPause();
     } else {
       if (this._activeRadioPopupItem) {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
@@ -90,10 +100,11 @@ export default class Indicator extends PanelMenu.Button {
         this._updateIcon(false);
       }
       this._extension._settings.set_string('current-radio-playing', radioID);
+      this._extension._settings.set_string('last-radio-playing', radioID);
       child.set_style('font-weight: bold');
       this.mpvPlayer.startPlayer(currentRadio);
       this._activeRadioPopupItem = child;
-      child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PAUSE));
+      child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_STOP));
       this._updateIcon(true);
     }
   }
@@ -145,12 +156,16 @@ export default class Indicator extends PanelMenu.Button {
       const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, radio.id);
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
-        Gio.icon_new_for_string(isRadioPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_PLAY),
+        Gio.icon_new_for_string(isRadioPlaying ? Utils.ICONS.POPUP_STOP : Utils.ICONS.POPUP_PLAY),
       );
       if (isRadioPlaying) menuItem.set_style('font-weight: bold');
-      menuItem.connect('activate', (item) => {
+      menuItem.connect('activate', (item, event) => {
         // @ts-expect-error nothing
-        this._togglePlayingStatus(item, radio.id);
+        //  NOTE: MOUSE BUTTONS IDS
+        // 1 -> LMB
+        // 3 -> RMB
+        const mouseButton = event.get_button();
+        this._togglePlayingStatus(item, radio.id, mouseButton);
       });
       popupSection.addMenuItem(menuItem);
     });

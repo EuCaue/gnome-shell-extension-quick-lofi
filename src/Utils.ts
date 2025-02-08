@@ -5,7 +5,8 @@ export default class Utils {
     INDICATOR_DEFAULT: '/icons/icon-symbolic.svg',
     INDICATOR_PLAYING: '/icons/icon-playing-symbolic.svg',
     POPUP_PLAY: 'media-playback-start-symbolic',
-    POPUP_PAUSE: 'media-playback-stop-symbolic',
+    POPUP_STOP: 'media-playback-stop-symbolic',
+    POPUP_PAUSE: 'media-playback-pause-symbolic',
   };
 
   public static debug(...message: any[]): void {

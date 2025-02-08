@@ -36,13 +36,13 @@
     "esbuild": "^0.19.12",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "prettier": "^3.3.3",
-    "typescript": "^5.6.3"
+    "eslint-plugin-prettier": "^5.2.3",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@girs/gdk-4.0": "^4.0.0-4.0.0-beta.16",
-    "@girs/gjs": "4.0.0-beta.14",
-    "@girs/gnome-shell": "46.0.2"
+    "@girs/gdk-4.0": "4.0.0-4.0.0-beta.19",
+    "@girs/gjs": "4.0.0-beta.19",
+    "@girs/gnome-shell": "47.0.1"
   }
 }
