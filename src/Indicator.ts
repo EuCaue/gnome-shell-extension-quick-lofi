@@ -7,7 +7,7 @@ import St from 'gi://St';
 import GObject from 'gi://GObject';
 import Utils from './Utils';
 import GLib from 'gi://GLib';
-import { type Radio, type QuickLofiExtension } from './type';
+import { type Radio, type QuickLofiExtension } from './types';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -67,46 +67,50 @@ export default class Indicator extends PanelMenu.Button {
     });
   }
 
-  private _updateIcon(playing: boolean): void {
+  private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
     const extPath = this._extension.path;
-    const iconPath = `${extPath}/${playing ? Utils.ICONS.INDICATOR_PLAYING : Utils.ICONS.INDICATOR_DEFAULT}`;
+    const icon = `INDICATOR_${playing.toUpperCase()}` as keyof typeof Utils.ICONS;
+    const iconPath = `${extPath}/${Utils.ICONS[icon]}`;
     const gicon = Gio.icon_new_for_string(iconPath);
     this._icon.set_gicon(gicon);
   }
 
   private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, radioID: string, mouseButton: number): void {
-    const currentRadio = this._radios.find((radio) => radio.id === radioID);
-    //  TODO: simplify or improve this logic
-    if (child === this._activeRadioPopupItem && mouseButton === 3) {
+    const isRightClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 3;
+    const isLeftClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 1;
+
+    if (isRightClickOnActiveRadio) {
       this.mpvPlayer.stopPlayer();
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
       this._activeRadioPopupItem = null;
-      this._updateIcon(false);
+      this._updateIndicatorIcon({ playing: 'default' });
       this._extension._settings.set_string('current-radio-playing', '');
       child.set_style('font-weight: normal');
-    } else if (child === this._activeRadioPopupItem && mouseButton === 1) {
+      return;
+    }
+    if (isLeftClickOnActiveRadio) {
       const currentState: string = (this._activeRadioPopupItem.get_child_at_index(0) as St.Icon).icon_name;
       const isPlaying = currentState === Utils.ICONS.POPUP_STOP;
       this._activeRadioPopupItem.setIcon(
         Gio.icon_new_for_string(isPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_STOP),
       );
       this._activeRadioPopupItem.set_style(`font-weight: ${isPlaying ? 'bold' : 'normal'}`);
-      this._updateIcon(false);
+      this._updateIndicatorIcon({ playing: isPlaying ? 'paused' : 'playing' });
       this.mpvPlayer.playPause();
-    } else {
-      if (this._activeRadioPopupItem) {
-        this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
-        this._activeRadioPopupItem.set_style('font-weight: normal');
-        this._updateIcon(false);
-      }
-      this._extension._settings.set_string('current-radio-playing', radioID);
-      this._extension._settings.set_string('last-radio-playing', radioID);
-      child.set_style('font-weight: bold');
-      this.mpvPlayer.startPlayer(currentRadio);
-      this._activeRadioPopupItem = child;
-      child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_STOP));
-      this._updateIcon(true);
+      return;
     }
+    const currentRadio = this._radios.find((radio) => radio.id === radioID);
+    if (this._activeRadioPopupItem) {
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      this._activeRadioPopupItem.set_style('font-weight: normal');
+      this._updateIndicatorIcon({ playing: 'default' });
+    }
+    this.mpvPlayer.startPlayer(currentRadio);
+    this._updateIndicatorIcon({ playing: 'playing' });
+    child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_STOP));
+    child.set_style('font-weight: bold');
+    this._extension._settings.set_string('current-radio-playing', radioID);
+    this._activeRadioPopupItem = child;
   }
 
   private _handleButtonClick(): void {
@@ -160,12 +164,11 @@ export default class Indicator extends PanelMenu.Button {
       );
       if (isRadioPlaying) menuItem.set_style('font-weight: bold');
       menuItem.connect('activate', (item, event) => {
-        // @ts-expect-error nothing
         //  NOTE: MOUSE BUTTONS IDS
         // 1 -> LMB
         // 3 -> RMB
         const mouseButton = event.get_button();
-        this._togglePlayingStatus(item, radio.id, mouseButton);
+        this._togglePlayingStatus(item as PopupMenu.PopupImageMenuItem, radio.id, mouseButton);
       });
       popupSection.addMenuItem(menuItem);
     });

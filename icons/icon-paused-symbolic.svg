@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   height="16px"
+   viewBox="0 0 16 16"
+   width="16px"
+   version="1.1"
+   id="svg15"
+   sodipodi:docname="icon-paused-symbolic.svg"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs15" />
+  <sodipodi:namedview
+     id="namedview15"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="45.254834"
+     inkscape:cx="6.5849319"
+     inkscape:cy="7.88866"
+     inkscape:window-width="1920"
+     inkscape:window-height="1011"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g9" />
+  <filter
+     id="a"
+     height="1"
+     width="1"
+     x="0"
+     y="0">
+    <feColorMatrix
+       color-interpolation-filters="sRGB"
+       values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0"
+       id="feColorMatrix1" />
+  </filter>
+  <mask
+     id="b">
+    <g
+       filter="url(#a)"
+       id="g1">
+      <path
+         d="m -1.6 -1.6 h 19.2 v 19.2 h -19.2 z"
+         fill-opacity="0.5"
+         id="path1" />
+    </g>
+  </mask>
+  <clipPath
+     id="c">
+    <path
+       d="m 0 0 h 1600 v 1200 h -1600 z"
+       id="path2" />
+  </clipPath>
+  <mask
+     id="d">
+    <g
+       filter="url(#a)"
+       id="g3">
+      <path
+         d="m -1.6 -1.6 h 19.2 v 19.2 h -19.2 z"
+         fill-opacity="0.7"
+         id="path3" />
+    </g>
+  </mask>
+  <clipPath
+     id="e">
+    <path
+       d="m 0 0 h 1600 v 1200 h -1600 z"
+       id="path4" />
+  </clipPath>
+  <mask
+     id="f">
+    <g
+       filter="url(#a)"
+       id="g5">
+      <path
+         d="m -1.6 -1.6 h 19.2 v 19.2 h -19.2 z"
+         fill-opacity="0.35"
+         id="path5" />
+    </g>
+  </mask>
+  <clipPath
+     id="g">
+    <path
+       d="m 0 0 h 1600 v 1200 h -1600 z"
+       id="path6" />
+  </clipPath>
+  <g
+     fill="#222222"
+     id="g9"
+     style="fill:#222222;fill-opacity:1">
+    <path
+       id="path7"
+       style="fill:#222222;fill-opacity:1"
+       d="M 6.847656,2 C 5.839844,2 5,2.839844 5,3.84375 v 8.3125 C 5,13.160156 5.839844,14 6.847656,14 H 14.15625 C 15.160156,14 16,13.160156 16,12.15625 V 3.84375 C 16,2.839844 15.160156,2 14.15625,2 Z m 0,2.5 h 7.1 v 0 z m 4.582514,0.1484375 h 2.400905 V 11.351563 H 11.43017 Z m -4.260785,0 H 9.5702896 V 11.351563 H 7.169385 Z" />
+    <path
+       d="m 4 2 c -1.089844 0 -2 0.910156 -2 2 v 8 c 0 1.089844 0.910156 2 2 2 z m 0 0"
+       id="path8"
+       style="fill:#222222;fill-opacity:1" />
+    <path
+       d="m 1 2.28125 c -0.59375 0.351562 -1 0.992188 -1 1.71875 v 8 c 0 0.726562 0.40625 1.367188 1 1.71875 z m 0 0"
+       id="path9"
+       style="fill:#222222;fill-opacity:1" />
+  </g>
+  <g
+     mask="url(#b)"
+     id="g11">
+    <g
+       clip-path="url(#c)"
+       transform="matrix(1 0 0 1 -560 -984)"
+       id="g10">
+      <path
+         d="m 550 182 c -0.351562 0.003906 -0.695312 0.101562 -1 0.28125 v 3.4375 c 0.304688 0.179688 0.648438 0.277344 1 0.28125 c 1.105469 0 2 -0.894531 2 -2 s -0.894531 -2 -2 -2 z m 0 5 c -0.339844 0 -0.679688 0.058594 -1 0.175781 v 6.824219 h 4 v -4 c 0 -1.65625 -1.34375 -3 -3 -3 z m 0 0"
+         id="path10" />
+    </g>
+  </g>
+  <g
+     mask="url(#d)"
+     id="g13">
+    <g
+       clip-path="url(#e)"
+       transform="matrix(1 0 0 1 -560 -984)"
+       id="g12">
+      <path
+         d="m 569 182 v 4 c 1.105469 0 2 -0.894531 2 -2 s -0.894531 -2 -2 -2 z m 0 5 v 7 h 3 v -4 c 0 -1.65625 -1.34375 -3 -3 -3 z m 0 0"
+         id="path11" />
+    </g>
+  </g>
+  <g
+     mask="url(#f)"
+     id="g15">
+    <g
+       clip-path="url(#g)"
+       transform="matrix(1 0 0 1 -560 -984)"
+       id="g14">
+      <path
+         d="m 573 182.269531 v 3.449219 c 0.613281 -0.355469 0.996094 -1.007812 1 -1.71875 c 0 -0.714844 -0.382812 -1.375 -1 -1.730469 z m 0 4.90625 v 6.824219 h 2 v -4 c 0 -1.269531 -0.800781 -2.402344 -2 -2.824219 z m 0 0"
+         id="path13" />
+    </g>
+  </g>
+</svg>
