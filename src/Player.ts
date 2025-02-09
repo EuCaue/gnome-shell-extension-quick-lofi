@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { type Radio } from './extension';
+import { type Radio } from './types';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -38,7 +38,7 @@ export default class Player {
 
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
-    this.sendCommandToMpvSocket(playPauseCommand);
+    this.sendCommandToMpvSocket(playPauseCommand, 225);
   }
 
   public startPlayer(radio: Radio): void {
@@ -62,12 +62,12 @@ export default class Player {
     return cmd;
   }
 
-  private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
-    if (this._debounceTimeout !== null) {
-      GLib.Source.remove(this._debounceTimeout);
+  private sendCommandToMpvSocket(mpvCommand: PlayerCommandString, debounceInterval: number = 550): void {
+    if (this.debounceTimeout !== null) {
+      GLib.Source.remove(this.debounceTimeout);
     }
 
-    this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 550, () => {
+    this.debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, debounceInterval, () => {
       this._isCommandRunning = true;
       const socatCommand = ['|', 'socat', '-', this._mpvSocket];
       const [success, _] = GLib.spawn_async(
@@ -86,7 +86,7 @@ export default class Player {
         );
       }
 
-      this._debounceTimeout = null;
+      this.debounceTimeout = null;
       return GLib.SOURCE_REMOVE;
     });
   }
