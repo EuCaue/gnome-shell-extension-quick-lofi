@@ -38,7 +38,7 @@ export default class Player {
 
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
-    this.sendCommandToMpvSocket(playPauseCommand, 225);
+    this.sendCommandToMpvSocket(playPauseCommand, 0);
   }
 
   public startPlayer(radio: Radio): void {
