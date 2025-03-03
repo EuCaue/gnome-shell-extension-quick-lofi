@@ -11,7 +11,7 @@ export default class Utils {
   };
 
   public static debug(...message: any[]): void {
-    console.log('[ QUICK LOFI DEBUG ] >>> ', ...message);
+    log('[ QUICK LOFI DEBUG ] >>> ', ...message);
   }
 
   public static isCurrentRadioPlaying(settings: Gio.Settings, radioID: string): boolean {
