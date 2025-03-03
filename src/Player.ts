@@ -63,11 +63,11 @@ export default class Player {
   }
 
   private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
-    if (this._debounceTimeout !== null) {
-      GLib.Source.remove(this._debounceTimeout);
+    if (this.debounceTimeout !== null) {
+      GLib.Source.remove(this.debounceTimeout);
     }
 
-    this._debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 550, () => {
+    this.debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 550, () => {
       this._isCommandRunning = true;
       const socatCommand = ['|', 'socat', '-', this._mpvSocket];
       const [success, _] = GLib.spawn_async(
@@ -86,7 +86,7 @@ export default class Player {
         );
       }
 
-      this._debounceTimeout = null;
+      this.debounceTimeout = null;
       return GLib.SOURCE_REMOVE;
     });
   }
