@@ -1,7 +1,8 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { type Radio } from './extension';
+import { type Radio } from './types';
+import Utils from './Utils';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -41,6 +42,14 @@ export default class Player {
     this.sendCommandToMpvSocket(playPauseCommand);
   }
 
+  public getProperty(prop: string): { data: boolean; request_id: number; error: string } | null {
+    if (this._process) {
+      const command = this.createCommand({ command: ['get_property', prop] });
+      const output = this.sendCommandToMpvSocket(command);
+      return JSON.parse(output) ?? null;
+    }
+  }
+
   public startPlayer(radio: Radio): void {
     this.stopPlayer();
     try {
@@ -58,36 +67,40 @@ export default class Player {
   }
 
   private createCommand(command: PlayerCommand): PlayerCommandString {
-    const cmd: PlayerCommandString = `echo '${JSON.stringify(command)}'`;
-    return cmd;
+    return JSON.stringify(command) + '\n';
   }
 
-  private sendCommandToMpvSocket(mpvCommand: PlayerCommandString): void {
-    if (this.debounceTimeout !== null) {
-      GLib.Source.remove(this.debounceTimeout);
+  private sendCommandToMpvSocket(mpvCommand: string): string | null {
+    let response: string | null = null;
+
+    if (this._isCommandRunning) {
+      return null;
     }
 
-    this.debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 550, () => {
-      this._isCommandRunning = true;
-      const socatCommand = ['|', 'socat', '-', this._mpvSocket];
-      const [success, _] = GLib.spawn_async(
-        null,
-        ['/bin/sh', '-c', mpvCommand + ' ' + socatCommand.join(' ')],
-        null,
-        GLib.SpawnFlags.SEARCH_PATH,
-        null,
-      );
-      this._isCommandRunning = false;
+    this._isCommandRunning = true;
+    try {
+      const address = Gio.UnixSocketAddress.new(this._mpvSocket);
+      const client = new Gio.SocketClient();
+      const connection = client.connect(address, null);
 
-      if (!success) {
-        Main.notifyError(
-          'Socat not found',
-          'Did you have socat installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
-        );
-      }
+      const outputStream = connection.get_output_stream();
+      const inputStream = connection.get_input_stream();
+      const command = mpvCommand;
+      const byteArray = new TextEncoder().encode(command);
 
-      this.debounceTimeout = null;
-      return GLib.SOURCE_REMOVE;
-    });
+      outputStream.write(byteArray, null);
+      outputStream.flush(null);
+
+      const dataInputStream = new Gio.DataInputStream({ base_stream: inputStream });
+      const [res] = dataInputStream.read_line_utf8(null);
+      response = res;
+      outputStream.close(null);
+      inputStream.close(null);
+      connection.close(null);
+    } catch (e) {
+      Main.notifyError('Error while connecting to the MPV SOCKET', e.message);
+    }
+    this._isCommandRunning = false;
+    return response;
   }
 }
