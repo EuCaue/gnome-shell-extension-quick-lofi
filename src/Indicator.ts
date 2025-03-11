@@ -94,7 +94,6 @@ export default class Indicator extends PanelMenu.Button {
       this._activeRadioPopupItem.setIcon(
         Gio.icon_new_for_string(isPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_STOP),
       );
-      this._activeRadioPopupItem.set_style(`font-weight: ${isPlaying ? 'bold' : 'normal'}`);
       this._updateIndicatorIcon({ playing: isPlaying ? 'paused' : 'playing' });
       this.mpvPlayer.playPause();
       return;
@@ -156,13 +155,23 @@ export default class Indicator extends PanelMenu.Button {
     const scrollView = new St.ScrollView();
     const popupSection = new PopupMenu.PopupMenuSection();
     scrollView.add_child(popupSection.actor);
+    const isPaused = this.mpvPlayer.getProperty('pause');
     this._radios.forEach((radio) => {
       const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, radio.id);
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
-        Gio.icon_new_for_string(isRadioPlaying ? Utils.ICONS.POPUP_STOP : Utils.ICONS.POPUP_PLAY),
+        Gio.icon_new_for_string(
+          isRadioPlaying && isPaused.data
+            ? Utils.ICONS.POPUP_PAUSE
+            : isRadioPlaying
+              ? Utils.ICONS.POPUP_STOP
+              : Utils.ICONS.POPUP_PLAY,
+        ),
       );
-      if (isRadioPlaying) menuItem.set_style('font-weight: bold');
+      if (isRadioPlaying) {
+        menuItem.set_style('font-weight: bold');
+        this._activeRadioPopupItem = menuItem;
+      }
       menuItem.connect('activate', (item, event) => {
         //  NOTE: MOUSE BUTTONS IDS
         // 1 -> LMB
@@ -182,10 +191,6 @@ export default class Indicator extends PanelMenu.Button {
     Utils.debug('extension disabled');
     this._extension._settings.set_string('current-radio-playing', '');
     this.mpvPlayer.stopPlayer();
-    if (this.mpvPlayer.debounceTimeout) {
-      GLib.Source.remove(this.mpvPlayer.debounceTimeout);
-      this.mpvPlayer.debounceTimeout = null;
-    }
     this.destroy();
   }
 }

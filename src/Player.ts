@@ -13,7 +13,6 @@ export default class Player {
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
   private _isCommandRunning: boolean = false;
   private _process: Gio.Subprocess | null = null;
-  public debounceTimeout: number | null = null;
 
   constructor(private _settings: Gio.Settings) {}
 
