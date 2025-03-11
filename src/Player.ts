@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { type Radio } from './types';
+import Utils from './Utils';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -12,7 +13,6 @@ export default class Player {
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
   private _isCommandRunning: boolean = false;
   private _process: Gio.Subprocess | null = null;
-  public debounceTimeout: number | null = null;
 
   constructor(private _settings: Gio.Settings) {}
 
@@ -38,7 +38,15 @@ export default class Player {
 
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
-    this.sendCommandToMpvSocket(playPauseCommand, 0);
+    this.sendCommandToMpvSocket(playPauseCommand);
+  }
+
+  public getProperty(prop: string): { data: boolean; request_id: number; error: string } | null {
+    if (this._process) {
+      const command = this.createCommand({ command: ['get_property', prop] });
+      const output = this.sendCommandToMpvSocket(command);
+      return JSON.parse(output) ?? null;
+    }
   }
 
   public startPlayer(radio: Radio): void {
@@ -58,36 +66,40 @@ export default class Player {
   }
 
   private createCommand(command: PlayerCommand): PlayerCommandString {
-    const cmd: PlayerCommandString = `echo '${JSON.stringify(command)}'`;
-    return cmd;
+    return JSON.stringify(command) + '\n';
   }
 
-  private sendCommandToMpvSocket(mpvCommand: PlayerCommandString, debounceInterval: number = 550): void {
-    if (this.debounceTimeout !== null) {
-      GLib.Source.remove(this.debounceTimeout);
+  private sendCommandToMpvSocket(mpvCommand: string): string | null {
+    let response: string | null = null;
+
+    if (this._isCommandRunning) {
+      return null;
     }
 
-    this.debounceTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, debounceInterval, () => {
-      this._isCommandRunning = true;
-      const socatCommand = ['|', 'socat', '-', this._mpvSocket];
-      const [success, _] = GLib.spawn_async(
-        null,
-        ['/bin/sh', '-c', mpvCommand + ' ' + socatCommand.join(' ')],
-        null,
-        GLib.SpawnFlags.SEARCH_PATH,
-        null,
-      );
-      this._isCommandRunning = false;
+    this._isCommandRunning = true;
+    try {
+      const address = Gio.UnixSocketAddress.new(this._mpvSocket);
+      const client = new Gio.SocketClient();
+      const connection = client.connect(address, null);
 
-      if (!success) {
-        Main.notifyError(
-          'Socat not found',
-          'Did you have socat installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
-        );
-      }
+      const outputStream = connection.get_output_stream();
+      const inputStream = connection.get_input_stream();
+      const command = mpvCommand;
+      const byteArray = new TextEncoder().encode(command);
 
-      this.debounceTimeout = null;
-      return GLib.SOURCE_REMOVE;
-    });
+      outputStream.write(byteArray, null);
+      outputStream.flush(null);
+
+      const dataInputStream = new Gio.DataInputStream({ base_stream: inputStream });
+      const [res] = dataInputStream.read_line_utf8(null);
+      response = res;
+      outputStream.close(null);
+      inputStream.close(null);
+      connection.close(null);
+    } catch (e) {
+      Main.notifyError('Error while connecting to the MPV SOCKET', e.message);
+    }
+    this._isCommandRunning = false;
+    return response;
   }
 }
