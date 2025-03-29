@@ -10,7 +10,6 @@
 
 > Play **lofi music** on your Gnome desktop with just a click!
 
-
 [<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
 
 ## Demo
@@ -19,8 +18,7 @@
 
 ## Dependencies
 
-The app depends on `mpv` to play the music,
-which you can install it with the following command:
+The extension depends on `mpv` to work, which you can install it with the following command:
 
 ```bash
 # Fedora
@@ -33,21 +31,9 @@ sudo apt install mpv
 sudo pacman -S mpv
 ```
 
-Additionally, for now, it depends on the `socat` package.
-You can install it using the following command:
-
-```bash
-# Fedora
-sudo dnf install socat
-
-# Debian/Ubuntu based
-sudo apt install socat
-
-# Arch based
-sudo pacman -S socat
-```
-
 ## Installing manually the extension
+
+> `Node` and `NPM` is required for this.
 
 1.  Clone the repo
 
