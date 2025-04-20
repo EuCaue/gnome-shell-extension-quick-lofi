@@ -1,20 +1,33 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from '@girs/gnome-shell/ui/main';
+import GObject from 'gi://GObject';
 import { type Radio } from './types';
-import Utils from './Utils';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
 
-export default class Player {
+export default class Player extends GObject.Object {
+  static {
+    GObject.registerClass(
+      {
+        Signals: {
+          'play-state-changed': { param_types: [GObject.TYPE_BOOLEAN] },
+          'playback-stopped': { param_types: [] },
+        },
+      },
+      this,
+    );
+  }
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
   private _isCommandRunning: boolean = false;
   private _process: Gio.Subprocess | null = null;
 
-  constructor(private _settings: Gio.Settings) {}
+  constructor(private _settings: Gio.Settings) {
+    super();
+  }
 
   public initVolumeControl(): void {
     this._settings.connect('changed::volume', (settings, key) => {
@@ -32,6 +45,7 @@ export default class Player {
     if (this._process !== null) {
       this._process.force_exit();
       this._process = null;
+      this.emit('playback-stopped');
       return;
     }
   }
@@ -39,6 +53,11 @@ export default class Player {
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
     this.sendCommandToMpvSocket(playPauseCommand);
+    const result = this.getProperty('pause');
+    if (result) {
+      const isPaused = result.data;
+      this.emit('play-state-changed', isPaused);
+    }
   }
 
   public getProperty(prop: string): { data: boolean; request_id: number; error: string } | null {
@@ -53,7 +72,7 @@ export default class Player {
     this.stopPlayer();
     try {
       const [, argv] = GLib.shell_parse_argv(
-        `mpv --volume=${this._settings.get_int('volume')} --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' ${radio.radioUrl}`,
+        `mpv --volume=${this._settings.get_int('volume')} --demuxer-lavf-o=extension_picky=0 --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' ${radio.radioUrl}`,
       );
       this._process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
     } catch (e) {

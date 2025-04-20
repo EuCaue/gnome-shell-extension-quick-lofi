@@ -7,6 +7,8 @@ import GObject from 'gi://GObject';
 import { ExtensionPreferences, gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import Utils from './Utils';
 
+type Shortcut = { settingsKey: string; title: string; subtitle?: string };
+
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;
   private _radios: string[] = [];
@@ -214,6 +216,152 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     return false;
   }
 
+  private _createShortcutButton(settingsKey: string) {
+    function isValidAccel(mask: number, keyval: number) {
+      return Gtk4.accelerator_valid(keyval, mask) || (keyval === Gdk.KEY_Tab && mask !== 0);
+    }
+    function keyvalIsForbidden(keyval: number) {
+      return [
+        // Navigation keys
+        Gdk.KEY_Home,
+        Gdk.KEY_Left,
+        Gdk.KEY_Up,
+        Gdk.KEY_Right,
+        Gdk.KEY_Down,
+        Gdk.KEY_Page_Up,
+        Gdk.KEY_Page_Down,
+        Gdk.KEY_End,
+        Gdk.KEY_Tab,
+
+        // Return
+        Gdk.KEY_KP_Enter,
+        Gdk.KEY_Return,
+
+        Gdk.KEY_Mode_switch,
+      ].includes(keyval);
+    }
+    function isValidBinding(mask: number, keycode: number, keyval: number) {
+      return !(
+        mask === 0 ||
+        // @ts-expect-error "Gdk has SHIFT_MASK"
+        (mask === Gdk.SHIFT_MASK &&
+          keycode !== 0 &&
+          ((keyval >= Gdk.KEY_a && keyval <= Gdk.KEY_z) ||
+            (keyval >= Gdk.KEY_A && keyval <= Gdk.KEY_Z) ||
+            (keyval >= Gdk.KEY_0 && keyval <= Gdk.KEY_9) ||
+            (keyval >= Gdk.KEY_kana_fullstop && keyval <= Gdk.KEY_semivoicedsound) ||
+            (keyval >= Gdk.KEY_Arabic_comma && keyval <= Gdk.KEY_Arabic_sukun) ||
+            (keyval >= Gdk.KEY_Serbian_dje && keyval <= Gdk.KEY_Cyrillic_HARDSIGN) ||
+            (keyval >= Gdk.KEY_Greek_ALPHAaccent && keyval <= Gdk.KEY_Greek_omega) ||
+            (keyval >= Gdk.KEY_hebrew_doublelowline && keyval <= Gdk.KEY_hebrew_taf) ||
+            (keyval >= Gdk.KEY_Thai_kokai && keyval <= Gdk.KEY_Thai_lekkao) ||
+            (keyval >= Gdk.KEY_Hangul_Kiyeog && keyval <= Gdk.KEY_Hangul_J_YeorinHieuh) ||
+            (keyval === Gdk.KEY_space && mask === 0) ||
+            keyvalIsForbidden(keyval)))
+      );
+    }
+
+    const shortcut = this._settings.get_strv(settingsKey)[0] ?? '';
+    const shortcutLabel = new Gtk4.ShortcutLabel({
+      disabled_text: _('New accelerator…'),
+      accelerator: shortcut,
+      valign: Gtk4.Align.CENTER,
+      hexpand: false,
+      vexpand: false,
+    });
+    const btn = new Gtk4.Button({ child: shortcutLabel, cursor: new Gdk.Cursor({ name: 'pointer' }) });
+    function updateLabel() {
+      shortcutLabel.set_accelerator(this._settings.get_strv(settingsKey)[0] ?? '');
+    }
+
+    btn.connect('clicked', (_source) => {
+      const controllerKey = new Gtk4.EventControllerKey();
+      const content = new Adw.StatusPage({
+        title: _('New accelerator'),
+        icon_name: 'preferences-desktop-keyboard-shortcuts-symbolic',
+        description: _('Backspace to clear'),
+      });
+
+      const shortcutEditor = new Adw.Window({
+        modal: true,
+        hideOnClose: true,
+        // @ts-expect-error "widget has get_root function"
+        transient_for: _source.get_root(),
+        widthRequest: 480,
+        heightRequest: 320,
+        content,
+      });
+      shortcutEditor.add_controller(controllerKey);
+      controllerKey.connect('key-pressed', (_source, keyval, keycode, state) => {
+        let mask = state & Gtk4.accelerator_get_default_mod_mask();
+        mask &= ~Gdk.ModifierType.LOCK_MASK;
+
+        if (!mask && keyval === Gdk.KEY_Escape) {
+          shortcutEditor?.close();
+          return Gdk.EVENT_STOP;
+        }
+
+        if (keyval === Gdk.KEY_BackSpace) {
+          this._settings.set_strv(settingsKey, ['']);
+          updateLabel.bind(this);
+          shortcutEditor?.close();
+          return Gdk.EVENT_STOP;
+        }
+
+        if (!isValidBinding(mask, keycode, keyval) || !isValidAccel(mask, keyval)) return Gdk.EVENT_STOP;
+
+        if (!keyval && !keycode) {
+          shortcutEditor?.destroy();
+          return Gdk.EVENT_STOP;
+        } else {
+          const val = Gtk4.accelerator_name_with_keycode(null, keyval, keycode, mask);
+          this._settings.set_strv(settingsKey, [val]);
+          updateLabel.bind(this);
+        }
+
+        shortcutEditor?.destroy();
+        return Gdk.EVENT_STOP;
+      });
+      shortcutEditor.present();
+    });
+
+    this._settings.connect(`changed::${settingsKey}`, () => {
+      shortcutLabel.set_accelerator(this._settings.get_strv(settingsKey)[0] ?? '');
+    });
+    return btn;
+  }
+
+  private _createShorcutRow({ settingsKey, title, subtitle }: Shortcut) {
+    const shortcutButton = this._createShortcutButton(settingsKey);
+    const shortcutRow = new Adw.ActionRow({
+      title: _(title),
+      subtitle: subtitle ? _(subtitle) : '',
+      activatable: true,
+      activatableWidget: shortcutButton,
+    });
+    shortcutRow.add_suffix(shortcutButton);
+    return shortcutRow;
+  }
+
+  private _handleShortcuts(adwGroup: Adw.PreferencesGroup) {
+    const shortcuts: Array<Shortcut> = [
+      {
+        settingsKey: Utils.SHORTCUTS.PLAY_PAUSE_SHORTCUT,
+        title: 'Play/Pause Quick Lofi',
+        subtitle: 'Toggle between playing and pausing Quick Lofi.',
+      },
+      {
+        settingsKey: Utils.SHORTCUTS.STOP_SHORTCUT,
+        title: 'Stop Quick Lofi',
+        subtitle: 'Stop Quick Lofi playback entirely.',
+      },
+    ];
+    shortcuts.forEach((shortcut) => {
+      const shortcutRow = this._createShorcutRow(shortcut);
+      adwGroup.add(shortcutRow);
+    });
+  }
+
   fillPreferencesWindow(window: Adw.PreferencesWindow) {
     this._settings = this.getSettings();
     this._radios = this._settings.get_strv('radios');
@@ -223,12 +371,12 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       icon_name: 'dialog-information-symbolic',
     });
 
-    const volumeGroup = new Adw.PreferencesGroup({
+    const playerGroup = new Adw.PreferencesGroup({
       title: _('Player Settings'),
       description: _('Configure the player settings'),
     });
 
-    page.add(volumeGroup);
+    page.add(playerGroup);
 
     const volumeLevel = new Adw.SpinRow({
       title: _('Volume'),
@@ -241,7 +389,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       }),
     });
 
-    volumeGroup.add(volumeLevel);
+    playerGroup.add(volumeLevel);
+    this._handleShortcuts(playerGroup);
 
     const popupGroup = new Adw.PreferencesGroup({
       title: _('Popup Settings'),

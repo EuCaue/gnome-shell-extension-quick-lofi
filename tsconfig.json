@@ -5,6 +5,5 @@
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },
-  "include": ["src/ambient.d.ts"],
-  "files": ["src/extension.ts", "src/prefs.ts", "./src/Player.ts"]
+  "include": ["src/ambient.d.ts", "./src/*"]
 }
