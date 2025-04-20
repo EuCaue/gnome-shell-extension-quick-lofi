@@ -3,7 +3,8 @@ import { copyFileSync, cpSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import AdmZip from 'adm-zip';
-import metadata from './src/metadata.json' assert { type: 'json' };
+import { readFileSync } from 'fs';
+const metadata = JSON.parse(readFileSync('./src/metadata.json', 'utf-8'));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
