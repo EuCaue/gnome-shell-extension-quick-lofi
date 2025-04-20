@@ -29,6 +29,16 @@
       <summary>Height for Quick Lofi popup</summary>
       <description>This will set the height for the popup</description>
     </key>
+    <key name="play-pause-quick-lofi" type="as">
+      <default>[]</default>
+      <summary>Toggle play/pause for Quick Lofi.</summary>
+      <description>Toggle between playing and pausing Quick Lofi.</description>
+    </key>
 
+    <key name="stop-quick-lofi" type="as">
+      <default>[]</default>
+      <summary>Stop Quick Lofi</summary>
+      <description>Stop Quick Lofi playback entirely.</description>
+    </key>
   </schema>
 </schemalist>

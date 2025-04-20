@@ -6,7 +6,6 @@ import Player from './Player';
 import St from 'gi://St';
 import GObject from 'gi://GObject';
 import Utils from './Utils';
-import GLib from 'gi://GLib';
 import { type Radio, type QuickLofiExtension } from './types';
 
 export default class Indicator extends PanelMenu.Button {
@@ -65,6 +64,19 @@ export default class Indicator extends PanelMenu.Button {
     this._extension._settings.connect('changed::popup-max-height', () => {
       this._handlePopupMaxHeight();
     });
+    this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
+      this._activeRadioPopupItem.setIcon(
+        Gio.icon_new_for_string(isPaused ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_STOP),
+      );
+      this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
+    });
+    this.mpvPlayer.connect('playback-stopped', () => {
+      this._updateIndicatorIcon({ playing: 'default' });
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      this._extension._settings.set_string('current-radio-playing', '');
+      this._activeRadioPopupItem.set_style('font-weight: normal');
+      this._activeRadioPopupItem = null;
+    });
   }
 
   private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
@@ -81,11 +93,11 @@ export default class Indicator extends PanelMenu.Button {
 
     if (isRightClickOnActiveRadio) {
       this.mpvPlayer.stopPlayer();
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
-      this._activeRadioPopupItem = null;
       this._updateIndicatorIcon({ playing: 'default' });
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
       this._extension._settings.set_string('current-radio-playing', '');
-      child.set_style('font-weight: normal');
+      this._activeRadioPopupItem.set_style('font-weight: normal');
+      this._activeRadioPopupItem = null;
       return;
     }
     if (isLeftClickOnActiveRadio) {
@@ -138,6 +150,7 @@ export default class Indicator extends PanelMenu.Button {
     const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
     const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
+    //  TODO: bind the volume property on volumeSlider
     volumeSlider.connect('notify::value', (slider) => {
       const currentVolume = (slider.value * 100).toFixed(0);
       volumeLabel.text = `Volume: ${currentVolume}`;

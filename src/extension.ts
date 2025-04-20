@@ -3,10 +3,12 @@ import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/exten
 import * as Main from '@girs/gnome-shell/ui/main';
 import Utils from './Utils';
 import Indicator from './Indicator';
+import ShortcutsHandler from './ShortcutsHandler';
 
 export default class QuickLofi extends Extension {
   _indicator: Indicator | null = null;
   _settings: Gio.Settings | null = null;
+  _shortcutsHandler: ShortcutsHandler | null = null;
 
   constructor(props: ExtensionMetadata) {
     super(props);
@@ -34,6 +36,7 @@ export default class QuickLofi extends Extension {
     this._settings.set_string('current-radio-playing', '');
     this._migrateRadios();
     this._indicator = new Indicator(this);
+    this._shortcutsHandler = new ShortcutsHandler(this._settings, this._indicator.mpvPlayer);
     Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 
@@ -41,5 +44,7 @@ export default class QuickLofi extends Extension {
     this._indicator.dispose();
     this._indicator = null;
     this._settings = null;
+    this._shortcutsHandler.destroy();
+    this._shortcutsHandler = null;
   }
 }

@@ -10,6 +10,17 @@ export default class Utils {
     POPUP_PAUSE: 'media-playback-pause-symbolic',
   };
 
+  //  TODO: refactor to put all keys here
+
+  public static readonly SHORTCUTS = {
+    PLAY_PAUSE_SHORTCUT: 'play-pause-quick-lofi',
+    STOP_SHORTCUT: 'stop-quick-lofi',
+  };
+
+  public static readonly SETTINGS_KEYS = {
+    ...this.SHORTCUTS,
+  };
+
   public static debug(...message: any[]): void {
     log('[ QUICK LOFI DEBUG ] >>> ', ...message);
   }
