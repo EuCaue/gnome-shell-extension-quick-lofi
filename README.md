@@ -33,29 +33,42 @@ sudo apt install mpv
 sudo pacman -S mpv
 ```
 
-## Installing manually the extension
+## Installation
 
-> `Node` and `NPM` is required for this.
+### Installing via [EGO](https://extensions.gnome.org/extension/6904/quick-lofi/)
 
-1.  Clone the repo
+1. Install it from the [extension page](https://extensions.gnome.org/extension/6904/quick-lofi/) using the browser integration or with the [Extension Manager](https://flathub.org/apps/com.mattjakeman.ExtensionManager).
 
-    ```bash
-    git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
-    ```
+### Installing from the release `.zip`
 
-2.  Installing the packages
+1. Go to the [releases page](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/releases) and download the `.zip` file (`quicklofi@eucaue.zip`).
+2. In the folder where you downloaded the `.zip`, run:
+   ```bash
+   gnome-extensions install --force quicklofi@eucaue.zip
+   ```
+3. Log out and log back in.
 
-    ```bash
-    npm install
-    ```
+### Installing the extension manually
 
-3.  Installing the extension
+> `Node` and `NPM` are required for this.
 
-    ```bash
-    npm run compile-schemas && npm run prod
-    ```
+1. Clone the repo:
 
----
+   ```bash
+   git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+   ```
+
+2. Install the dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Build and install the extension:
+
+   ```bash
+   npm run compile-schemas && npm run prod
+   ```
 
 ## Development
 
