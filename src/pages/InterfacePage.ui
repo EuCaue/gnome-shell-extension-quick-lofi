@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="quick-lofi@eucaue">
+  <template class="InterfacePage" parent="AdwPreferencesPage">
+    <property name="name">interface-page</property>
+    <property name="title" translatable="yes">Interface</property>
+    <property name="icon-name">folder-music-symbolic</property>
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title">Interface Settings</property>
+        <property name="description" translatable="yes">Change how the interface behaves.</property>
+        <child>
+          <object class="AdwSwitchRow" id="setPopupMaxHeightRow">
+            <property name="title"> Set Popup Max Height </property>
+            <property name="subtitle"> Enable to set a maximum height for the popup. </property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwEntryRow" id="popupMaxHeightRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title">Popup max Height</property>
+            <property name="text">10em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

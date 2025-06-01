@@ -1,4 +1,6 @@
 import Gio from 'gi://Gio';
+import Adw from 'gi://Adw';
+import GLib from 'gi://GLib';
 
 export default class Utils {
   public static readonly ICONS = {
@@ -19,10 +21,23 @@ export default class Utils {
 
   public static readonly SETTINGS_KEYS = {
     ...this.SHORTCUTS,
+    RADIOS_LIST: 'radios',
   };
 
   public static debug(...message: any[]): void {
     log('[ QUICK LOFI DEBUG ] >>> ', ...message);
+  }
+  //  TODO: find a better place to put this
+  public static handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
+    const TIMEOUT_SECONDS = 3 as const;
+    const currentRadioRowTitle = row.get_title();
+    row.add_css_class('error');
+    row.set_title(errorMessage);
+    GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, TIMEOUT_SECONDS, () => {
+      row.set_title(currentRadioRowTitle);
+      row.remove_css_class('error');
+      return GLib.SOURCE_REMOVE;
+    });
   }
 
   public static isCurrentRadioPlaying(settings: Gio.Settings, radioID: string): boolean {

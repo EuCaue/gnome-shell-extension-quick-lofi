@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="quick-lofi@eucaue">
+  <template class="PlayerPage" parent="AdwPreferencesPage">
+    <property name="name">player-page</property>
+    <property name="title" translatable="yes">Player</property>
+    <property name="icon-name">folder-music-symbolic</property>
+    <child>
+      <object class="AdwPreferencesGroup" id="playerGroup">
+        <property name="title">Player Settings</property>
+        <property name="description" translatable="yes">Configure the Player Settings</property>
+        <child>
+          <object class="AdwSpinRow" id="volumeLevel">
+            <property name="title">Volume</property>
+            <property name="subtitle">Volume to set when playing lofi</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+            <property name="adjustment">
+              <object class="GtkAdjustment">
+                <property name="value" bind-source="volumeLevel" bind-property="value"
+                  bind-flags="sync-create" />
+                <property name="lower">0</property>
+                <property name="upper">100</property>
+                <property name="step-increment">1</property>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

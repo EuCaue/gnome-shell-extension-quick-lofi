@@ -6,8 +6,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import { ExtensionPreferences, gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import Utils from './Utils';
-
-type Shortcut = { settingsKey: string; title: string; subtitle?: string };
+import { type Shortcut } from './types';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;
@@ -362,7 +361,10 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     });
   }
 
-  fillPreferencesWindow(window: Adw.PreferencesWindow) {
+  async fillPreferencesWindow(window: Adw.PreferencesWindow) {
+    const filepath = GLib.build_filenamev([this.path, 'quick-lofi.gresource']);
+    const resource = Gio.Resource.load(filepath);
+    Gio.resources_register(resource);
     this._settings = this.getSettings();
     this._radios = this._settings.get_strv('radios');
 
@@ -479,6 +481,12 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     });
 
     window.add(page);
+    const { RadiosPage } = await import('./pages/RadiosPage');
+    const { PlayerPage } = await import('./pages/PlayerPage');
+    const { InterfacePage } = await import('./pages/InterfacePage');
+    window.add(new RadiosPage(this._settings, window));
+    window.add(new PlayerPage(this._settings));
+    window.add(new InterfacePage(this._settings));
     this._settings!.bind('volume', volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind('set-popup-max-height', setPopupMaxHeightRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind('set-popup-max-height', popupMaxHeight, 'visible', Gio.SettingsBindFlags.DEFAULT);

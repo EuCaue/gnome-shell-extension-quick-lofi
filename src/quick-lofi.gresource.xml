@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/gnome/Shell/Extensions/quick-lofi">
+    <file compressed="true" preprocess="xml-stripblanks">pages/PlayerPage.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">pages/InterfacePage.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">pages/RadiosPage.ui</file>
+  </gresource>
+</gresources>

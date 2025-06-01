@@ -1,0 +1,42 @@
+import Adw from 'gi://Adw';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import Utils from '../Utils';
+import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+
+export class InterfacePage extends Adw.PreferencesPage {
+  static {
+    GObject.registerClass(
+      {
+        GTypeName: 'InterfacePage',
+        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/pages/InterfacePage.ui',
+        InternalChildren: ['setPopupMaxHeightRow', 'popupMaxHeightRow'],
+      },
+      this,
+    );
+  }
+
+  declare private _setPopupMaxHeightRow: Adw.SwitchRow;
+  declare private _popupMaxHeightRow: Adw.EntryRow;
+
+  private _handleApplyPopup(w: Adw.EntryRow): void {
+    const VALID_CSS_TYPES: Array<string> = ['px', 'pt', 'em', 'ex', 'rem', 'pc', 'in', 'cm', 'mm'];
+    const regex = new RegExp(`^\\d+(\\.\\d+)?(${VALID_CSS_TYPES.join('|')})$`);
+    if (!regex.test(w.text)) {
+      const defaultValue = this._settings.get_default_value('popup-max-height').get_string()[0];
+      Utils.handleErrorRow(w, 'Invalid CSS value');
+      w.set_text(defaultValue);
+      this._settings.set_string('popup-max-height', defaultValue);
+      return;
+    }
+    this._settings.set_string('popup-max-height', w.text);
+    return;
+  }
+
+  constructor(private _settings: Gio.Settings) {
+    super();
+    this._settings.bind('popup-max-height', this._popupMaxHeightRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind('set-popup-max-height', this._popupMaxHeightRow, 'visible', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind('set-popup-max-height', this._setPopupMaxHeightRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+  }
+}

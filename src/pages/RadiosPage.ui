@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="quick-lofi@eucaue">
+  <template class="RadiosPage" parent="AdwPreferencesPage">
+    <property name="name">radios-page</property>
+    <property name="title" translatable="yes">Radios</property>
+    <property name="icon-name">folder-music-symbolic</property>
+    <child>
+      <object class="AdwPreferencesGroup" id="radiosGroup">
+        <property name="title">Radios Settings</property>
+        <property name="description" translatable="yes">Configure the Radios list</property>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Add Radio to the list</property>
+        <child>
+          <object class="AdwEntryRow" id="nameRadioRow">
+            <property name="title" translatable="yes">Radio Name</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="urlRadioRow">
+            <property name="title" translatable="yes">Radio URL</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkButton">
+            <signal name="clicked" handler="_handleAddRadio" swapped="no" />
+            <property name="label" translatable="yes">Add Radio</property>
+            <property name="icon-name">list-add-symbolic</property>
+            <property name="halign">3</property>
+            <property name="valign">3</property>
+            <property name="margin-top">10</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+  </template>
+</interface>

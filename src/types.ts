@@ -6,3 +6,5 @@ export interface QuickLofiExtension extends Extension {
   _settings: Gio.Settings;
 }
 export type Radio = { radioName: string; radioUrl: string; id: string };
+
+export type Shortcut = { settingsKey: string; title: string; subtitle?: string };

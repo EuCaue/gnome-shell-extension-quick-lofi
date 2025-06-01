@@ -3,7 +3,7 @@
     "lib": ["ESNext"],
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
   },
-  "include": ["src/ambient.d.ts", "./src/*"]
+  "include": ["src/ambient.d.ts", "./src/**/*"]
 }
