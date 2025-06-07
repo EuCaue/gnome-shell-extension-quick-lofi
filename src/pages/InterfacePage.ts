@@ -1,8 +1,8 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Utils from '../Utils';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { handleErrorRow } from '../utils/helpers';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {
@@ -24,7 +24,7 @@ export class InterfacePage extends Adw.PreferencesPage {
     const regex = new RegExp(`^\\d+(\\.\\d+)?(${VALID_CSS_TYPES.join('|')})$`);
     if (!regex.test(w.text)) {
       const defaultValue = this._settings.get_default_value('popup-max-height').get_string()[0];
-      Utils.handleErrorRow(w, 'Invalid CSS value');
+      handleErrorRow(w, 'Invalid CSS value');
       w.set_text(defaultValue);
       this._settings.set_string('popup-max-height', defaultValue);
       return;

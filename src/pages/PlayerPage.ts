@@ -1,7 +1,7 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import Utils from '../Utils';
+import { SHORTCUTS } from '../utils/constants';
 import { Shortcut } from '../types';
 import { ShortcutButton } from '../ShortcutButton';
 
@@ -22,12 +22,12 @@ export class PlayerPage extends Adw.PreferencesPage {
   private _handleShortcuts() {
     const shortcuts: Array<Shortcut> = [
       {
-        settingsKey: Utils.SHORTCUTS.PLAY_PAUSE_SHORTCUT,
+        settingsKey: SHORTCUTS.PLAY_PAUSE_SHORTCUT,
         title: 'Play/Pause Quick Lofi',
         subtitle: 'Toggle between playing and pausing Quick Lofi.',
       },
       {
-        settingsKey: Utils.SHORTCUTS.STOP_SHORTCUT,
+        settingsKey: SHORTCUTS.STOP_SHORTCUT,
         title: 'Stop Quick Lofi',
         subtitle: 'Stop Quick Lofi playback entirely.',
       },

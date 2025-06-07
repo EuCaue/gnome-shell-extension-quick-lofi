@@ -1,9 +1,10 @@
 import Gio from 'gi://Gio';
 import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
 import * as Main from '@girs/gnome-shell/ui/main';
-import Utils from './Utils';
+import { debug } from './utils/debug';
 import Indicator from './Indicator';
 import ShortcutsHandler from './ShortcutsHandler';
+import { generateNanoIdWithSymbols } from './utils/helpers';
 
 export default class QuickLofi extends Extension {
   _indicator: Indicator | null = null;
@@ -23,7 +24,7 @@ export default class QuickLofi extends Extension {
       }
       if (radio.includes(' - ')) {
         const [name, url] = radio.split(' - ');
-        const id = Utils.generateNanoIdWithSymbols(10);
+        const id = generateNanoIdWithSymbols(10);
         return `${name} - ${url} - ${id}`;
       }
     });
@@ -31,7 +32,7 @@ export default class QuickLofi extends Extension {
     this._settings.set_strv('radios', updatedRadios);
   }
   enable() {
-    Utils.debug('extension enabled');
+    debug('extension enabled');
     this._settings = this.getSettings();
     this._settings.set_string('current-radio-playing', '');
     this._migrateRadios();

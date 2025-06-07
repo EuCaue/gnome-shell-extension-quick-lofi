@@ -4,8 +4,10 @@ import Gtk4 from 'gi://Gtk';
 import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import Utils from '../Utils';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { SETTINGS_KEYS } from '../utils/constants';
+import { debug } from '../utils/debug';
+import { generateNanoIdWithSymbols, handleErrorRow } from '../utils/helpers';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
@@ -92,7 +94,7 @@ export class RadiosPage extends Adw.PreferencesPage {
 
       nameRadioRow.connect('apply', (w) => {
         if (w.text.length < 2) {
-          Utils.handleErrorRow(w, 'Name must be at least 2 characters');
+          handleErrorRow(w, 'Name must be at least 2 characters');
           w.set_text(radioName);
           return;
         }
@@ -106,7 +108,7 @@ export class RadiosPage extends Adw.PreferencesPage {
           const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
           this._updateRadio(index, 'radioUrl', w.text);
         } catch (e) {
-          Utils.handleErrorRow(w, 'Invalid URL');
+          handleErrorRow(w, 'Invalid URL');
           w.set_text(radioUrl);
         }
       });
@@ -203,7 +205,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._populateRadios(radiosGroup);
   }
   private _addRadio(radioName: string, radioUrl: string): void {
-    const radioID = Utils.generateNanoIdWithSymbols(10);
+    const radioID = generateNanoIdWithSymbols(10);
     this._radios.push(`${radioName} - ${radioUrl} - ${radioID}`);
     this._settings!.set_strv('radios', this._radios);
   }
@@ -211,7 +213,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     try {
       GLib.uri_is_valid(this._urlRadioRow.text, GLib.UriFlags.NONE); // test if it's a valid URL
       if (this._nameRadioRow.text.length < 2) {
-        Utils.handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
+        handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
         return;
       }
       this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
@@ -219,9 +221,9 @@ export class RadiosPage extends Adw.PreferencesPage {
       this._urlRadioRow.set_text('');
       this._reloadRadios(this._radiosGroup);
     } catch (e) {
-      Utils.handleErrorRow(this._urlRadioRow, 'Invalid URL');
+      handleErrorRow(this._urlRadioRow, 'Invalid URL');
       if (this._nameRadioRow.text.length < 2) {
-        Utils.handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
+        handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
       }
     }
   }
@@ -231,8 +233,8 @@ export class RadiosPage extends Adw.PreferencesPage {
     private _window: Adw.PreferencesWindow,
   ) {
     super();
-    Utils.debug('Template Loaded.');
-    this._radios = this._settings.get_strv(Utils.SETTINGS_KEYS.RADIOS_LIST);
+    debug('Template Loaded.');
+    this._radios = this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
     this._populateRadios(this._radiosGroup);
   }
 }

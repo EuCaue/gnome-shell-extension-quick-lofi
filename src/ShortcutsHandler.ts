@@ -2,7 +2,7 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
-import Utils from './Utils';
+import { SHORTCUTS } from './utils/constants';
 import Player from './Player';
 
 export default class ShortcutsHandler {
@@ -15,7 +15,7 @@ export default class ShortcutsHandler {
 
   public handleShortcuts() {
     Main.wm.addKeybinding(
-      Utils.SHORTCUTS.PLAY_PAUSE_SHORTCUT,
+      SHORTCUTS.PLAY_PAUSE_SHORTCUT,
       this._settings,
       Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
       Shell.ActionMode.NORMAL,
@@ -24,7 +24,7 @@ export default class ShortcutsHandler {
       },
     );
     Main.wm.addKeybinding(
-      Utils.SHORTCUTS.STOP_SHORTCUT,
+      SHORTCUTS.STOP_SHORTCUT,
       this._settings,
       Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
       Shell.ActionMode.NORMAL,
@@ -35,7 +35,7 @@ export default class ShortcutsHandler {
   }
 
   private _removeShortcuts() {
-    Object.values(Utils.SHORTCUTS).forEach((key) => {
+    Object.values(SHORTCUTS).forEach((key) => {
       Main.wm.removeKeybinding(key);
     });
   }

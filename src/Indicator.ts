@@ -5,8 +5,10 @@ import Gio from 'gi://Gio';
 import Player from './Player';
 import St from 'gi://St';
 import GObject from 'gi://GObject';
-import Utils from './Utils';
+import { ICONS } from './utils/constants';
 import { type Radio, type QuickLofiExtension } from './types';
+import { isCurrentRadioPlaying } from './utils/helpers';
+import { debug } from './utils/debug';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -24,7 +26,7 @@ export default class Indicator extends PanelMenu.Button {
     this.mpvPlayer = new Player(this._extension._settings);
     this.mpvPlayer.initVolumeControl();
     this._icon = new St.Icon({
-      gicon: Gio.icon_new_for_string(this._extension.path + Utils.ICONS.INDICATOR_DEFAULT),
+      gicon: Gio.icon_new_for_string(this._extension.path + ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
       styleClass: 'system-status-icon indicator-icon',
     });
@@ -65,14 +67,12 @@ export default class Indicator extends PanelMenu.Button {
       this._handlePopupMaxHeight();
     });
     this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
-      this._activeRadioPopupItem.setIcon(
-        Gio.icon_new_for_string(isPaused ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_STOP),
-      );
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
       this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
     });
     this.mpvPlayer.connect('playback-stopped', () => {
       this._updateIndicatorIcon({ playing: 'default' });
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
       this._extension._settings.set_string('current-radio-playing', '');
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._activeRadioPopupItem = null;
@@ -81,8 +81,8 @@ export default class Indicator extends PanelMenu.Button {
 
   private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
     const extPath = this._extension.path;
-    const icon = `INDICATOR_${playing.toUpperCase()}` as keyof typeof Utils.ICONS;
-    const iconPath = `${extPath}/${Utils.ICONS[icon]}`;
+    const icon = `INDICATOR_${playing.toUpperCase()}` as keyof typeof ICONS;
+    const iconPath = `${extPath}/${ICONS[icon]}`;
     const gicon = Gio.icon_new_for_string(iconPath);
     this._icon.set_gicon(gicon);
   }
@@ -94,7 +94,7 @@ export default class Indicator extends PanelMenu.Button {
     if (isRightClickOnActiveRadio) {
       this.mpvPlayer.stopPlayer();
       this._updateIndicatorIcon({ playing: 'default' });
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
       this._extension._settings.set_string('current-radio-playing', '');
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._activeRadioPopupItem = null;
@@ -102,23 +102,21 @@ export default class Indicator extends PanelMenu.Button {
     }
     if (isLeftClickOnActiveRadio) {
       const currentState: string = (this._activeRadioPopupItem.get_child_at_index(0) as St.Icon).icon_name;
-      const isPlaying = currentState === Utils.ICONS.POPUP_STOP;
-      this._activeRadioPopupItem.setIcon(
-        Gio.icon_new_for_string(isPlaying ? Utils.ICONS.POPUP_PAUSE : Utils.ICONS.POPUP_STOP),
-      );
+      const isPlaying = currentState === ICONS.POPUP_STOP;
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPlaying ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
       this._updateIndicatorIcon({ playing: isPlaying ? 'paused' : 'playing' });
       this.mpvPlayer.playPause();
       return;
     }
     const currentRadio = this._radios.find((radio) => radio.id === radioID);
     if (this._activeRadioPopupItem) {
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_PLAY));
+      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._updateIndicatorIcon({ playing: 'default' });
     }
     this.mpvPlayer.startPlayer(currentRadio);
     this._updateIndicatorIcon({ playing: 'playing' });
-    child.setIcon(Gio.icon_new_for_string(Utils.ICONS.POPUP_STOP));
+    child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
     child.set_style('font-weight: bold');
     this._extension._settings.set_string('current-radio-playing', radioID);
     this._activeRadioPopupItem = child;
@@ -170,15 +168,11 @@ export default class Indicator extends PanelMenu.Button {
     scrollView.add_child(popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause');
     this._radios.forEach((radio) => {
-      const isRadioPlaying = Utils.isCurrentRadioPlaying(this._extension._settings, radio.id);
+      const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
         Gio.icon_new_for_string(
-          isRadioPlaying && isPaused.data
-            ? Utils.ICONS.POPUP_PAUSE
-            : isRadioPlaying
-              ? Utils.ICONS.POPUP_STOP
-              : Utils.ICONS.POPUP_PLAY,
+          isRadioPlaying && isPaused.data ? ICONS.POPUP_PAUSE : isRadioPlaying ? ICONS.POPUP_STOP : ICONS.POPUP_PLAY,
         ),
       );
       if (isRadioPlaying) {
@@ -201,7 +195,7 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   public dispose(): void {
-    Utils.debug('extension disabled');
+    debug('extension disabled');
     this._extension._settings.set_string('current-radio-playing', '');
     this.mpvPlayer.stopPlayer();
     this.destroy();
