@@ -30,7 +30,6 @@ export class InterfacePage extends Adw.PreferencesPage {
       return;
     }
     this._settings.set_string('popup-max-height', w.text);
-    return;
   }
 
   constructor(private _settings: Gio.Settings) {

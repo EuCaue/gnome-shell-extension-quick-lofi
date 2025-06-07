@@ -47,9 +47,9 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._settings!.set_strv('radios', this._radios);
   }
 
-  private _populateRadios(radiosGroup: Adw.PreferencesGroup, window: Adw.PreferencesWindow): void {
+  private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
     const listBox = radiosGroup.get_last_child().get_last_child().get_first_child() as Gtk4.ListBox;
-    const dropTarget = Gtk4.DropTarget.new(Gtk4.ListBoxRow as unknown, Gdk.DragAction.MOVE);
+    const dropTarget = Gtk4.DropTarget.new(Gtk4.ListBoxRow.$gtype, Gdk.DragAction.MOVE);
     let dragIndex: number = -1;
     listBox.add_controller(dropTarget);
     for (let i = 0; i < this._radios.length; i++) {
@@ -84,7 +84,7 @@ export class RadiosPage extends Adw.PreferencesPage {
         dialog.connect('response', (dialog, response) => {
           if (response === 'ok') {
             this._removeRadio(i, radioID);
-            this._reloadRadios(radiosGroup, this._window);
+            this._reloadRadios(radiosGroup);
           }
           dialog.close();
         });
@@ -131,7 +131,7 @@ export class RadiosPage extends Adw.PreferencesPage {
         dragY = y;
 
         const value = new GObject.Value();
-        value.init(Gtk4.ListBoxRow);
+        value.init(Gtk4.ListBoxRow as unknown as GObject.GType);
         value.set_object(radiosExpander);
         dragIndex = radiosExpander.get_index();
 
@@ -183,16 +183,14 @@ export class RadiosPage extends Adw.PreferencesPage {
       const [movedRadio] = this._radios.splice(dragIndex, 1);
       this._radios.splice(targetIndex, 0, movedRadio);
       targetRow.set_state_flags(Gtk4.StateFlags.NORMAL, true);
-      listBox.remove(dragedExpanderRow);
-      listBox.insert(dragedExpanderRow, targetIndex);
+      listBox.remove(dragedExpanderRow as unknown as Gtk4.Widget);
+      listBox.insert(dragedExpanderRow as unknown as Gtk4.Widget, targetIndex);
       this._settings!.set_strv('radios', this._radios);
       return true;
     });
   }
-  private _reloadRadios(radiosGroup: Adw.PreferencesGroup, window: Adw.PreferencesWindow) {
-    let index = 0;
-    const l = this._radios.length;
-    while (l >= index) {
+  private _reloadRadios(radiosGroup: Adw.PreferencesGroup) {
+    for (let i = 0; i <= this._radios.length; i++) {
       const child = radiosGroup
         .get_first_child()
         .get_first_child()
@@ -201,9 +199,8 @@ export class RadiosPage extends Adw.PreferencesPage {
         .get_first_child();
       if (child === null) break;
       radiosGroup.remove(child);
-      index++;
     }
-    this._populateRadios(radiosGroup, this._window);
+    this._populateRadios(radiosGroup);
   }
   private _addRadio(radioName: string, radioUrl: string): void {
     const radioID = Utils.generateNanoIdWithSymbols(10);
@@ -220,7 +217,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
       this._nameRadioRow.set_text('');
       this._urlRadioRow.set_text('');
-      this._reloadRadios(this._radiosGroup, this._window);
+      this._reloadRadios(this._radiosGroup);
     } catch (e) {
       Utils.handleErrorRow(this._urlRadioRow, 'Invalid URL');
       if (this._nameRadioRow.text.length < 2) {
@@ -236,6 +233,6 @@ export class RadiosPage extends Adw.PreferencesPage {
     super();
     Utils.debug('Template Loaded.');
     this._radios = this._settings.get_strv(Utils.SETTINGS_KEYS.RADIOS_LIST);
-    this._populateRadios(this._radiosGroup, this._window);
+    this._populateRadios(this._radiosGroup);
   }
 }
