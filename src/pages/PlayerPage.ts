@@ -1,7 +1,7 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import { SHORTCUTS } from '../utils/constants';
+import { SETTINGS_KEYS, SHORTCUTS } from '../utils/constants';
 import { Shortcut } from '../types';
 import { ShortcutButton } from '../ShortcutButton';
 
@@ -41,7 +41,7 @@ export class PlayerPage extends Adw.PreferencesPage {
 
   constructor(private _settings: Gio.Settings) {
     super();
-    this._settings.bind('volume', this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
     this._handleShortcuts();
   }
 }

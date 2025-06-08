@@ -35,7 +35,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       if (field === 'radioName') {
         this._radios[index] = `${content} - ${radioUrl} - ${radioID}`;
       }
-      this._settings.set_strv('radios', this._radios);
+      this._settings.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
       return true;
     }
 
@@ -43,10 +43,10 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
   private _removeRadio(index: number, radioID: string) {
     this._radios.splice(index, 1);
-    if (radioID === this._settings.get_string('current-radio-playing')) {
-      this._settings!.set_string('current-radio-playing', '');
+    if (radioID === this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING)) {
+      this._settings!.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     }
-    this._settings!.set_strv('radios', this._radios);
+    this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
   }
 
   private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
@@ -187,7 +187,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       targetRow.set_state_flags(Gtk4.StateFlags.NORMAL, true);
       listBox.remove(dragedExpanderRow as unknown as Gtk4.Widget);
       listBox.insert(dragedExpanderRow as unknown as Gtk4.Widget, targetIndex);
-      this._settings!.set_strv('radios', this._radios);
+      this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
       return true;
     });
   }
@@ -207,7 +207,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   private _addRadio(radioName: string, radioUrl: string): void {
     const radioID = generateNanoIdWithSymbols(10);
     this._radios.push(`${radioName} - ${radioUrl} - ${radioID}`);
-    this._settings!.set_strv('radios', this._radios);
+    this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
   }
   private _handleAddRadio(): void {
     try {

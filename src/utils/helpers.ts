@@ -1,6 +1,7 @@
 import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
+import { SETTINGS_KEYS } from '../utils/constants';
 
 export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
   const TIMEOUT_SECONDS = 3;
@@ -17,7 +18,7 @@ export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
 }
 
 export function isCurrentRadioPlaying(settings: Gio.Settings, radioID: string): boolean {
-  const current = settings.get_string('current-radio-playing');
+  const current = settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
   return current.length > 0 && current === radioID;
 }
 

@@ -5,7 +5,7 @@ import Gio from 'gi://Gio';
 import Player from './Player';
 import St from 'gi://St';
 import GObject from 'gi://GObject';
-import { ICONS } from './utils/constants';
+import { ICONS, SETTINGS_KEYS } from './utils/constants';
 import { type Radio, type QuickLofiExtension } from './types';
 import { isCurrentRadioPlaying } from './utils/helpers';
 import { debug } from './utils/debug';
@@ -37,7 +37,7 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _createRadios(): void {
-    const radios: string[] = this._extension._settings.get_strv('radios');
+    const radios: string[] = this._extension._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
     radios.forEach((entry: string) => {
       const [radioName, radioUrl, id] = entry.split(' - ');
       this._radios.push({ radioName, radioUrl, id });
@@ -45,8 +45,8 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _handlePopupMaxHeight(): void {
-    const isPopupMaxHeightSet = this._extension._settings.get_boolean('set-popup-max-height');
-    const popupMaxHeight = this._extension._settings.get_string('popup-max-height');
+    const isPopupMaxHeightSet = this._extension._settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT);
+    const popupMaxHeight = this._extension._settings.get_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT);
     const styleString = isPopupMaxHeightSet ? popupMaxHeight : 'auto';
     // @ts-expect-error nothing
     this.menu.box.style = `
@@ -56,14 +56,14 @@ export default class Indicator extends PanelMenu.Button {
 
   private _bindSettingsChangeEvents(): void {
     this._extension._settings.connect('changed', (_: any, key: string): void => {
-      if (key === 'radios') {
+      if (key === SETTINGS_KEYS.RADIOS_LIST) {
         this._createMenu();
       }
     });
-    this._extension._settings.connect('changed::set-popup-max-height', () => {
+    this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
       this._handlePopupMaxHeight();
     });
-    this._extension._settings.connect('changed::popup-max-height', () => {
+    this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
       this._handlePopupMaxHeight();
     });
     this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
@@ -73,7 +73,7 @@ export default class Indicator extends PanelMenu.Button {
     this.mpvPlayer.connect('playback-stopped', () => {
       this._updateIndicatorIcon({ playing: 'default' });
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
-      this._extension._settings.set_string('current-radio-playing', '');
+      this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._activeRadioPopupItem = null;
     });
@@ -95,7 +95,7 @@ export default class Indicator extends PanelMenu.Button {
       this.mpvPlayer.stopPlayer();
       this._updateIndicatorIcon({ playing: 'default' });
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
-      this._extension._settings.set_string('current-radio-playing', '');
+      this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._activeRadioPopupItem = null;
       return;
@@ -118,7 +118,7 @@ export default class Indicator extends PanelMenu.Button {
     this._updateIndicatorIcon({ playing: 'playing' });
     child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
     child.set_style('font-weight: bold');
-    this._extension._settings.set_string('current-radio-playing', radioID);
+    this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
     this._activeRadioPopupItem = child;
   }
 
@@ -144,7 +144,7 @@ export default class Indicator extends PanelMenu.Button {
 
   private _createVolumeSlider(popup: PopupMenu.PopupMenuBase): void {
     const separator = new PopupMenu.PopupSeparatorMenuItem();
-    const volumeLevel = this._extension._settings.get_int('volume');
+    const volumeLevel = this._extension._settings.get_int(SETTINGS_KEYS.VOLUME);
     const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
     const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
@@ -152,7 +152,7 @@ export default class Indicator extends PanelMenu.Button {
     volumeSlider.connect('notify::value', (slider) => {
       const currentVolume = (slider.value * 100).toFixed(0);
       volumeLabel.text = `Volume: ${currentVolume}`;
-      this._extension._settings.set_int('volume', Number(currentVolume));
+      this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
     });
     const volumeLabel = new St.Label({ text: `Volume: ${volumeSlider.value * 100}` });
     volumeBoxLayout.add_child(volumeLabel);
@@ -196,7 +196,7 @@ export default class Indicator extends PanelMenu.Button {
 
   public dispose(): void {
     debug('extension disabled');
-    this._extension._settings.set_string('current-radio-playing', '');
+    this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.stopPlayer();
     this.destroy();
   }

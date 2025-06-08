@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from './types';
+import { SETTINGS_KEYS } from './utils/constants';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -30,7 +31,7 @@ export default class Player extends GObject.Object {
   }
 
   public initVolumeControl(): void {
-    this._settings.connect('changed::volume', (settings, key) => {
+    this._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
       if (this._process !== null && !this._isCommandRunning) {
         const volume = settings.get_int(key);
         const command = this.createCommand({
@@ -72,7 +73,7 @@ export default class Player extends GObject.Object {
     this.stopPlayer();
     try {
       const [, argv] = GLib.shell_parse_argv(
-        `mpv --volume=${this._settings.get_int('volume')} --demuxer-lavf-o=extension_picky=0 --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' ${radio.radioUrl}`,
+        `mpv --volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)} --demuxer-lavf-o=extension_picky=0 --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' ${radio.radioUrl}`,
       );
       this._process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
     } catch (e) {

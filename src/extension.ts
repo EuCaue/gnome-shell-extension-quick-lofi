@@ -5,6 +5,7 @@ import { debug } from './utils/debug';
 import Indicator from './Indicator';
 import ShortcutsHandler from './ShortcutsHandler';
 import { generateNanoIdWithSymbols } from './utils/helpers';
+import { SETTINGS_KEYS } from './utils/constants';
 
 export default class QuickLofi extends Extension {
   _indicator: Indicator | null = null;
@@ -16,7 +17,7 @@ export default class QuickLofi extends Extension {
   }
 
   private _migrateRadios(): void {
-    const radios = this._settings.get_strv('radios');
+    const radios = this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
 
     const updatedRadios = radios.map((radio) => {
       if (radio.split(' - ').length === 3) {
@@ -29,12 +30,12 @@ export default class QuickLofi extends Extension {
       }
     });
     if (JSON.stringify(radios) === JSON.stringify(updatedRadios)) return;
-    this._settings.set_strv('radios', updatedRadios);
+    this._settings.set_strv(SETTINGS_KEYS.RADIOS_LIST, updatedRadios);
   }
   enable() {
     debug('extension enabled');
     this._settings = this.getSettings();
-    this._settings.set_string('current-radio-playing', '');
+    this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this._migrateRadios();
     this._indicator = new Indicator(this);
     this._shortcutsHandler = new ShortcutsHandler(this._settings, this._indicator.mpvPlayer);
