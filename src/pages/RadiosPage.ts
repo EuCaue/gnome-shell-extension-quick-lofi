@@ -236,5 +236,10 @@ export class RadiosPage extends Adw.PreferencesPage {
     debug('Template Loaded.');
     this._radios = this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
     this._populateRadios(this._radiosGroup);
+
+    this._window.connect('close-request', () => {
+      this._settings = null;
+      this._radios = null;
+    });
   }
 }

@@ -3,7 +3,7 @@
   <template class="InterfacePage" parent="AdwPreferencesPage">
     <property name="name">interface-page</property>
     <property name="title" translatable="yes">Interface</property>
-    <property name="icon-name">folder-music-symbolic</property>
+    <property name="icon-name">interface-page-symbolic</property>
     <child>
       <object class="AdwPreferencesGroup">
         <property name="title">Interface Settings</property>

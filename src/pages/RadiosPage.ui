@@ -3,7 +3,7 @@
   <template class="RadiosPage" parent="AdwPreferencesPage">
     <property name="name">radios-page</property>
     <property name="title" translatable="yes">Radios</property>
-    <property name="icon-name">folder-music-symbolic</property>
+    <property name="icon-name">quick-lofi-radios-symbolic</property>
     <child>
       <object class="AdwPreferencesGroup" id="radiosGroup">
         <property name="title">Radios Settings</property>

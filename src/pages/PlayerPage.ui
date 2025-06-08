@@ -3,7 +3,7 @@
   <template class="PlayerPage" parent="AdwPreferencesPage">
     <property name="name">player-page</property>
     <property name="title" translatable="yes">Player</property>
-    <property name="icon-name">folder-music-symbolic</property>
+    <property name="icon-name">player-page-symbolic</property>
     <child>
       <object class="AdwPreferencesGroup" id="playerGroup">
         <property name="title">Player Settings</property>
