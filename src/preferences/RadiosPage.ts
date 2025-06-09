@@ -15,7 +15,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     GObject.registerClass(
       {
         GTypeName: 'RadiosPage',
-        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/pages/RadiosPage.ui',
+        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/RadiosPage.ui',
         InternalChildren: ['radiosGroup', 'nameRadioRow', 'urlRadioRow'],
       },
       this,

@@ -5,10 +5,10 @@ import Gio from 'gi://Gio';
 import Player from './Player';
 import St from 'gi://St';
 import GObject from 'gi://GObject';
-import { ICONS, SETTINGS_KEYS } from './utils/constants';
-import { type Radio, type QuickLofiExtension } from './types';
-import { isCurrentRadioPlaying } from './utils/helpers';
-import { debug } from './utils/debug';
+import { ICONS, SETTINGS_KEYS } from '../utils/constants';
+import { type Radio, type QuickLofiExtension } from '../types';
+import { isCurrentRadioPlaying } from '../utils/helpers';
+import { debug } from '../utils/debug';
 
 export default class Indicator extends PanelMenu.Button {
   static {

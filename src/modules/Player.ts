@@ -2,8 +2,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
-import { type Radio } from './types';
-import { SETTINGS_KEYS } from './utils/constants';
+import { type Radio } from '../types';
+import { SETTINGS_KEYS } from '../utils/constants';
 
 type PlayerCommandString = string;
 type PlayerCommand = {

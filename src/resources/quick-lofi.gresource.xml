@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/gnome/Shell/Extensions/quick-lofi">
+    <file compressed="true" preprocess="xml-stripblanks" alias="/preferences/PlayerPage.ui">../preferences/ui/PlayerPage.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="/preferences/InterfacePage.ui">../preferences/ui/InterfacePage.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="/preferences/RadiosPage.ui">../preferences/ui/RadiosPage.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="icons/scalable/categories/quick-lofi-radios-symbolic.svg">../../icons/icon-symbolic.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="icons/scalable/categories/interface-page-symbolic.svg">../../icons/interface-page-symbolic.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="icons/scalable/categories/player-page-symbolic.svg">../../icons/player-page-symbolic.svg</file>
+  </gresource>
+</gresources>

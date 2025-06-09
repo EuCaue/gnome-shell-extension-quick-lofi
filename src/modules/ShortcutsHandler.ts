@@ -2,8 +2,8 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
-import { SHORTCUTS } from './utils/constants';
 import Player from './Player';
+import { SHORTCUTS } from '../utils/constants';
 
 export default class ShortcutsHandler {
   constructor(

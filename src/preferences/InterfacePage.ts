@@ -10,7 +10,7 @@ export class InterfacePage extends Adw.PreferencesPage {
     GObject.registerClass(
       {
         GTypeName: 'InterfacePage',
-        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/pages/InterfacePage.ui',
+        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/InterfacePage.ui',
         InternalChildren: ['setPopupMaxHeightRow', 'popupMaxHeightRow'],
       },
       this,

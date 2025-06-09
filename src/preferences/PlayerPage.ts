@@ -3,14 +3,14 @@ import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { SETTINGS_KEYS, SHORTCUTS } from '../utils/constants';
 import { Shortcut } from '../types';
-import { ShortcutButton } from '../ShortcutButton';
+import { ShortcutButton } from '../modules/ShortcutButton';
 
 export class PlayerPage extends Adw.PreferencesPage {
   static {
     GObject.registerClass(
       {
         GTypeName: 'PlayerPage',
-        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/pages/PlayerPage.ui',
+        Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/PlayerPage.ui',
         InternalChildren: ['volumeLevel', 'playerGroup'],
       },
       this,
