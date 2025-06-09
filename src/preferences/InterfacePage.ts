@@ -2,8 +2,8 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { handleErrorRow } from '../utils/helpers';
-import { SETTINGS_KEYS } from '../utils/constants';
+import { handleErrorRow } from '@utils/helpers';
+import { SETTINGS_KEYS } from '@utils/constants';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {

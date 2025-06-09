@@ -5,9 +5,9 @@ import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { SETTINGS_KEYS } from '../utils/constants';
-import { debug } from '../utils/debug';
-import { generateNanoIdWithSymbols, handleErrorRow } from '../utils/helpers';
+import { SETTINGS_KEYS } from '@utils/constants';
+import { debug } from '@utils/debug';
+import { generateNanoIdWithSymbols, handleErrorRow } from '@utils/helpers';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];

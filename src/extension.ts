@@ -1,11 +1,11 @@
 import Gio from 'gi://Gio';
 import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { debug } from './utils/debug';
-import Indicator from './modules/Indicator';
-import ShortcutsHandler from './modules/ShortcutsHandler';
-import { generateNanoIdWithSymbols } from './utils/helpers';
-import { SETTINGS_KEYS } from './utils/constants';
+import { debug } from '@utils/debug';
+import Indicator from '@/modules/Indicator';
+import ShortcutsHandler from '@/modules/ShortcutsHandler';
+import { generateNanoIdWithSymbols } from '@utils/helpers';
+import { SETTINGS_KEYS } from '@utils/constants';
 
 export default class QuickLofi extends Extension {
   _indicator: Indicator | null = null;

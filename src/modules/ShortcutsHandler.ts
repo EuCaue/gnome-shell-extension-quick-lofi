@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import Player from './Player';
-import { SHORTCUTS } from '../utils/constants';
+import { SHORTCUTS } from '@utils/constants';
 
 export default class ShortcutsHandler {
   constructor(

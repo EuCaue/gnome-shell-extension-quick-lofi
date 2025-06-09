@@ -1,7 +1,7 @@
 import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
-import { SETTINGS_KEYS } from '../utils/constants';
+import { SETTINGS_KEYS } from '@utils/constants';
 
 export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
   const TIMEOUT_SECONDS = 3;

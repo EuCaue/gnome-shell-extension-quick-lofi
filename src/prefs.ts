@@ -16,9 +16,9 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     const iconTheme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default());
     iconTheme.add_resource_path('/org/gnome/Shell/Extensions/quick-lofi/icons');
 
-    const { RadiosPage } = await import('./preferences/RadiosPage');
-    const { PlayerPage } = await import('./preferences/PlayerPage');
-    const { InterfacePage } = await import('./preferences/InterfacePage');
+    const { RadiosPage } = await import('@/preferences/RadiosPage');
+    const { PlayerPage } = await import('@/preferences/PlayerPage');
+    const { InterfacePage } = await import('@/preferences/InterfacePage');
 
     this._settings = this.getSettings();
     window.connect('close-request', () => {
