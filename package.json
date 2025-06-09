@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "scripts": {
     "clear": "rm -rf dist",
-    "build:app": "node esbuild.js",
+    "build:app": "node build.js",
     "build": "npm run clear && npm run build:app",
     "install:extension": "gnome-extensions install --force quick-lofi@eucaue.zip",
     "wayland-session": "dbus-run-session -- gnome-shell --nested --wayland",
@@ -36,13 +36,16 @@
     "esbuild": "^0.19.12",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.3",
-    "prettier": "^3.4.2",
-    "typescript": "^5.7.3"
+    "eslint-plugin-prettier": "^5.2.6",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@girs/gdk-4.0": "4.0.0-4.0.0-beta.19",
-    "@girs/gjs": "4.0.0-beta.19",
-    "@girs/gnome-shell": "47.0.1"
+    "@girs/gdk-4.0": "4.0.0-4.0.0-beta.23",
+    "@girs/gjs": "4.0.0-beta.23",
+    "@girs/gnome-shell": "48.0.2",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.40.0"
   }
 }

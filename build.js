@@ -1,38 +1,50 @@
-import { build } from 'esbuild';
-import { copyFileSync, cpSync } from 'fs';
+import { execSync } from 'child_process';
+import { cpSync, readFileSync, rmSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import AdmZip from 'adm-zip';
-import { readFileSync } from 'fs';
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const metadata = JSON.parse(readFileSync('./src/metadata.json', 'utf-8'));
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-async function main() {
-  console.debug(`Building ${metadata.name} v${metadata.version}...`);
-
-  await build({
-    entryPoints: ['src/extension.ts', 'src/prefs.ts'],
-    outdir: 'dist',
-    bundle: true,
-    treeShaking: false,
-    target: 'firefox78',
-    platform: 'node',
-    format: 'esm',
-    external: ['gi://*', 'resource://*', 'system', 'gettext', 'cairo'],
-  });
-
+function prepareFiles() {
   const filesToCopy = [
-    { src: 'src/metadata.json', dist: 'dist/metadata.json' },
-    { src: 'src/stylesheet.css', dist: 'dist/stylesheet.css' },
+    {
+      src: 'src/metadata.json',
+      dist: 'dist/metadata.json',
+    },
+    {
+      src: 'schemas',
+      dist: 'dist/schemas',
+    },
+    {
+      src: 'icons',
+      dist: 'dist/icons',
+    },
+    {
+      src: 'src/resources',
+      dist: 'dist/resources',
+    },
   ];
 
   filesToCopy.forEach(({ src, dist }) => {
-    copyFileSync(resolve(__dirname, src), resolve(__dirname, dist));
+    cpSync(resolve(__dirname, src), resolve(__dirname, dist), { recursive: true });
   });
 
-  cpSync(resolve(__dirname, 'schemas/'), resolve(__dirname, 'dist/schemas/'), { recursive: true });
-  cpSync(resolve(__dirname, 'icons/'), resolve(__dirname, 'dist/icons/'), { recursive: true });
+  rmSync(resolve(__dirname, 'dist/resources/quick-lofi.gresource.xml'));
+
+  execSync(
+    'glib-compile-resources src/resources/quick-lofi.gresource.xml --target=dist/resources/quick-lofi.gresource --sourcedir=src/resources',
+    {
+      stdio: 'inherit',
+    },
+  );
+}
+
+function main() {
+  console.log(`Building ${metadata.name} v${metadata['shell-version']}...`);
+  execSync('npx rollup -c', { stdio: 'inherit' });
+
+  prepareFiles();
 
   const zipFilename = `${metadata.uuid}.zip`;
   const zipDist = resolve(__dirname, zipFilename);
@@ -54,7 +66,4 @@ async function main() {
   console.log('Otherwise, you will need to restart the GNOME Shell.');
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main();
