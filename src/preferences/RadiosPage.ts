@@ -6,8 +6,8 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { debug } from '@utils/debug';
 import { generateNanoIdWithSymbols, handleErrorRow } from '@utils/helpers';
+import { debug } from '@/utils/debug';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
@@ -65,7 +65,12 @@ export class RadiosPage extends Adw.PreferencesPage {
         text: _(radioName),
         showApplyButton: true,
       });
-      const urlRadioRow = new Adw.EntryRow({ title: _('Radio URL'), text: _(radioUrl), showApplyButton: true });
+      const urlRadioRow = new Adw.EntryRow({
+        title: _('Radio URL'),
+        text: _(radioUrl),
+        showApplyButton: true,
+        inputPurpose: Gtk4.InputPurpose.URL,
+      });
       const removeButton = new Gtk4.Button({
         label: `Remove ${radioName}`,
         iconName: 'user-trash-symbolic',
@@ -228,15 +233,33 @@ export class RadiosPage extends Adw.PreferencesPage {
     }
   }
 
+  private _enableAddRadioOnEnter(): void {
+    const controllerCallback = (_source: Gtk4.Widget, keyVal: number, _keyCode: number, _state: Gdk.ModifierType) => {
+      if (keyVal === Gdk.KEY_Return || keyVal === Gdk.KEY_KP_Enter) {
+        this._handleAddRadio();
+      }
+      return Gdk.EVENT_PROPAGATE;
+    };
+    const nameRadioController: Gtk4.EventControllerKey = new Gtk4.EventControllerKey({
+      propagationPhase: Gtk4.PropagationPhase.CAPTURE,
+    });
+    const urlRadioController: Gtk4.EventControllerKey = new Gtk4.EventControllerKey({
+      propagationPhase: Gtk4.PropagationPhase.CAPTURE,
+    });
+    nameRadioController.connect('key-pressed', controllerCallback);
+    urlRadioController.connect('key-pressed', controllerCallback);
+    this._nameRadioRow.add_controller(nameRadioController);
+    this._urlRadioRow.add_controller(urlRadioController);
+  }
+
   constructor(
     private _settings: Gio.Settings,
     private _window: Adw.PreferencesWindow,
   ) {
     super();
-    debug('Template Loaded.');
     this._radios = this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
     this._populateRadios(this._radiosGroup);
-
+    this._enableAddRadioOnEnter();
     this._window.connect('close-request', () => {
       this._settings = null;
       this._radios = null;

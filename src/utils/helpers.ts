@@ -6,6 +6,7 @@ import { SETTINGS_KEYS } from '@utils/constants';
 export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
   const TIMEOUT_SECONDS = 3;
   const originalTitle = row.get_title();
+  if (originalTitle === errorMessage) return;
 
   row.add_css_class('error');
   row.set_title(errorMessage);

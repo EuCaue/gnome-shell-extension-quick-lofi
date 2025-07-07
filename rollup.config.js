@@ -7,20 +7,20 @@ export default {
     dir: 'dist',
     format: 'esm',
     sourcemap: false,
-    indent: true, // identação bonitinha
-    compact: false, // não junta tudo em uma linha só
-    minifyInternalExports: false, // mantém nomes dos exports
-    preserveModules: true, // separa arquivos
-    preserveModulesRoot: 'src', // mantém estrutura da pasta src
+    indent: true,
+    compact: false,
+    minifyInternalExports: false,
+    preserveModules: true,
+    preserveModulesRoot: 'src',
   },
   plugins: [
     nodeResolve(),
     typescript({
       tsconfig: './tsconfig.json',
       compilerOptions: {
-        removeComments: false, // mantém os comentários no output
+        removeComments: false,
       },
     }),
   ],
-  treeshake: false, // evita remover código não usado
+  treeshake: false,
 };
