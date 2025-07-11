@@ -1,4 +1,6 @@
-//  TODO: make to be optional to display the debug message
+declare const __DEV__: boolean;
 export function debug(...message: any[]): void {
-  log('[ QUICK LOFI DEBUG ] >>> ', ...message);
+  if (__DEV__) {
+    log('[ QUICK LOFI DEBUG ] >>> ', ...message);
+  }
 }

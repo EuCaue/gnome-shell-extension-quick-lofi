@@ -1,4 +1,5 @@
 import typescript from '@rollup/plugin-typescript';
+import replace from '@rollup/plugin-replace';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 
 export default {
@@ -14,6 +15,10 @@ export default {
     preserveModulesRoot: 'src',
   },
   plugins: [
+    replace({
+      preventAssignment: true,
+      __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
+    }),
     nodeResolve(),
     typescript({
       tsconfig: './tsconfig.json',

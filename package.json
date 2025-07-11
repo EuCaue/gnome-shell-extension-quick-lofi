@@ -11,8 +11,8 @@
     "build": "npm run clear && npm run build:app",
     "install:extension": "gnome-extensions install --force quick-lofi@eucaue.zip",
     "wayland-session": "dbus-run-session -- gnome-shell --nested --wayland",
-    "dev": "npm run build && npm run install:extension && npm run wayland-session",
-    "prod": "npm run build && npm run install:extension",
+    "dev": "NODE_ENV=development npm run build && npm run install:extension && npm run wayland-session",
+    "prod": "NODE_ENV=production npm run build && npm run install:extension",
     "compile-schemas": "glib-compile-schemas schemas/",
     "validate": "tsc --noEmit",
     "lint": "prettier --check . & eslint . --ext .ts",
@@ -45,6 +45,7 @@
     "@girs/gjs": "4.0.0-beta.23",
     "@girs/gnome-shell": "48.0.2",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-typescript": "^12.1.2",
     "rollup": "^4.40.0"
   }
