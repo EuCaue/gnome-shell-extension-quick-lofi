@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 import { Shortcut } from '@/types';
-import { ShortcutButton } from '@/modules/ShortcutButton';
+import { ShortcutButton } from '@/preferences/ShortcutButton';
 
 export class PlayerPage extends Adw.PreferencesPage {
   static {

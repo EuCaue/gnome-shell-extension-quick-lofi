@@ -7,7 +7,6 @@ import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { generateNanoIdWithSymbols, handleErrorRow } from '@utils/helpers';
-import { debug } from '@/utils/debug';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
