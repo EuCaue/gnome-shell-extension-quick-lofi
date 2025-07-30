@@ -23,7 +23,7 @@ export default {
     typescript({
       tsconfig: './tsconfig.json',
       compilerOptions: {
-        removeComments: false,
+        removeComments: true,
       },
     }),
   ],
