@@ -22,6 +22,14 @@ Play **lofi music and other sounds** on your GNOME desktop with just a **click**
 
 [quick-lofi-demo.webm](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
 
+## Features
+
+- Play lofi and any other sound with one click
+- Global keyboard shortcuts for quick control
+- Volume control directly from pop-up menu
+- Drag and drop to rearrange radio stations
+- Adjustable pop-up height
+
 ## Dependencies
 
 This extension requires `mpv`. Install it using your package manager:
