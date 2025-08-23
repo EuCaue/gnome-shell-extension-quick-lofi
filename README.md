@@ -46,40 +46,46 @@ sudo zypper install mpv
 
 ## Installation
 
-### Installing via [EGO](https://extensions.gnome.org/extension/6904/quick-lofi/)
+### Via [EGO](https://extensions.gnome.org/extension/6904/quick-lofi/)
 
-1. Install it from the [extension page](https://extensions.gnome.org/extension/6904/quick-lofi/) using the browser integration or with the [Extension Manager](https://flathub.org/apps/com.mattjakeman.ExtensionManager).
+1. Install from the [extension page](https://extensions.gnome.org/extension/6904/quick-lofi/) using the [browser integration](https://gnome.pages.gitlab.gnome.org/gnome-browser-integration/pages/installation-guide.html#fedora_linux) or the [Extension Manager](https://flathub.org/apps/com.mattjakeman.ExtensionManager).
 
-### Installing from the release `.zip`
+### From the release `.zip`
 
-1. Go to the [releases page](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/releases) and download the `.zip` file (`quicklofi@eucaue.zip`).
-2. In the folder where you downloaded the `.zip`, run:
+1. Download `quicklofi@eucaue.zip` from the [releases page](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/releases).
+2. Run in the same folder:
+
    ```bash
    gnome-extensions install --force quicklofi@eucaue.zip
    ```
-3. Log out and log back in.
 
-### Installing the extension manually
+3. Log out and back in.
 
-> `Node` and `NPM` are required for this.
+### Manual installation
 
-1. Clone the repo:
+> Requires `Node` and `NPM`.
+
+1. Clone the repository:
 
    ```bash
    git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
    ```
 
-2. Install the dependencies:
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-3. Build and install the extension:
+3. Build and install:
 
    ```bash
-   npm run compile-schemas && npm run prod
+   npm run compile-schemas && npm run prod:install
    ```
+
+4. Log out and back in.
+
+---
 
 ## Development
 
