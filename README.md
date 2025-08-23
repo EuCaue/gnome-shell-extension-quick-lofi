@@ -14,7 +14,6 @@ Play **lofi music and other sounds** on your GNOME desktop with just a **click**
 
 [<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
 
-
 </div>
 
 ## Demo
@@ -23,17 +22,26 @@ Play **lofi music and other sounds** on your GNOME desktop with just a **click**
 
 ## Dependencies
 
-The extension depends on `mpv` to work, which you can install it with the following command:
+This extension requires `mpv` in order to work. Install it using your package manager:
 
 ```bash
 # Fedora
 sudo dnf install mpv
+```
 
-# Debian/Ubuntu based
+```bash
+# Debian/Ubuntu
 sudo apt install mpv
+```
 
-# Arch based
+```bash
+# Arch
 sudo pacman -S mpv
+```
+
+```bash
+# openSUSE
+sudo zypper install mpv
 ```
 
 ## Installation
