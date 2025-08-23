@@ -126,6 +126,17 @@ Set up a local environment to work on the extension:
 
 ---
 
+## Contributing
+
+Contributions are welcome! Here’s how you can help:
+
+1. Fork the repository and create a branch.
+2. Make your improvements, then commit and push to your branch.
+3. Open a pull request describing your changes.
+4. Feel free to open issues for suggestions or bugs.
+
+---
+
 <small>
   <div align="center">
     Made with ❤️  by  <a href="https://www.github.com/EuCaue" target="_blank">EuCaue</a>
