@@ -1,18 +1,21 @@
+<div align="center">
+
+<img src="./icon.svg" width="192px" height="192px" />
+
 # Quick Lofi
 
-<!--toc:start-->
+Play **lofi music and other sounds** on your GNOME desktop with just a **click**!
 
-- [Quick Lofi](#quick-lofi)
-  - [Demo](#demo)
-  - [Dependencies](#dependencies)
-  - [Development](#development)
-  <!--toc:end-->
-
-> Play **lofi music** on your Gnome desktop with just a click!
+[![GitHub Release](https://img.shields.io/github/v/release/EuCaue/quick-lofi?include_prereleases&sort=date&display_name=release&style=for-the-badge&logo=github&)](https://github.com/EuCaue/quick-lofi/releases)
+[![GitHub last commit](https://img.shields.io/github/last-commit/EuCaue/quick-lofi?style=for-the-badge&logo=github&color=blue)](https://github.com/EuCaue/quick-lofi/commits/master)
+[![GitHub Repo stars](https://img.shields.io/github/stars/EuCaue/quick-lofi?style=for-the-badge&logo=github)](https://github.com/EuCaue/quick-lofi/stargazers)
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20Me%20a%20Coffee-ff5f5f?logo=kofi&logoColor=white&style=for-the-badge)](https://ko-fi.com/eucaue)
 
 [<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
+
+
+</div>
 
 ## Demo
 
