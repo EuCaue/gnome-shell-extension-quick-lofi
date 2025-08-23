@@ -89,28 +89,33 @@ sudo zypper install mpv
 
 ## Development
 
-1. Clone the repo
+Set up a local environment to work on the extension:
+
+1. Clone the repository:
 
    ```bash
    git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+   cd gnome-shell-extension-quick-lofi
    ```
 
-2. Install Dependencies
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-3. Build and run the extension
+3. Build and run in development mode:
 
    ```bash
    npm run dev
    ```
 
+This will watch for changes and reload the extension automatically.
+
 ---
 
 <small>
-  <center>
+  <div align="center">
     Made with ❤️  by  <a href="https://www.github.com/EuCaue" target="_blank">EuCaue</a>
-  </center>
+  </div>
 </small>
