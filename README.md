@@ -22,7 +22,7 @@ Play **lofi music and other sounds** on your GNOME desktop with just a **click**
 
 ## Dependencies
 
-This extension requires `mpv` in order to work. Install it using your package manager:
+This extension requires `mpv`. Install it using your package manager:
 
 ```bash
 # Fedora
@@ -89,6 +89,8 @@ sudo zypper install mpv
 
 ## Development
 
+> Requires `Node` and `NPM`.
+
 Set up a local environment to work on the extension:
 
 1. Clone the repository:
@@ -110,7 +112,7 @@ Set up a local environment to work on the extension:
    npm run dev
    ```
 
-This will watch for changes and reload the extension automatically.
+   This will watch for changes and reload the extension automatically.
 
 ---
 
