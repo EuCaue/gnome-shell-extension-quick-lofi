@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./icon.svg" width="192px" height="192px" />
+<img src="./logo.svg" width="192px" height="192px" />
 
 # Quick Lofi
 
@@ -73,6 +73,7 @@ sudo zypper install mpv
 
 ### Manual installation
 
+> You’re installing the latest release, which may not work on older GNOME versions, check the release notes.
 > Requires `Node` and `NPM`.
 
 1. Clone the repository:
