@@ -23,7 +23,6 @@
         <child>
           <object class="AdwEntryRow" id="urlRadioRow">
             <property name="title" translatable="yes">Radio URL</property>
-            <property name="input-purpose">5</property>
           </object>
         </child>
 
