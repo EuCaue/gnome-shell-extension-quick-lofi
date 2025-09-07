@@ -5,9 +5,8 @@ import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { SETTINGS_KEYS } from '@utils/constants';
+import { ffmpegFormats, SETTINGS_KEYS } from '@utils/constants';
 import { generateNanoIdWithSymbols, handleErrorRow } from '@utils/helpers';
-import { debug } from '@/utils/debug';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
@@ -98,24 +97,25 @@ export class RadiosPage extends Adw.PreferencesPage {
       });
 
       nameRadioRow.connect('apply', (w) => {
+        const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
         if (w.text.length < 2) {
           handleErrorRow(w, 'Name must be at least 2 characters');
-          w.set_text(radioName);
+          const originalRadioName: string = this._radios[index].split('-')[0].trim();
+          w.set_text(originalRadioName);
           return;
         }
-        const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
         this._updateRadio(index, 'radioName', w.text);
         radiosExpander.set_title(w.text);
       });
       urlRadioRow.connect('apply', (w) => {
-        try {
-          GLib.uri_is_valid(w.text, GLib.UriFlags.NONE);
-          const index = this._radios.findIndex((entry) => entry.startsWith(radioName));
-          this._updateRadio(index, 'radioUrl', w.text);
-        } catch (e) {
-          handleErrorRow(w, 'Invalid URL');
-          w.set_text(radioUrl);
+        const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
+        if (this._isPlayable({ uri: w.text }) === false) {
+          handleErrorRow(urlRadioRow, 'Invalid URL or PATH.');
+          const originalRadioUrl: string = this._radios[index].split('-')[1].trim();
+          w.set_text(originalRadioUrl);
+          return;
         }
+        this._updateRadio(index, 'radioUrl', w.text);
       });
       radiosExpander.add_row(nameRadioRow);
       radiosExpander.add_row(urlRadioRow);
@@ -214,71 +214,64 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._radios.push(`${radioName} - ${radioUrl} - ${radioID}`);
     this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
   }
-  private _handleAddRadio(): void {
-    debug('HERE?');
-    if (this._nameRadioRow.text.length < 2) {
-      handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
-      debug('inside first error');
-      return;
-    }
+  private _isPlayable({ uri }: { uri: string }): boolean {
+    if (uri.trim() === '') return false;
     try {
-      //  TODO: accept local files
-      const uri = GLib.Uri.parse(this._urlRadioRow.text, GLib.UriFlags.NONE); // test if it's a valid URL
-      debug('URI', uri);
-      const scheme = uri.get_scheme ? uri.get_scheme() : null;
-      debug('scheme', scheme);
-      if (scheme) {
-        debug('inside scheme');
-        this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
-        this._nameRadioRow.set_text('');
-        this._urlRadioRow.set_text('');
-        this._reloadRadios(this._radiosGroup);
+      const isValidUri: boolean = GLib.uri_is_valid(uri, GLib.UriFlags.NONE);
+      if (isValidUri) {
+        return true;
       }
-      return;
-    } catch (e) {
-      debug('HERE IN CATCH 1?', JSON.stringify(e));
-    }
-    let path = this._urlRadioRow.text;
-    debug('PATH ?', path);
-
+    } catch (e) {}
+    let path: string = uri;
     if (path.startsWith('~')) {
       path = GLib.get_home_dir() + path.slice(1);
     }
-
-    const uri = Gio.File.new_for_path(path).get_uri();
-    debug('URI', uri);
+    const filepath: Gio.File = Gio.File.new_for_path(path);
+    if (!filepath) return false;
+    const basename: string[] = filepath.get_basename().split('.');
+    const ext: string = basename[basename.length - 1];
+    const filepathUri: string = filepath.get_uri();
 
     try {
-      const file = Gio.File.new_for_uri(uri);
-      debug('FILE', file);
+      const fileUri: Gio.File = Gio.File.new_for_uri(filepathUri);
+      const fileInfo: Gio.FileInfo = fileUri.query_info('standard::*,access::*', Gio.FileQueryInfoFlags.NONE, null);
 
-      const info = file.query_info('standard::type,access::*', Gio.FileQueryInfoFlags.NONE, null);
-      const fileType = info.get_file_type();
-      debug('fileType', fileType);
-
-      const access = info.get_attribute_boolean('access::can-read');
-      debug('ACCESS', access);
-
-      if (fileType === Gio.FileType.REGULAR && access) {
-        debug('RADIO ADDED', path, this._urlRadioRow.text);
-        this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
-        this._nameRadioRow.set_text('');
-        this._urlRadioRow.set_text('');
-        this._reloadRadios(this._radiosGroup);
+      if (!ffmpegFormats.has(ext) && !fileInfo.get_content_type().match(/^video|^audio/)) {
+        return false;
       }
+      const fileType: Gio.FileType = fileInfo.get_file_type();
+      const isFileReadable: boolean = fileInfo.get_attribute_boolean('access::can-read');
 
-      if ((fileType === Gio.FileType.SYMBOLIC_LINK || fileType === Gio.FileType.SPECIAL) && access) {
-        debug('RADIO ADDED OPT', path, this._urlRadioRow.text);
-        this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
-        this._nameRadioRow.set_text('');
-        this._urlRadioRow.set_text('');
-        this._reloadRadios(this._radiosGroup);
+      if (
+        isFileReadable &&
+        (fileType === Gio.FileType.REGULAR ||
+          fileType === Gio.FileType.SYMBOLIC_LINK ||
+          fileType === Gio.FileType.SPECIAL)
+      ) {
+        return true;
       }
     } catch (e) {
-      debug('HERE IN CATCH 2', e.message);
-      //  TODO: change URL to the proper term
-      handleErrorRow(this._urlRadioRow, 'Invalid URL');
+      return false;
     }
+    return false;
+  }
+  private _handleAddRadio(): void {
+    if (this._nameRadioRow.text.length < 2) {
+      handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
+      return;
+    }
+    if (this._urlRadioRow.text.length <= 0) {
+      handleErrorRow(this._urlRadioRow, 'URL cannot be empty.');
+      return;
+    }
+    if (this._isPlayable({ uri: this._urlRadioRow.text }) === false) {
+      handleErrorRow(this._urlRadioRow, 'Invalid URL or PATH.');
+      return;
+    }
+    this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
+    this._nameRadioRow.set_text('');
+    this._urlRadioRow.set_text('');
+    this._reloadRadios(this._radiosGroup);
   }
 
   private _enableAddRadioOnEnter(): void {
