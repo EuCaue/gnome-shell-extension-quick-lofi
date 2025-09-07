@@ -73,7 +73,7 @@ export default class Player extends GObject.Object {
     this.stopPlayer();
     try {
       const [, argv] = GLib.shell_parse_argv(
-        `mpv --volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)} --demuxer-lavf-o=extension_picky=0 --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' ${radio.radioUrl}`,
+        `mpv --volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)} --demuxer-lavf-o=extension_picky=0 --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' "${radio.radioUrl}"`,
       );
       this._process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
     } catch (e) {
