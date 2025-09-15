@@ -89,6 +89,7 @@ export class RadiosPage extends Adw.PreferencesPage {
         dialog.choose(this._window, null, () => {});
         dialog.connect('response', (dialog, response) => {
           if (response === 'ok') {
+            //  FIX: stop radio;
             this._removeRadio(i, radioID);
             this._reloadRadios(radiosGroup);
           }

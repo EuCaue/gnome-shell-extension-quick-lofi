@@ -24,7 +24,8 @@ export default class Player extends GObject.Object {
   }
   private readonly _mpvSocket: string = '/tmp/quicklofi-socket';
   private _isCommandRunning: boolean = false;
-  private _process: Gio.Subprocess | null = null;
+  private _proc: Gio.Subprocess | null = null;
+  private _keepReading: boolean = true;
 
   constructor(private _settings: Gio.Settings) {
     super();
@@ -32,7 +33,7 @@ export default class Player extends GObject.Object {
 
   public initVolumeControl(): void {
     this._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
-      if (this._process !== null && !this._isCommandRunning) {
+      if (this._proc !== null && !this._isCommandRunning) {
         const volume = settings.get_int(key);
         const command = this.createCommand({
           command: ['set_property', 'volume', volume],
@@ -43,9 +44,9 @@ export default class Player extends GObject.Object {
   }
 
   public stopPlayer(): void {
-    if (this._process !== null) {
-      this._process.force_exit();
-      this._process = null;
+    if (this._proc !== null) {
+      this._proc.force_exit();
+      this._proc = null;
       this.emit('playback-stopped');
       return;
     }
@@ -62,22 +63,75 @@ export default class Player extends GObject.Object {
   }
 
   public getProperty(prop: string): { data: boolean; request_id: number; error: string } | null {
-    if (this._process) {
+    if (this._proc) {
       const command = this.createCommand({ command: ['get_property', prop] });
       const output = this.sendCommandToMpvSocket(command);
       return JSON.parse(output) ?? null;
     }
   }
 
-  public startPlayer(radio: Radio): void {
+  private _monitorPlayerOutput({
+    stream,
+    onLine,
+  }: {
+    stream: Gio.DataInputStream;
+    onLine: (line: string) => boolean | void;
+  }) {
+    const readLine = () => {
+      if (!this._keepReading) return;
+      stream.read_line_async(GLib.PRIORITY_DEFAULT, null, (s, res) => {
+        const [line] = s.read_line_finish_utf8(res);
+
+        if (line !== null) {
+          const keep = onLine(line);
+          if (keep === false) {
+            this._keepReading = false;
+            return;
+          }
+        }
+
+        if (this._keepReading) {
+          readLine();
+        }
+      });
+    };
+
+    readLine();
+  }
+  public async startPlayer(radio: Radio): Promise<void> {
     this.stopPlayer();
+    //  TODO: use a map for this;
+    const MPV_OPTIONS: Array<string> = [
+      `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
+      '--demuxer-lavf-o=extension_picky=0',
+      '--input-ipc-server=/tmp/quicklofi-socket',
+      '--loop-playlist=force',
+      '--no-video',
+      '--ytdl-format=best*[vcodec=none]',
+      '--ytdl-raw-options-add=force-ipv4=',
+      '--msg-level=all=warn',
+      `"${radio.radioUrl}"`,
+    ];
     try {
-      const [, argv] = GLib.shell_parse_argv(
-        `mpv --volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)} --demuxer-lavf-o=extension_picky=0 --input-ipc-server=/tmp/quicklofi-socket --loop-playlist=force --no-video --ytdl-format='best*[vcodec=none]' --ytdl-raw-options-add='force-ipv4=' "${radio.radioUrl}"`,
-      );
-      this._process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
+      const [, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
+      this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+
+      const stdoutStream = new Gio.DataInputStream({
+        base_stream: this._proc.get_stdout_pipe(),
+      });
+
+      this._monitorPlayerOutput({
+        stream: stdoutStream,
+        onLine: (line) => {
+          if (line.trim().startsWith('Failed')) {
+            this.stopPlayer();
+            Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
+            return false; // stops loop
+          }
+        },
+      });
     } catch (e) {
-      this._process = null;
+      this.stopPlayer();
       Main.notifyError(
         'MPV not found',
         'Did you have mpv installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
@@ -104,8 +158,7 @@ export default class Player extends GObject.Object {
 
       const outputStream = connection.get_output_stream();
       const inputStream = connection.get_input_stream();
-      const command = mpvCommand;
-      const byteArray = new TextEncoder().encode(command);
+      const byteArray = new TextEncoder().encode(mpvCommand);
 
       outputStream.write(byteArray, null);
       outputStream.flush(null);
