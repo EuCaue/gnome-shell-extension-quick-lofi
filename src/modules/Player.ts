@@ -52,6 +52,10 @@ export default class Player extends GObject.Object {
     }
   }
 
+  public isPlaying(): boolean {
+    return this._proc !== null;
+  }
+
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
     this.sendCommandToMpvSocket(playPauseCommand);

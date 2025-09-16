@@ -60,6 +60,15 @@ export default class Indicator extends PanelMenu.Button {
         this._createMenu();
       }
     });
+    this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
+      // stop player if current radio was removed
+      if (
+        this.mpvPlayer.isPlaying() &&
+        this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
+      ) {
+        this.mpvPlayer.stopPlayer();
+      }
+    });
     this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
       this._handlePopupMaxHeight();
     });
