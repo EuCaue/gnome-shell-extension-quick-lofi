@@ -79,6 +79,7 @@ export default class Player extends GObject.Object {
   }) {
     const readLine = () => {
       if (!this._keepReading) return;
+      if (this._proc === null) return;
       stream.read_line_async(GLib.PRIORITY_DEFAULT, null, (s, res) => {
         const [line] = s.read_line_finish_utf8(res);
 
@@ -104,7 +105,7 @@ export default class Player extends GObject.Object {
     const MPV_OPTIONS: Array<string> = [
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
       '--demuxer-lavf-o=extension_picky=0',
-      '--input-ipc-server=/tmp/quicklofi-socket',
+      `--input-ipc-server=${this._mpvSocket}`,
       '--loop-playlist=force',
       '--no-video',
       '--ytdl-format=best*[vcodec=none]',
