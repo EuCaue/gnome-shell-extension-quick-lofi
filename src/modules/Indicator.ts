@@ -102,18 +102,9 @@ export default class Indicator extends PanelMenu.Button {
 
     if (isRightClickOnActiveRadio) {
       this.mpvPlayer.stopPlayer();
-      this._updateIndicatorIcon({ playing: 'default' });
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
-      this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
-      this._activeRadioPopupItem.set_style('font-weight: normal');
-      this._activeRadioPopupItem = null;
       return;
     }
     if (isLeftClickOnActiveRadio) {
-      const currentState: string = (this._activeRadioPopupItem.get_child_at_index(0) as St.Icon).icon_name;
-      const isPlaying = currentState === ICONS.POPUP_STOP;
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPlaying ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
-      this._updateIndicatorIcon({ playing: isPlaying ? 'paused' : 'playing' });
       this.mpvPlayer.playPause();
       return;
     }
