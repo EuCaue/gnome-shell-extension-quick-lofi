@@ -26,6 +26,8 @@ export default class Player extends GObject.Object {
   private _isCommandRunning: boolean = false;
   private _proc: Gio.Subprocess | null = null;
   private _keepReading: boolean = true;
+  private _stdoutStream: Gio.DataInputStream | null = null;
+  private _cancellable: Gio.Cancellable | null = null;
 
   constructor(private _settings: Gio.Settings) {
     super();
@@ -43,11 +45,38 @@ export default class Player extends GObject.Object {
     });
   }
 
-  public stopPlayer(): void {
-    if (this._proc !== null) {
-      this._proc.force_exit();
+  public async stopPlayer(): Promise<void> {
+    this._keepReading = false;
+
+    if (this._cancellable) {
+      this._cancellable.cancel();
+      this._cancellable = null;
+    }
+
+    if (this._stdoutStream) {
+      try {
+        this._stdoutStream.close(null);
+      } catch (e) {}
+      this._stdoutStream = null;
+    }
+
+    if (this._proc) {
+      const proc = this._proc;
       this._proc = null;
-      this.emit('playback-stopped');
+
+      return new Promise((resolve) => {
+        proc.wait_check_async(null, (p, res) => {
+          try {
+            p.wait_check_finish(res);
+          } catch (e) {}
+          GLib.unlink(this._mpvSocket);
+          this.emit('playback-stopped');
+          resolve();
+        });
+        try {
+          proc.force_exit();
+        } catch (e) {}
+      });
       return;
     }
   }
@@ -81,11 +110,20 @@ export default class Player extends GObject.Object {
     stream: Gio.DataInputStream;
     onLine: (line: string) => boolean | void;
   }) {
+    this._cancellable = new Gio.Cancellable();
+
     const readLine = () => {
-      if (!this._keepReading) return;
-      if (this._proc === null) return;
-      stream.read_line_async(GLib.PRIORITY_DEFAULT, null, (s, res) => {
-        const [line] = s.read_line_finish_utf8(res);
+      if (!this._keepReading || this._proc === null) return;
+
+      stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable, (s, res) => {
+        if (this._cancellable?.is_cancelled()) return;
+
+        let line: string | null = null;
+        try {
+          [line] = s.read_line_finish_utf8(res);
+        } catch (e) {
+          return; // stream closed
+        }
 
         if (line !== null) {
           const keep = onLine(line);
@@ -95,16 +133,14 @@ export default class Player extends GObject.Object {
           }
         }
 
-        if (this._keepReading) {
-          readLine();
-        }
+        if (this._keepReading) readLine();
       });
     };
 
     readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
-    this.stopPlayer();
+    await this.stopPlayer();
     //  TODO: use a map for this;
     const MPV_OPTIONS: Array<string> = [
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
@@ -118,15 +154,16 @@ export default class Player extends GObject.Object {
       `"${radio.radioUrl}"`,
     ];
     try {
+      this._keepReading = true;
       const [, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
 
-      const stdoutStream = new Gio.DataInputStream({
+      this._stdoutStream = new Gio.DataInputStream({
         base_stream: this._proc.get_stdout_pipe(),
       });
 
       this._monitorPlayerOutput({
-        stream: stdoutStream,
+        stream: this._stdoutStream,
         onLine: (line) => {
           if (line.trim().startsWith('Failed')) {
             this.stopPlayer();
@@ -136,6 +173,7 @@ export default class Player extends GObject.Object {
         },
       });
     } catch (e) {
+      this._keepReading = false;
       this.stopPlayer();
       Main.notifyError(
         'MPV not found',
