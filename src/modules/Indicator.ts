@@ -19,6 +19,7 @@ export default class Indicator extends PanelMenu.Button {
   private _radios?: Array<Radio>;
   private _icon: St.Icon;
   private _extension: QuickLofiExtension;
+  public menuSignals: Array<{ emitter: any; signalID: number }> = [];
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
@@ -139,6 +140,12 @@ export default class Indicator extends PanelMenu.Button {
 
   public _createMenu(): void {
     this._activeRadioPopupItem = null;
+    this.menuSignals.forEach(({ emitter, signalID }) => {
+      try {
+        emitter.disconnect(signalID);
+      } catch (e) {}
+    });
+    this.menuSignals = [];
     // @ts-expect-error nothing
     this.menu.box.destroy_all_children();
     this._radios = [];
@@ -152,10 +159,13 @@ export default class Indicator extends PanelMenu.Button {
     const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
     const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
-    volumeSlider.connect('notify::value', (slider) => {
-      const currentVolume = (slider.value * 100).toFixed(0);
-      volumeLabel.text = `Volume: ${currentVolume}`;
-      this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('notify::value', (slider) => {
+        const currentVolume = (slider.value * 100).toFixed(0);
+        volumeLabel.text = `Volume: ${currentVolume}`;
+        this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
+      }),
     });
     this._extension._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
       const volume = settings.get_int(key);
@@ -187,12 +197,15 @@ export default class Indicator extends PanelMenu.Button {
         menuItem.set_style('font-weight: bold');
         this._activeRadioPopupItem = menuItem;
       }
-      menuItem.connect('activate', (item, event) => {
-        //  NOTE: MOUSE BUTTONS IDS
-        // 1 -> LMB
-        // 3 -> RMB
-        const mouseButton = event.get_button();
-        this._togglePlayingStatus(item as PopupMenu.PopupImageMenuItem, radio.id, mouseButton);
+      this.menuSignals.push({
+        emitter: menuItem,
+        signalID: menuItem.connect('activate', (item, event) => {
+          //  NOTE: MOUSE BUTTONS IDS
+          // 1 -> LMB
+          // 3 -> RMB
+          const mouseButton = event.get_button();
+          this._togglePlayingStatus(item as PopupMenu.PopupImageMenuItem, radio.id, mouseButton);
+        }),
       });
       popupSection.addMenuItem(menuItem);
     });
@@ -206,6 +219,12 @@ export default class Indicator extends PanelMenu.Button {
     debug('extension disabled');
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.stopPlayer();
+    this.menuSignals.forEach(({ emitter, signalID }) => {
+      try {
+        emitter.disconnect(signalID);
+      } catch (e) {}
+    });
+    this.menuSignals = [];
     this.destroy();
   }
 }
