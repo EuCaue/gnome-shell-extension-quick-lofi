@@ -19,6 +19,8 @@ export default class Indicator extends PanelMenu.Button {
   private _radios?: Array<Radio>;
   private _icon: St.Icon;
   private _extension: QuickLofiExtension;
+  private _isUpdatingCurrentRadio: boolean = false;
+  public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
 
   constructor(ext: QuickLofiExtension) {
@@ -60,36 +62,84 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _bindSettingsChangeEvents(): void {
-    this._extension._settings.connect('changed', (_: any, key: string): void => {
-      if (key === SETTINGS_KEYS.RADIOS_LIST) {
-        this._createMenu();
-      }
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect('changed', (_: any, key: string): void => {
+        if (key === SETTINGS_KEYS.RADIOS_LIST) {
+          if (this.mpvPlayer.isPlaying()) {
+            const currentRadioPlayingID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+            const currentRadioPlaying = this._radios.find((radio) => radio.id === currentRadioPlayingID);
+            const [updatedRadioName, updatedRadioUrl, id]: string[] = this._extension._settings
+              .get_strv(SETTINGS_KEYS.RADIOS_LIST)
+              .find((radio) => radio.endsWith(currentRadioPlayingID))
+              .split(' - ');
+            if (currentRadioPlaying.radioUrl !== updatedRadioUrl.trim() && currentRadioPlaying.id === id) {
+              const isPaused = this.mpvPlayer.getProperty('pause').data;
+              if (!isPaused) {
+                this._isUpdatingCurrentRadio = true;
+                this.mpvPlayer.startPlayer({ id, radioName: updatedRadioName, radioUrl: updatedRadioUrl });
+                this._updateIndicatorIcon({ playing: 'playing' });
+                this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
+                this._activeRadioPopupItem.set_style('font-weight: bold');
+              } else if (isPaused) {
+                this.mpvPlayer.stopPlayer();
+                this.mpvPlayer.startPlayer({ id, radioName: updatedRadioName, radioUrl: updatedRadioUrl });
+                this.mpvPlayer.playPause();
+              }
+              return;
+            }
+          }
+          if (!this._isUpdatingCurrentRadio) {
+            this._createMenu();
+          }
+        }
+      }),
     });
-    this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
-      // stop player if current radio was removed
-      if (
-        this.mpvPlayer.isPlaying() &&
-        this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
-      ) {
-        this.mpvPlayer.stopPlayer();
-      }
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
+        // stop player if current radio was removed
+        if (
+          this.mpvPlayer.isPlaying() &&
+          this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
+        ) {
+          this.mpvPlayer.stopPlayer();
+        }
+      }),
     });
-    this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
-      this._handlePopupMaxHeight();
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
+        this._handlePopupMaxHeight();
+      }),
     });
-    this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
-      this._handlePopupMaxHeight();
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
+        this._handlePopupMaxHeight();
+      }),
     });
-    this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
-      this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
+        this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
+        this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
+      }),
     });
-    this.mpvPlayer.connect('playback-stopped', () => {
-      this._updateIndicatorIcon({ playing: 'default' });
-      this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
-      this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
-      this._activeRadioPopupItem.set_style('font-weight: normal');
-      this._activeRadioPopupItem = null;
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('playback-stopped', () => {
+        if (this._isUpdatingCurrentRadio) {
+          this._isUpdatingCurrentRadio = false;
+          this._createMenu();
+          return;
+        }
+        this._updateIndicatorIcon({ playing: 'default' });
+        this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
+        this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
+        this._activeRadioPopupItem.set_style('font-weight: normal');
+        this._activeRadioPopupItem = null;
+      }),
     });
   }
 
@@ -167,10 +217,13 @@ export default class Indicator extends PanelMenu.Button {
         this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
       }),
     });
-    this._extension._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
-      const volume = settings.get_int(key);
-      volumeLabel.text = `Volume: ${volume}`;
-      volumeSlider.value = volume / 100;
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
+        const volume = settings.get_int(key);
+        volumeLabel.text = `Volume: ${volume}`;
+        volumeSlider.value = volume / 100;
+      }),
     });
     const volumeLabel = new St.Label({ text: `Volume: ${volumeSlider.value * 100}` });
     volumeBoxLayout.add_child(volumeLabel);
@@ -219,11 +272,15 @@ export default class Indicator extends PanelMenu.Button {
     debug('extension disabled');
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.stopPlayer();
+    this.signalsHandlers.forEach(({ emitter, signalID }) => {
+      emitter.disconnect(signalID);
+    });
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
       } catch (e) {}
     });
+    this.signalsHandlers = [];
     this.menuSignals = [];
     this.destroy();
   }
