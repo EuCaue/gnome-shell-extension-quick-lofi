@@ -38,9 +38,13 @@ export default class Indicator extends PanelMenu.Button {
 
   private _createRadios(): void {
     const radios: string[] = this._extension._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
-    radios.forEach((entry: string) => {
-      const [radioName, radioUrl, id] = entry.split(' - ');
-      this._radios.push({ radioName, radioUrl, id });
+
+    this._radios = radios.map((entry: string) => {
+      const parts = entry.split(' - ');
+      const radioName = (parts[0] || '').trim();
+      const radioUrl = (parts[1] || '').trim();
+      const id = (parts[2] || '').trim();
+      return { radioName, radioUrl, id };
     });
   }
 
