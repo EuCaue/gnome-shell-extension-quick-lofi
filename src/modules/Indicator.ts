@@ -184,7 +184,7 @@ export default class Indicator extends PanelMenu.Button {
     const scrollView = new St.ScrollView();
     const popupSection = new PopupMenu.PopupMenuSection();
     scrollView.add_child(popupSection.actor);
-    const isPaused = this.mpvPlayer.getProperty('pause');
+    const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
     this._radios.forEach((radio) => {
       const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
       const menuItem = new PopupMenu.PopupImageMenuItem(
