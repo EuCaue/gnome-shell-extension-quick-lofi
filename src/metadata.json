@@ -1,6 +1,6 @@
 {
   "name": "Quick Lofi",
-  "description": "Play lofi music and other sounds on your GNOME desktop with just a click!\n\nYou need MPV for this extension to work.\n\nFedora: sudo dnf install mpv\nUbuntu: sudo apt install mpv\nArch Linux: sudo pacman -S mpv",
+  "description": "Play lofi music and other sounds, locally or online, on your GNOME desktop with just a click!\n\nYou need MPV for this extension to work.\n\nFedora: sudo dnf install mpv\nUbuntu: sudo apt install mpv\nArch Linux: sudo pacman -S mpv",
   "uuid": "quick-lofi@eucaue",
   "url": "https://github.com/eucaue/gnome-shell-extension-quick-lofi",
   "settings-schema": "org.gnome.shell.extensions.quick-lofi",

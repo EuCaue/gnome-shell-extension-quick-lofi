@@ -4,7 +4,7 @@
 
 # Quick Lofi
 
-Play **lofi music and other sounds** on your GNOME desktop with just a **click**!
+Play **lofi music and other sounds, locally or online**, on your GNOME desktop with just a **click**!
 
 [![GitHub Release](https://img.shields.io/github/v/release/EuCaue/quick-lofi?include_prereleases&sort=date&display_name=release&style=for-the-badge&logo=github&)](https://github.com/EuCaue/quick-lofi/releases)
 [![GitHub last commit](https://img.shields.io/github/last-commit/EuCaue/quick-lofi?style=for-the-badge&logo=github&color=blue)](https://github.com/EuCaue/quick-lofi/commits/master)
