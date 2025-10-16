@@ -6,18 +6,20 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "clear": "rm -rf dist",
-    "build:app": "node build.js",
     "build": "npm run clear && npm run build:app",
-    "install:extension": "gnome-extensions install --force quick-lofi@eucaue.zip",
-    "wayland-session": "dbus-run-session -- gnome-shell --nested --wayland",
+    "build:app": "node build.js",
+    "clear": "rm -rf dist",
+    "compile-schemas": "glib-compile-schemas schemas/",
     "dev": "NODE_ENV=development npm run build && npm run install:extension && npm run wayland-session",
+    "format": "prettier --write . && eslint . --ext .ts --fix",
+    "install:extension": "gnome-extensions install --force quick-lofi@eucaue.zip",
+    "lint": "prettier --check . & eslint . --ext .ts",
     "prod": "NODE_ENV=production npm run build",
     "prod:install": "NODE_ENV=production npm run build && npm run install:extension",
-    "compile-schemas": "glib-compile-schemas schemas/",
+    "radios:add": "bash ./test-radios.sh --add",
+    "radios:remove": "bash ./test-radios.sh --remove",
     "validate": "tsc --noEmit",
-    "lint": "prettier --check . & eslint . --ext .ts",
-    "format": "prettier --write . && eslint . --ext .ts --fix"
+    "wayland-session": "env MUTTER_DEBUG_DUMMY_MODE_SPECS=1600x900 dbus-run-session -- gnome-shell --nested --wayland"
   },
   "repository": {
     "type": "git",
