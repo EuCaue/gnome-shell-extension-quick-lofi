@@ -1,0 +1,18 @@
+[
+  {
+    "radioName": "Radio Test with URL",
+    "radioUrl": "https://placeholder-url"
+  },
+  {
+    "radioName": "Radio Test with Invalid URL",
+    "radioUrl": "https://wrong-placeholder-url"
+  },
+  {
+    "radioName": "Radio Test with Path",
+    "radioUrl": "/path/to/file"
+  },
+  {
+    "radioName": "Radio Test with Invalid Path",
+    "radioUrl": "/invalid/path/to/file"
+  }
+]
