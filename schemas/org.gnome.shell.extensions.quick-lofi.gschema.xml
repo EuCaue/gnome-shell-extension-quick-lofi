@@ -40,5 +40,16 @@
       <summary>Stop Quick Lofi</summary>
       <description>Stop Quick Lofi playback entirely.</description>
     </key>
+    <key name="increase-volume" type="as">
+      <default>[]</default>
+      <summary>Increase Volume</summary>
+      <description>Increase Volume by system volume step.</description>
+    </key>
+
+    <key name="decrease-volume" type="as">
+      <default>[]</default>
+      <summary>Decrease Volume</summary>
+      <description>Decrease Volume by system volume step.</description>
+    </key>
   </schema>
 </schemalist>

@@ -10,6 +10,8 @@ export const ICONS = {
 export const SHORTCUTS = {
   PLAY_PAUSE_SHORTCUT: 'play-pause-quick-lofi',
   STOP_SHORTCUT: 'stop-quick-lofi',
+  INCREASE_VOLUME_SHORTCUT: 'increase-volume',
+  DECREASE_VOLUME_SHORTCUT: 'decrease-volume',
 };
 
 export const SETTINGS_KEYS = {

@@ -208,11 +208,11 @@ export default class Indicator extends PanelMenu.Button {
     const volumeLevel = this._extension._settings.get_int(SETTINGS_KEYS.VOLUME);
     const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
     const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
-    const volumeSlider = new Slider.Slider(volumeLevel / 100);
+    const volumeSlider = new Slider.Slider(Math.floor(volumeLevel / 100));
     this.menuSignals.push({
       emitter: volumeSlider,
       signalID: volumeSlider.connect('notify::value', (slider) => {
-        const currentVolume = (slider.value * 100).toFixed(0);
+        const currentVolume = Math.floor(slider.value * 100).toFixed(0);
         volumeLabel.text = `Volume: ${currentVolume}`;
         this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
       }),
@@ -220,12 +220,12 @@ export default class Indicator extends PanelMenu.Button {
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
-        const volume = settings.get_int(key);
+        const volume = Math.floor(settings.get_int(key));
         volumeLabel.text = `Volume: ${volume}`;
         volumeSlider.value = volume / 100;
       }),
     });
-    const volumeLabel = new St.Label({ text: `Volume: ${volumeSlider.value * 100}` });
+    const volumeLabel = new St.Label({ text: `Volume: ${Math.floor(volumeSlider.value * 100)}` });
     volumeBoxLayout.add_child(volumeLabel);
     volumeBoxLayout.add_child(volumeSlider);
     volumePopupItem.add_child(volumeBoxLayout);

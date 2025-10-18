@@ -31,6 +31,16 @@ export class PlayerPage extends Adw.PreferencesPage {
         title: 'Stop Quick Lofi',
         subtitle: 'Stop Quick Lofi playback entirely.',
       },
+      {
+        settingsKey: SHORTCUTS.INCREASE_VOLUME_SHORTCUT,
+        title: 'Increase Volume',
+        subtitle: 'Increase Volume by system volume step.',
+      },
+      {
+        settingsKey: SHORTCUTS.DECREASE_VOLUME_SHORTCUT,
+        title: 'Decrease Volume',
+        subtitle: 'Decrease Volume by system volume step.',
+      },
     ];
     shortcuts.forEach((shortcut) => {
       const shortcutButton = new ShortcutButton(this._settings, shortcut.settingsKey);
