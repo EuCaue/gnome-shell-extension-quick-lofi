@@ -117,24 +117,23 @@ Set up a local environment to work on the extension:
    npm install
    ```
 
-3. Build and run in development mode:
+3. Build and run the extension in a nested GNOME Wayland session:
 
    ```bash
    npm run dev
    ```
 
-   This will watch for changes and reload the extension automatically.
-
 ---
 
 ## Contributing
 
-Contributions are welcome! Here’s how you can help:
+Contributions are always welcome! 💡
 
-1. Fork the repository and create a branch.
-2. Make your improvements, then commit and push to your branch.
-3. Open a pull request describing your changes.
-4. Feel free to open issues for suggestions or bugs.
+1. **Fork** the repository and create a new branch for your changes.
+2. **Make your improvements** whether it’s fixing a bug, improving code, or adding a feature.
+3. **Commit and push** your changes to your branch.
+4. **Open a pull request** with a short description of what you’ve done.
+5. If you find any bugs or have ideas, feel free to **open an issue** anytime!
 
 ---
 
