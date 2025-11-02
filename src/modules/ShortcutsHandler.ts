@@ -4,7 +4,6 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import Player from './Player';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
-import { debug } from '@/utils/debug';
 
 export default class ShortcutsHandler {
   constructor(

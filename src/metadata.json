@@ -4,5 +4,5 @@
   "uuid": "quick-lofi@eucaue",
   "url": "https://github.com/eucaue/gnome-shell-extension-quick-lofi",
   "settings-schema": "org.gnome.shell.extensions.quick-lofi",
-  "shell-version": ["46", "47", "48"]
+  "shell-version": ["46", "47", "48", "49"]
 }

@@ -19,7 +19,7 @@
     "radios:add": "bash ./test-radios.sh --add",
     "radios:remove": "bash ./test-radios.sh --remove",
     "validate": "tsc --noEmit",
-    "wayland-session": "env MUTTER_DEBUG_DUMMY_MODE_SPECS=1600x900 dbus-run-session -- gnome-shell --nested --wayland"
+    "wayland-session": "env MUTTER_DEBUG_DUMMY_MODE_SPECS=1600x900  dbus-run-session -- gnome-shell --devkit --wayland"
   },
   "repository": {
     "type": "git",
