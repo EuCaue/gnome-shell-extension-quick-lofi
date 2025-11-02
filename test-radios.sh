@@ -4,6 +4,7 @@ SCHEMA="org.gnome.shell.extensions.quick-lofi"
 RADIO_KEY="radios"
 ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 RADIOS_JSON="./radios-test.json"
+TEST_ID_PREFIX="TEST"
 
 BOLD="\e[1m"
 UNDERLINE="\e[4m"
@@ -40,7 +41,7 @@ function add_radio() {
 
   jq -c '.[]' $RADIOS_JSON | while read -r i; do
     mapfile -t radio < <(echo "$i" | jq -r '[.radioName, .radioUrl] | @tsv' | tr '\t' '\n')
-    radio_item="${radio[0]} - ${radio[1]} - TEST$(generate_nanoid)"
+    radio_item="${radio[0]} - ${radio[1]} - $TEST_ID_PREFIX$(generate_nanoid)"
     echo "RADIO ITEM TEST: $radio_item"
     current=$(gsettings --schemadir "$SCHEMA_DIR" get "$SCHEMA" "$RADIO_KEY" | sed "s/^\[//;s/\]$//;s/^ *//;s/ *$//")
     gsettings --schemadir "$SCHEMA_DIR" set "$SCHEMA" "$RADIO_KEY" "[$current, '$radio_item']"
