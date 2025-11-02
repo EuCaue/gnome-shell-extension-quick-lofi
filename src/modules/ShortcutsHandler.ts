@@ -39,6 +39,7 @@ export default class ShortcutsHandler {
       Shell.ActionMode.NORMAL,
       () => {
         const currentVolume: number = this._settings.get_int(SETTINGS_KEYS.VOLUME);
+        if (currentVolume >= 100) return;
         const volumeStep: number = new Gio.Settings({ schema: 'org.gnome.settings-daemon.plugins.media-keys' }).get_int(
           'volume-step',
         );
@@ -53,6 +54,7 @@ export default class ShortcutsHandler {
       Shell.ActionMode.NORMAL,
       () => {
         const currentVolume: number = this._settings.get_int(SETTINGS_KEYS.VOLUME);
+        if (currentVolume <= 0) return;
         const volumeStep: number = new Gio.Settings({ schema: 'org.gnome.settings-daemon.plugins.media-keys' }).get_int(
           'volume-step',
         );
