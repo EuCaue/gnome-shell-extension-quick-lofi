@@ -6,7 +6,7 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "build": "npm run clear && npm run build:app",
+    "build": "npm run clear && npm run compile-schemas && npm run build:app",
     "build:app": "node build.js",
     "clear": "rm -rf dist",
     "compile-schemas": "glib-compile-schemas schemas/",
