@@ -91,7 +91,7 @@ sudo zypper install mpv
 3. Build and install:
 
    ```bash
-   npm run compile-schemas && npm run prod:install
+   npm run prod:install
    ```
 
 4. Log out and back in.
