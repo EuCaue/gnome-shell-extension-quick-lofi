@@ -77,7 +77,6 @@ export default class Player extends GObject.Object {
           proc.force_exit();
         } catch (e) {}
       });
-      return;
     }
   }
 

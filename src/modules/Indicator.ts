@@ -151,7 +151,11 @@ export default class Indicator extends PanelMenu.Button {
     this._icon.set_gicon(gicon);
   }
 
-  private _togglePlayingStatus(child: PopupMenu.PopupImageMenuItem, radioID: string, mouseButton: number): void {
+  private async _togglePlayingStatus(
+    child: PopupMenu.PopupImageMenuItem,
+    radioID: string,
+    mouseButton: number,
+  ): Promise<void> {
     const isRightClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 3;
     const isLeftClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 1;
 
@@ -169,7 +173,7 @@ export default class Indicator extends PanelMenu.Button {
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._updateIndicatorIcon({ playing: 'default' });
     }
-    this.mpvPlayer.startPlayer(currentRadio);
+    await this.mpvPlayer.startPlayer(currentRadio);
     this._updateIndicatorIcon({ playing: 'playing' });
     child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
     child.set_style('font-weight: bold');
