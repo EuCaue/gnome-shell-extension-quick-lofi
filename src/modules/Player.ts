@@ -141,6 +141,9 @@ export default class Player extends GObject.Object {
   }
   public async startPlayer(radio: Radio): Promise<void> {
     await this.stopPlayer();
+    if (radio.radioUrl.startsWith('~')) {
+      radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
+    }
     //  TODO: use a map for this;
     const MPV_OPTIONS: Array<string> = [
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
