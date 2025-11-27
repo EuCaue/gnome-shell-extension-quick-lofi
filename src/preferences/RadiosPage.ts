@@ -57,6 +57,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       const [radioName, radioUrl, radioID] = this._radios[i].split(' - ');
       const radiosExpander = new Adw.ExpanderRow({
         title: _(radioName),
+        use_markup: false,
         cursor: new Gdk.Cursor({ name: 'pointer' }),
       });
       const nameRadioRow = new Adw.EntryRow({
