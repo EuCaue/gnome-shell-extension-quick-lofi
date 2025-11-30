@@ -266,12 +266,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
   private _isPlayable({ uri }: { uri: string }): boolean {
     if (uri.trim() === '') return false;
-    try {
-      const isValidUri: boolean = GLib.uri_is_valid(uri, GLib.UriFlags.NONE);
-      if (isValidUri) {
-        return true;
-      }
-    } catch (e) {}
+    if (isUri(uri)) return true;
     let path: string = uri;
     if (path.startsWith('~')) {
       path = GLib.get_home_dir() + path.slice(1);
