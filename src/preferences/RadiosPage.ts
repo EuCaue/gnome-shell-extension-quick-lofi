@@ -6,7 +6,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { ffmpegFormats, SETTINGS_KEYS } from '@utils/constants';
-import { generateNanoIdWithSymbols, handleErrorRow } from '@utils/helpers';
+import { generateNanoIdWithSymbols, handleErrorRow, isUri } from '@utils/helpers';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
@@ -72,13 +72,26 @@ export class RadiosPage extends Adw.PreferencesPage {
         inputPurpose: Gtk4.InputPurpose.URL,
       });
       const removeButton = new Gtk4.Button({
-        label: `Remove ${radioName}`,
+        tooltipMarkup: `Remove <b>${radioName}</b>`,
         iconName: 'user-trash-symbolic',
         cursor: new Gdk.Cursor({ name: 'pointer' }),
         halign: Gtk4.Align.CENTER,
         valign: Gtk4.Align.CENTER,
       });
-
+      const buttonsRow = new Gtk4.Box({
+        halign: Gtk4.Align.CENTER,
+        valign: Gtk4.Align.CENTER,
+        marginTop: 10,
+        marginBottom: 10,
+        spacing: 4,
+      });
+      const openButton = new Gtk4.Button({
+        tooltipMarkup: `Open <b>${radioName}</b>`,
+        iconName: 'folder-open-symbolic',
+        cursor: new Gdk.Cursor({ name: 'pointer' }),
+        halign: Gtk4.Align.CENTER,
+        valign: Gtk4.Align.CENTER,
+      });
       removeButton.connect('clicked', () => {
         const dialog = new Adw.AlertDialog({
           heading: _(`Are you sure you want to delete ${radioName} ?`),
@@ -95,6 +108,39 @@ export class RadiosPage extends Adw.PreferencesPage {
           }
           dialog.close();
         });
+      });
+      openButton.connect('clicked', () => {
+        const uri = radioUrl;
+        if (!isUri(uri)) {
+          const file = Gio.file_new_for_path(uri);
+          const fileUri = file.get_uri();
+          const uris = [fileUri];
+          const startupId = '';
+          Gio.DBus.session.call(
+            'org.freedesktop.FileManager1', // Bus Name
+            '/org/freedesktop/FileManager1', // Object Path
+            'org.freedesktop.FileManager1', // Interface Name
+            'ShowItems',
+            new GLib.Variant('(ass)', [uris, startupId]), // Parameters
+            null,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null,
+            (connection, res) => {
+              try {
+                connection.call_finish(res);
+              } catch (e) {
+                logError(e, 'Failed to open FileManager');
+              }
+            },
+          );
+          return;
+        }
+        try {
+          Gio.AppInfo.launch_default_for_uri(uri, null);
+        } catch (err) {
+          logError(err, 'Error while launching URI.');
+        }
       });
 
       nameRadioRow.connect('apply', (w) => {
@@ -118,9 +164,12 @@ export class RadiosPage extends Adw.PreferencesPage {
         }
         this._updateRadio(index, 'radioUrl', w.text);
       });
+      buttonsRow.append(removeButton);
+      buttonsRow.append(openButton);
       radiosExpander.add_row(nameRadioRow);
       radiosExpander.add_row(urlRadioRow);
-      radiosExpander.add_row(removeButton);
+      radiosExpander.add_row(buttonsRow);
+
       let dragX: number;
       let dragY: number;
       const dropController = new Gtk4.DropControllerMotion();

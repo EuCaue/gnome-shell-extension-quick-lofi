@@ -27,3 +27,11 @@ export function generateNanoIdWithSymbols(size: number): string {
   const chars: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
   return Array.from({ length: size }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
 }
+
+export function isUri(uri: string): boolean {
+  const scheme = GLib.uri_parse_scheme(uri);
+  if (scheme) {
+    return true;
+  }
+  return false;
+}
