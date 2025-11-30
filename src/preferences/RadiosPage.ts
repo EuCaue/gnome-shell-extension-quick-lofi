@@ -147,7 +147,7 @@ export class RadiosPage extends Adw.PreferencesPage {
         const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
         if (w.text.length < 2) {
           handleErrorRow(w, 'Name must be at least 2 characters');
-          const originalRadioName: string = this._radios[index].split('-')[0].trim();
+          const originalRadioName: string = this._radios[index].split(' - ')[0].trim();
           w.set_text(originalRadioName);
           return;
         }
@@ -158,7 +158,7 @@ export class RadiosPage extends Adw.PreferencesPage {
         const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
         if (this._isPlayable({ uri: w.text }) === false) {
           handleErrorRow(urlRadioRow, 'Invalid URL or PATH.');
-          const originalRadioUrl: string = this._radios[index].split('-')[1].trim();
+          const originalRadioUrl: string = this._radios[index].split(' - ')[1].trim();
           w.set_text(originalRadioUrl);
           return;
         }
