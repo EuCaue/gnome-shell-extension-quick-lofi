@@ -87,7 +87,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       });
       const openButton = new Gtk4.Button({
         tooltipMarkup: `Open <b>${radioName}</b>`,
-        iconName: 'folder-open-symbolic',
+        iconName: isUri(radioUrl) ? 'folder-globe-symbolic' : 'folder-open-symbolic',
         cursor: new Gdk.Cursor({ name: 'pointer' }),
         halign: Gtk4.Align.CENTER,
         valign: Gtk4.Align.CENTER,
