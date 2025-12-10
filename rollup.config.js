@@ -14,6 +14,7 @@ export default {
     preserveModules: true,
     preserveModulesRoot: 'src',
   },
+  external: [/^gi:\/\//, /^resource:\/\//, 'system', 'gettext', 'cairo'],
   plugins: [
     replace({
       preventAssignment: true,
