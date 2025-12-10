@@ -29,6 +29,7 @@
       <summary>Height for Quick Lofi popup</summary>
       <description>This will set the height for the popup</description>
     </key>
+
     <key name="play-pause-quick-lofi" type="as">
       <default>[]</default>
       <summary>Toggle play/pause for Quick Lofi.</summary>
@@ -40,6 +41,7 @@
       <summary>Stop Quick Lofi</summary>
       <description>Stop Quick Lofi playback entirely.</description>
     </key>
+
     <key name="increase-volume" type="as">
       <default>[]</default>
       <summary>Increase Volume</summary>
@@ -50,6 +52,12 @@
       <default>[]</default>
       <summary>Decrease Volume</summary>
       <description>Decrease Volume by system volume step.</description>
+    </key>
+
+    <key name="indicator-actions" type="as">
+      <default>['showPopupMenu', 'playPause', 'openPrefs']</default>
+      <summary>Configure the behavior of indicator clicks.</summary>
+      <description>Specifies which actions are triggered when the user clicks the indicator.</description>
     </key>
   </schema>
 </schemalist>

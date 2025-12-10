@@ -21,7 +21,18 @@ export const SETTINGS_KEYS = {
   POPUP_MAX_HEIGHT: 'popup-max-height',
   CURRENT_RADIO_PLAYING: 'current-radio-playing',
   VOLUME: 'volume',
+  INDICATOR_ACTIONS: 'indicator-actions',
 };
+
+// used across modules, keep in sync
+export const INDICATOR_ACTIONS_NAMES = new Map([
+  ['showPopupMenu', 'Show menu'],
+  ['playPause', 'Toggle play'],
+  ['openPrefs', 'Open preferences'],
+  ['stopPlayer', 'Stop playback'],
+] as const);
+export type IndicatorActionKey = typeof INDICATOR_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
+export type IndicatorActionValue = typeof INDICATOR_ACTIONS_NAMES extends Map<any, infer V> ? V : never;
 
 // ffmpeg container formats (from `ffmpeg -formats`)
 export const ffmpegFormats = new Set([

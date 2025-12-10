@@ -9,18 +9,20 @@ import { ICONS, SETTINGS_KEYS } from '@utils/constants';
 import { type Radio, type QuickLofiExtension } from '@/types';
 import { isCurrentRadioPlaying } from '@utils/helpers';
 import { debug } from '@utils/debug';
+import { IndicatorActions } from './IndicatorActions';
 
 export default class Indicator extends PanelMenu.Button {
   static {
     GObject.registerClass(this);
   }
-  public mpvPlayer: Player;
+  private _indicatorActions: IndicatorActions;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
   private _radios?: Array<Radio>;
   private _icon: St.Icon;
   private _extension: QuickLofiExtension;
   private _isUpdatingCurrentRadio: boolean = false;
   public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
+  public mpvPlayer: Player;
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
 
   constructor(ext: QuickLofiExtension) {
@@ -36,6 +38,7 @@ export default class Indicator extends PanelMenu.Button {
     this.add_child(this._icon);
     this._createMenu();
     this._bindSettingsChangeEvents();
+    this._indicatorActions = new IndicatorActions(this.menu, this._extension, this.mpvPlayer);
     this._handleButtonClick();
   }
 
@@ -183,12 +186,10 @@ export default class Indicator extends PanelMenu.Button {
 
   private _handleButtonClick(): void {
     this.connect('button-press-event', (_, event) => {
-      const RIGHT_CLICK = 3;
-      if (event.get_button() === RIGHT_CLICK) {
-        this.menu.close(false);
-        this._extension.openPreferences();
-        return;
-      }
+      const mouseBtn = event.get_button() - 1;
+      const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
+      const action = actions[mouseBtn];
+      this._indicatorActions.actions.get(action)();
     });
   }
 

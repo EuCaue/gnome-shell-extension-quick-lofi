@@ -10,6 +10,8 @@ type PlayerCommand = {
   command: Array<string | boolean>;
 };
 
+//  TODO: transform this into a static class
+// since there are no benefit being a normal class
 export default class Player extends GObject.Object {
   static {
     GObject.registerClass(

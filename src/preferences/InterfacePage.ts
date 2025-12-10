@@ -3,7 +3,8 @@ import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow } from '@utils/helpers';
-import { SETTINGS_KEYS } from '@utils/constants';
+import { INDICATOR_ACTIONS_NAMES, IndicatorActionKey, IndicatorActionValue, SETTINGS_KEYS } from '@utils/constants';
+import Gtk from '@girs/gtk-4.0';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {
@@ -11,7 +12,16 @@ export class InterfacePage extends Adw.PreferencesPage {
       {
         GTypeName: 'InterfacePage',
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/InterfacePage.ui',
-        InternalChildren: ['setPopupMaxHeightRow', 'popupMaxHeightRow'],
+        InternalChildren: [
+          'setPopupMaxHeightRow',
+          'popupMaxHeightRow',
+          'leftClickActionList',
+          'middleClickActionList',
+          'rightClickActionList',
+          'leftClickRow',
+          'middleClickRow',
+          'rightClickRow',
+        ],
       },
       this,
     );
@@ -19,6 +29,14 @@ export class InterfacePage extends Adw.PreferencesPage {
 
   declare private _setPopupMaxHeightRow: Adw.SwitchRow;
   declare private _popupMaxHeightRow: Adw.EntryRow;
+  declare private _leftClickActionList: Gtk.StringList;
+  declare private _middleClickActionList: Gtk.StringList;
+  declare private _rightClickActionList: Gtk.StringList;
+  declare private _leftClickRow: Adw.ComboRow;
+  declare private _middleClickRow: Adw.ComboRow;
+  declare private _rightClickRow: Adw.ComboRow;
+  private _indicatorActionsNames: Map<IndicatorActionKey, IndicatorActionValue>;
+  private _indicatorActionsSettings: IndicatorActionKey[];
 
   private _handleApplyPopup(w: Adw.EntryRow): void {
     const VALID_CSS_TYPES: Array<string> = ['px', 'pt', 'em', 'ex', 'rem', 'pc', 'in', 'cm', 'mm'];
@@ -33,8 +51,34 @@ export class InterfacePage extends Adw.PreferencesPage {
     this._settings.set_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT, w.text);
   }
 
+  private _handleIndicatorActions() {
+    const updateAction = ({ mouseBtn, actionIndex }: { mouseBtn: number; actionIndex: number }): void => {
+      const actions = Array.from(this._indicatorActionsNames.keys());
+      this._indicatorActionsSettings[mouseBtn] = actions[actionIndex];
+      this._settings.set_strv(SETTINGS_KEYS.INDICATOR_ACTIONS, this._indicatorActionsSettings);
+    };
+    const setRowAction = ({ list, row, mouseBtn }: { list: Gtk.StringList; row: Adw.ComboRow; mouseBtn: number }) => {
+      const actions = Array.from(this._indicatorActionsNames.values());
+      for (const action of actions) {
+        list.append(action);
+      }
+      const rowAction = actions[mouseBtn];
+      const rowPosition = actions.indexOf(rowAction) + 1;
+      row.set_selected(rowPosition);
+      row.connect('notify::selected', () => {
+        const newActionIndex: number = row.get_selected();
+        updateAction({ mouseBtn, actionIndex: newActionIndex });
+      });
+    };
+    setRowAction({ list: this._leftClickActionList, row: this._leftClickRow, mouseBtn: 0 });
+    setRowAction({ list: this._middleClickActionList, row: this._middleClickRow, mouseBtn: 1 });
+    setRowAction({ list: this._rightClickActionList, row: this._rightClickRow, mouseBtn: 2 });
+  }
+
   constructor(private _settings: Gio.Settings) {
     super();
+    this._indicatorActionsNames = INDICATOR_ACTIONS_NAMES;
+    this._indicatorActionsSettings = this._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS) as IndicatorActionKey[];
     this._settings.bind(SETTINGS_KEYS.POPUP_MAX_HEIGHT, this._popupMaxHeightRow, 'text', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(
       SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT,
@@ -48,5 +92,6 @@ export class InterfacePage extends Adw.PreferencesPage {
       'active',
       Gio.SettingsBindFlags.DEFAULT,
     );
+    this._handleIndicatorActions();
   }
 }
