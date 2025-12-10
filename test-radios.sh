@@ -56,12 +56,18 @@ function remove_radio() {
   gsettings --schemadir "$SCHEMA_DIR" set "$SCHEMA" "$RADIO_KEY" "$new_radios"
 }
 
+function list_radios() {
+  radios_list=$(gsettings --schemadir "$SCHEMA_DIR" get "$SCHEMA" "$RADIO_KEY" | sed "s/^\[//; s/\]$//; s/, '/\n/g; s/'//g")
+  echo "RADIOS: $radios_list"
+}
+
 function usage() {
   echo "Usage: $0 [options]"
   echo
   echo "Options:"
   echo " -a, --add     Add test radios"
   echo " -r, --remove  Remove test radios"
+  echo " -l, --list    List radios"
   echo " -h, --help    Show this help message"
   echo
   echo "Examples:"
@@ -76,15 +82,17 @@ if [ $# -eq 0 ]; then
   usage
 fi
 
-while getopts "ar-:h" opt; do
+while getopts "arl-:h" opt; do
   case $opt in
   a) add_radio ;;
   r) remove_radio ;;
+  l) list_radios ;;
   h) usage ;;
   -)
     case "${OPTARG}" in
     add) add_radio ;;
     remove) remove_radio ;;
+    list) list_radios ;;
     help) usage ;;
     *) echo "Unknown option --${OPTARG}" ;;
     esac
