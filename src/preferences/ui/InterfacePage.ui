@@ -4,41 +4,43 @@
     <property name="name">interface-page</property>
     <property name="title" translatable="yes">Interface</property>
     <property name="icon-name">interface-page-symbolic</property>
+
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="title">Interface Settings</property>
-        <property name="description" translatable="yes">Change how the interface behaves.</property>
+        <property name="title" translatable="yes">Interface Settings</property>
+        <property name="description" translatable="yes">Adjust how the interface responds to your actions.</property>
+
         <child>
           <object class="AdwComboRow" id="leftClickRow">
-            <property name="title" translatable="yes">Left Click Action: </property>
+            <property name="title" translatable="yes">Left click action</property>
             <property name="model">
-              <object class="GtkStringList" id="leftClickActionList">
-              </object>
+              <object class="GtkStringList" id="leftClickActionList"></object>
             </property>
           </object>
         </child>
+
         <child>
           <object class="AdwComboRow" id="middleClickRow">
             <property name="title" translatable="yes">Middle Click Action: </property>
             <property name="model">
-              <object class="GtkStringList" id="middleClickActionList">
-              </object>
+              <object class="GtkStringList" id="middleClickActionList" />
             </property>
           </object>
         </child>
+
         <child>
           <object class="AdwComboRow" id="rightClickRow">
-            <property name="title" translatable="yes">Right Click Action: </property>
+            <property name="title" translatable="yes">Right click action</property>
             <property name="model">
-              <object class="GtkStringList" id="rightClickActionList">
-              </object>
+              <object class="GtkStringList" id="rightClickActionList"></object>
             </property>
           </object>
         </child>
+
         <child>
           <object class="AdwSwitchRow" id="setPopupMaxHeightRow">
-            <property name="title"> Set Popup Max Height </property>
-            <property name="subtitle"> Enable to set a maximum height for the popup. </property>
+            <property name="title" translatable="yes">Limit popup height</property>
+            <property name="subtitle" translatable="yes">Enable to set a maximum height for the popup.</property>
             <property name="cursor">
               <object class="GdkCursor">
                 <property name="name">pointer</property>
@@ -46,16 +48,19 @@
             </property>
           </object>
         </child>
+
         <child>
           <object class="AdwEntryRow" id="popupMaxHeightRow">
             <signal name="apply" handler="_handleApplyPopup" swapped="no" />
-            <property name="title">Popup max Height</property>
+            <property name="title" translatable="yes">Popup maximum height</property>
             <property name="text">10em</property>
             <property name="visible">true</property>
             <property name="show-apply-button">true</property>
           </object>
         </child>
+
       </object>
     </child>
+
   </template>
 </interface>

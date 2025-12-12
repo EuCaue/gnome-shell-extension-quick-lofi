@@ -61,12 +61,12 @@ export class RadiosPage extends Adw.PreferencesPage {
         cursor: new Gdk.Cursor({ name: 'pointer' }),
       });
       const nameRadioRow = new Adw.EntryRow({
-        title: _('Radio Name'),
+        title: _('Name'),
         text: _(radioName),
         showApplyButton: true,
       });
       const urlRadioRow = new Adw.EntryRow({
-        title: _('Radio URL'),
+        title: _('Source'),
         text: _(radioUrl),
         showApplyButton: true,
         inputPurpose: Gtk4.InputPurpose.URL,

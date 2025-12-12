@@ -6,30 +6,30 @@
     <property name="icon-name">quick-lofi-radios-symbolic</property>
     <child>
       <object class="AdwPreferencesGroup" id="radiosGroup">
-        <property name="title">Radios Settings</property>
-        <property name="description" translatable="yes">Configure the Radios list</property>
+        <property name="title" translatable="yes">Radios List</property>
+        <property name="description" translatable="yes">Manage your radios</property>
       </object>
     </child>
 
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="title" translatable="yes">Add Radio to the list</property>
+        <property name="title" translatable="yes">Add a New Radio</property>
         <child>
           <object class="AdwEntryRow" id="nameRadioRow">
-            <property name="title" translatable="yes">Radio Name</property>
+            <property name="title" translatable="yes">Name</property>
           </object>
         </child>
 
         <child>
           <object class="AdwEntryRow" id="urlRadioRow">
-            <property name="title" translatable="yes">Radio URL</property>
+            <property name="title" translatable="yes">Source</property>
           </object>
         </child>
 
         <child>
           <object class="GtkButton">
             <signal name="clicked" handler="_handleAddRadio" swapped="no" />
-            <property name="label" translatable="yes">Add Radio</property>
+            <property name="label" translatable="yes">Add</property>
             <property name="icon-name">list-add-symbolic</property>
             <property name="halign">3</property>
             <property name="valign">3</property>

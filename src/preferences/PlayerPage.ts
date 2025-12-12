@@ -23,23 +23,23 @@ export class PlayerPage extends Adw.PreferencesPage {
     const shortcuts: Array<Shortcut> = [
       {
         settingsKey: SHORTCUTS.PLAY_PAUSE_SHORTCUT,
-        title: 'Play/Pause Quick Lofi',
-        subtitle: 'Toggle between playing and pausing Quick Lofi.',
+        title: 'Play or Pause',
+        subtitle: 'Toggle playback of Quick Lofi.',
       },
       {
         settingsKey: SHORTCUTS.STOP_SHORTCUT,
-        title: 'Stop Quick Lofi',
-        subtitle: 'Stop Quick Lofi playback entirely.',
+        title: 'Stop Playback',
+        subtitle: 'Stop Quick Lofi completely.',
       },
       {
         settingsKey: SHORTCUTS.INCREASE_VOLUME_SHORTCUT,
         title: 'Increase Volume',
-        subtitle: 'Increase Volume by system volume step.',
+        subtitle: 'Raise the volume by the system step.',
       },
       {
         settingsKey: SHORTCUTS.DECREASE_VOLUME_SHORTCUT,
         title: 'Decrease Volume',
-        subtitle: 'Decrease Volume by system volume step.',
+        subtitle: 'Lower the volume by the system step.',
       },
     ];
     shortcuts.forEach((shortcut) => {
