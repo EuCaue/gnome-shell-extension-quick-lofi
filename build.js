@@ -31,6 +31,7 @@ function prepareFiles() {
   });
 
   rmSync(resolve(__dirname, 'dist/resources/quick-lofi.gresource.xml'));
+  rmSync(resolve(__dirname, 'dist/schemas/gschemas.compiled'));
 
   execSync(
     'glib-compile-resources src/resources/quick-lofi.gresource.xml --target=dist/resources/quick-lofi.gresource --sourcedir=src/resources',
