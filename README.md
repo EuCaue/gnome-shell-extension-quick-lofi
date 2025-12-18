@@ -91,7 +91,7 @@ sudo zypper install mpv
 3. Build and install:
 
    ```bash
-   npm run prod:install
+   npm run install:prod
    ```
 
 4. Log out and back in.
@@ -120,7 +120,7 @@ Set up a local environment to work on the extension:
 3. Build and run the extension in a nested GNOME Wayland session:
 
    ```bash
-   npm run dev
+   npm run run:dev
    ```
 
 ---
