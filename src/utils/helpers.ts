@@ -2,6 +2,8 @@ import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { QuickLofiExtension } from '@/types';
 
 export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
   const TIMEOUT_SECONDS = 3;
@@ -34,4 +36,14 @@ export function isUri(uri: string): boolean {
     return true;
   }
   return false;
+}
+
+let _settings: Gio.Settings | null = null;
+export function getExtSettings(ext?: QuickLofiExtension): Gio.Settings {
+  if (_settings) return _settings;
+  if (!ext) {
+    throw new Error('Extension instance is required on first call');
+  }
+  _settings = ext.getSettings();
+  return _settings;
 }

@@ -1,10 +1,10 @@
 import Gio from 'gi://Gio';
-import { Extension, ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
+import { Extension, type ExtensionMetadata } from '@girs/gnome-shell/extensions/extension';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { debug } from '@utils/debug';
 import Indicator from '@/modules/Indicator';
 import ShortcutsHandler from '@/modules/ShortcutsHandler';
-import { generateNanoIdWithSymbols } from '@utils/helpers';
+import { generateNanoIdWithSymbols, getExtSettings } from '@utils/helpers';
 import { SETTINGS_KEYS } from '@utils/constants';
 
 export default class QuickLofi extends Extension {
@@ -35,10 +35,11 @@ export default class QuickLofi extends Extension {
   enable() {
     debug('extension enabled');
     this._settings = this.getSettings();
+    getExtSettings(this);
     this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this._migrateRadios();
     this._indicator = new Indicator(this);
-    this._shortcutsHandler = new ShortcutsHandler(this._settings, this._indicator.mpvPlayer);
+    this._shortcutsHandler = new ShortcutsHandler(this._settings);
     Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 

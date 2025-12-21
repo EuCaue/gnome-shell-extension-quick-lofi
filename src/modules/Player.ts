@@ -4,14 +4,17 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
+import { Extension } from '@girs/gnome-shell/extensions/extension';
+import { debug } from '@/utils/debug';
+import { getExtSettings } from '@/utils/helpers';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
 
-//  TODO: transform this into a static class
-// since there are no benefit being a normal class
+let _instance: Player | null = null;
+
 export default class Player extends GObject.Object {
   static {
     GObject.registerClass(
@@ -30,9 +33,22 @@ export default class Player extends GObject.Object {
   private _keepReading: boolean = true;
   private _stdoutStream: Gio.DataInputStream | null = null;
   private _cancellable: Gio.Cancellable | null = null;
+  private _settings: Gio.Settings;
 
-  constructor(private _settings: Gio.Settings) {
+  static getInstance(): Player {
+    if (!_instance) {
+      _instance = new Player();
+      _instance.initVolumeControl();
+    }
+    return _instance;
+  }
+
+  constructor() {
     super();
+    if (_instance) {
+      throw new Error('Use Player.getInstance()');
+    }
+    this._settings = getExtSettings();
   }
 
   public initVolumeControl(): void {

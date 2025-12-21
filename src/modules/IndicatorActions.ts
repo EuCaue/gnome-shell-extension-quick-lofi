@@ -1,13 +1,16 @@
 import { QuickLofiExtension } from '@/types';
-import Player from './Player';
+import Player from '@/modules/Player';
 import { IndicatorActionKey } from '@/utils/constants';
+//  TODO: remove more deps
 export class IndicatorActions {
+  private mpv: Player;
   constructor(
     //  TODO: figure out how to use the type from PopupMenu
     private menu: any | null,
     private ext: QuickLofiExtension | null,
-    private mpv: Player | null,
-  ) {}
+  ) {
+    this.mpv = Player.getInstance();
+  }
 
   public actions = new Map<IndicatorActionKey, CallableFunction>([
     [

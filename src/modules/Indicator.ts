@@ -5,7 +5,7 @@ import Gio from 'gi://Gio';
 import Player from './Player';
 import St from 'gi://St';
 import GObject from 'gi://GObject';
-import { ICONS, SETTINGS_KEYS } from '@utils/constants';
+import { ICONS, IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
 import { type Radio, type QuickLofiExtension } from '@/types';
 import { isCurrentRadioPlaying } from '@utils/helpers';
 import { debug } from '@utils/debug';
@@ -21,15 +21,14 @@ export default class Indicator extends PanelMenu.Button {
   private _icon: St.Icon;
   private _extension: QuickLofiExtension;
   private _isUpdatingCurrentRadio: boolean = false;
+  private mpvPlayer: Player;
   public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
-  public mpvPlayer: Player;
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
     this._extension = ext;
-    this.mpvPlayer = new Player(this._extension._settings);
-    this.mpvPlayer.initVolumeControl();
+    this.mpvPlayer = Player.getInstance();
     this._icon = new St.Icon({
       gicon: Gio.icon_new_for_string(this._extension.path + ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
@@ -38,7 +37,7 @@ export default class Indicator extends PanelMenu.Button {
     this.add_child(this._icon);
     this._createMenu();
     this._bindSettingsChangeEvents();
-    this._indicatorActions = new IndicatorActions(this.menu, this._extension, this.mpvPlayer);
+    this._indicatorActions = new IndicatorActions(this.menu, this._extension);
     this._handleButtonClick();
   }
 
@@ -188,7 +187,7 @@ export default class Indicator extends PanelMenu.Button {
     this.connect('button-press-event', (_, event) => {
       const mouseBtn = event.get_button() - 1;
       const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
-      const action = actions[mouseBtn];
+      const action = actions[mouseBtn] as IndicatorActionKey;
       this._indicatorActions.actions.get(action)();
     });
   }

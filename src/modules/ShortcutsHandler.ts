@@ -6,10 +6,9 @@ import Player from './Player';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 
 export default class ShortcutsHandler {
-  constructor(
-    private _settings: Gio.Settings,
-    private _player: Player,
-  ) {
+  private _player: Player;
+  constructor(private _settings: Gio.Settings) {
+    this._player = Player.getInstance();
     this.handleShortcuts();
   }
 
