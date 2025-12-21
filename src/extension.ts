@@ -39,7 +39,7 @@ export default class QuickLofi extends Extension {
     this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this._migrateRadios();
     this._indicator = new Indicator(this);
-    this._shortcutsHandler = new ShortcutsHandler(this._settings);
+    this._shortcutsHandler = new ShortcutsHandler();
     Main.panel.addToStatusArea(this.uuid, this._indicator);
   }
 

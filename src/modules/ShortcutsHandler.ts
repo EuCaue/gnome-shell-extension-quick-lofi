@@ -4,11 +4,15 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import Player from './Player';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
+import { getExtSettings } from '@/utils/helpers';
 
 export default class ShortcutsHandler {
   private _player: Player;
-  constructor(private _settings: Gio.Settings) {
+  private _settings: Gio.Settings;
+
+  constructor() {
     this._player = Player.getInstance();
+    this._settings = getExtSettings();
     this.handleShortcuts();
   }
 

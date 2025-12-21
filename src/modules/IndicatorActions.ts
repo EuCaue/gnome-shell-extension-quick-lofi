@@ -3,13 +3,13 @@ import Player from '@/modules/Player';
 import { IndicatorActionKey } from '@/utils/constants';
 //  TODO: remove more deps
 export class IndicatorActions {
-  private mpv: Player;
+  private _mpv: Player;
   constructor(
     //  TODO: figure out how to use the type from PopupMenu
     private menu: any | null,
     private ext: QuickLofiExtension | null,
   ) {
-    this.mpv = Player.getInstance();
+    this._mpv = Player.getInstance();
   }
 
   public actions = new Map<IndicatorActionKey, CallableFunction>([
@@ -23,7 +23,7 @@ export class IndicatorActions {
       'playPause',
       () => {
         this.menu.close();
-        this.mpv.playPause();
+        this._mpv.playPause();
       },
     ],
     [
@@ -37,7 +37,7 @@ export class IndicatorActions {
       'stopPlayer',
       () => {
         this.menu.close();
-        this.mpv.stopPlayer();
+        this._mpv.stopPlayer();
       },
     ],
   ]);
