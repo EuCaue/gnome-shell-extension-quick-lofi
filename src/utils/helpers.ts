@@ -2,7 +2,9 @@ import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { QuickLofiExtension } from '@/types';
+
+Gio._promisify(Gio.File.prototype, 'append_to_async');
+Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
 
 export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
   const TIMEOUT_SECONDS = 3;
@@ -38,12 +40,12 @@ export function isUri(uri: string): boolean {
 }
 
 let _settings: Gio.Settings | null = null;
-export function getExtSettings(ext?: QuickLofiExtension): Gio.Settings {
+export function getExtSettings(settings?: Gio.Settings): Gio.Settings {
   if (_settings) return _settings;
-  if (!ext) {
+  if (!settings) {
     throw new Error('Extension instance is required on first call');
   }
-  _settings = ext.getSettings();
+  _settings = settings;
   return _settings;
 }
 
@@ -65,9 +67,6 @@ export async function writeLog({ message, type = 'LOG' }: Log) {
       const formatedOutput: string = `[${type.toLocaleUpperCase()}] ${GLib.DateTime.new_now_local().format('%b %d %H:%M:%S').toLocaleUpperCase()}: ${message}\n`;
       const bytes: GLib.Bytes = new GLib.Bytes(new TextEncoder().encode(formatedOutput));
       await outputStream.write_bytes_async(bytes, GLib.PRIORITY_DEFAULT, null);
-      outputStream.close_async(GLib.PRIORITY_DEFAULT, null, (_, result) => {
-        outputStream.close_finish(result);
-      });
     }
   } catch (e) {
     console.error('Error while writing log:  ', e, message, type);

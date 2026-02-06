@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk';
 import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 import { ExtensionPreferences, gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { getExtSettings } from './utils/helpers';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;
@@ -12,6 +13,8 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     const filepath = GLib.build_filenamev([this.path, 'resources', 'quick-lofi.gresource']);
     const resource = Gio.Resource.load(filepath);
     Gio.resources_register(resource);
+    this._settings = this.getSettings();
+    getExtSettings(this._settings);
 
     const iconTheme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default());
     iconTheme.add_resource_path('/org/gnome/Shell/Extensions/quick-lofi/icons');
@@ -20,7 +23,6 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     const { PlayerPage } = await import('@/preferences/PlayerPage');
     const { InterfacePage } = await import('@/preferences/InterfacePage');
 
-    this._settings = this.getSettings();
     window.connect('close-request', () => {
       this._settings = null;
     });
