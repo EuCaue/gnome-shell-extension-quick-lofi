@@ -125,6 +125,67 @@ Set up a local environment to work on the extension:
 
 ---
 
+## Troubleshooting
+
+If something isn’t working as expected, enabling debug logs helps a lot when diagnosing problems.
+Please follow the steps below **before opening an issue**.
+
+### Enable debug logging
+
+Debug logging can be enabled either from the **extension preferences** or via the CLI.
+
+**From the UI:**
+
+- Open **Quick Lofi Preferences**
+- Go to the **Interface** tab
+- Enable **Debug logging**
+
+**From the CLI:**
+
+```bash
+gsettings --schemadir "$HOME/.local/share/gnome-shell/extensions/quick-lofi@eucaue/schemas" set "org.gnome.shell.extensions.quick-lofi" "enable-debug" true
+```
+
+### Collect logs
+
+When debug logging is enabled, Quick Lofi writes logs to:
+
+```text
+/tmp/quick-lofi-$USER.log
+```
+
+To view the logs:
+
+```bash
+cat /tmp/quick-lofi-$USER.log
+```
+
+To copy the logs to your clipboard:
+
+```bash
+cat /tmp/quick-lofi-$USER.log | wl-copy
+```
+
+If the file is empty or missing, make sure debug logging is enabled and reproduce the issue once more.
+
+### Open an issue
+
+When opening a new issue, please include:
+
+- A **clear description** of the problem
+- **Steps to reproduce**
+- Your **GNOME version**
+- Your **Quick Lofi version**
+- The **debug logs** collected above (paste them or attach the file)
+
+<div align="center">
+
+[Open an issue here](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/issues)
+
+</div>
+
+---
+
 ## Contributing
 
 Contributions are always welcome! 💡
