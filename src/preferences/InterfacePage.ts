@@ -5,6 +5,7 @@ import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, writeLog } from '@utils/helpers';
 import { INDICATOR_ACTIONS_NAMES, IndicatorActionKey, IndicatorActionValue, SETTINGS_KEYS } from '@utils/constants';
 import Gtk from '@girs/gtk-4.0';
+import GLib from '@girs/glib-2.0';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {
@@ -123,6 +124,9 @@ export class InterfacePage extends Adw.PreferencesPage {
       Gio.SettingsBindFlags.DEFAULT,
     );
     this._settings.bind(SETTINGS_KEYS.ENABLE_DEBUG, this._enableDebug, 'active', Gio.SettingsBindFlags.DEFAULT);
+    this._enableDebug.set_subtitle(
+      `When enabled, app activity is logged to /tmp/quick-lofi-${GLib.get_user_name()}.log.`,
+    );
     this._handleIndicatorActions();
     writeLog({ message: '[InterfacePage] Interface preferences page initialized', type: 'INFO' });
   }
