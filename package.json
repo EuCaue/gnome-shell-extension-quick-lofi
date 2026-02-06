@@ -48,14 +48,14 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@girs/gdk-4.0": "4.0.0-4.0.0-beta.38",
-    "@girs/gjs": "4.0.0-beta.38",
-    "@girs/gnome-shell": "49.1.0",
     "@girs/clutter-17": "^17.0.0-4.0.0-beta.38",
     "@girs/gda-5.0": "5.0.0-4.0.0-beta.38",
+    "@girs/gdk-4.0": "4.0.0-4.0.0-beta.38",
     "@girs/gdkpixbuf-2.0": "2.0.0-4.0.0-beta.38",
     "@girs/gio-2.0": "2.86.0-4.0.0-beta.38",
+    "@girs/gjs": "4.0.0-beta.38",
     "@girs/glib-2.0": "2.86.0-4.0.0-beta.38",
+    "@girs/gnome-shell": "49.1.0",
     "@girs/gobject-2.0": "2.86.0-4.0.0-beta.38",
     "@girs/graphene-1.0": "1.0.0-4.0.0-beta.38",
     "@girs/gsound-1.0": "1.0.0-4.0.0-beta.38",
@@ -68,6 +68,7 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-typescript": "^12.1.2",
+    "@typescript/native-preview": "^7.0.0-dev.20251223.1",
     "rollup": "^4.40.0",
     "tslib": "^2.8.1"
   }

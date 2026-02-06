@@ -2,7 +2,6 @@ import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { QuickLofiExtension } from '@/types';
 
 export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
@@ -47,3 +46,28 @@ export function getExtSettings(ext?: QuickLofiExtension): Gio.Settings {
   _settings = ext.getSettings();
   return _settings;
 }
+
+export type Log = {
+  message: string;
+  type?: 'LOG' | 'ERROR' | 'WARN' | 'INFO';
+};
+export async function writeLog({ message, type = 'LOG' }: Log) {
+  try {
+    const filepath: string = GLib.build_filenamev([GLib.get_tmp_dir(), '/quick-lofi.log']);
+    const file: Gio.File = Gio.File.new_for_path(filepath);
+    const outputStream: Gio.OutputStream = await file.append_to_async(
+      Gio.FileCreateFlags.NONE,
+      GLib.PRIORITY_DEFAULT,
+      null,
+    );
+    const formatedOutput: string = `[${type.toLocaleUpperCase()}] ${GLib.DateTime.new_now_local().format('%b %d %H:%M:%S').toLocaleUpperCase()}: ${message}\n`;
+    const bytes: GLib.Bytes = new GLib.Bytes(new TextEncoder().encode(formatedOutput));
+    await outputStream.write_bytes_async(bytes, GLib.PRIORITY_DEFAULT, null);
+    await outputStream.close_async(GLib.PRIORITY_DEFAULT, null, (_, result) => {
+      outputStream.close_finish(result);
+    });
+  } catch (e) {
+    console.error('Error while writing log:  ', e, message, type);
+  }
+}
+

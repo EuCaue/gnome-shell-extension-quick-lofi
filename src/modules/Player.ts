@@ -4,14 +4,16 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { Extension } from '@girs/gnome-shell/extensions/extension';
+import { getExtSettings, writeLog } from '@/utils/helpers';
 import { debug } from '@/utils/debug';
-import { getExtSettings } from '@/utils/helpers';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
+
+Gio._promisify(Gio.File.prototype, 'append_to_async');
+Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
 
 let _instance: Player | null = null;
 
@@ -63,7 +65,10 @@ export default class Player extends GObject.Object {
     });
   }
 
-  public async stopPlayer(): Promise<void> {
+  public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
+    await writeLog({
+      message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
+    }).catch(debug);
     this._keepReading = false;
 
     if (this._cancellable) {
@@ -89,6 +94,12 @@ export default class Player extends GObject.Object {
           } catch (e) {}
           GLib.unlink(this._mpvSocket);
           this.emit('playback-stopped');
+          writeLog({
+            message: `Radio Stopped: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
+          })
+            .then()
+            .catch(debug);
+          this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
           resolve();
         });
         try {
@@ -106,6 +117,7 @@ export default class Player extends GObject.Object {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
     this.sendCommandToMpvSocket(playPauseCommand);
     const result = this.getProperty('pause');
+    writeLog({ message: `Toggling the pause state. Paused: ${result?.data}` });
     if (result) {
       const isPaused = result.data;
       this.emit('play-state-changed', isPaused);
@@ -139,10 +151,11 @@ export default class Player extends GObject.Object {
         try {
           [line] = s.read_line_finish_utf8(res);
         } catch (e) {
-          return; // stream closed
+          return;
         }
 
         if (line !== null) {
+          writeLog({ message: `MPV OUTPUT: ${line}`, type: 'INFO' }).catch(debug);
           const keep = onLine(line);
           if (keep === false) {
             this._keepReading = false;
@@ -157,7 +170,7 @@ export default class Player extends GObject.Object {
     readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
-    await this.stopPlayer();
+    await this.stopPlayer(radio);
     if (radio.radioUrl.startsWith('~')) {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
     }
@@ -177,6 +190,7 @@ export default class Player extends GObject.Object {
       this._keepReading = true;
       const [, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+      await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(debug);
 
       this._stdoutStream = new Gio.DataInputStream({
         base_stream: this._proc.get_stdout_pipe(),
@@ -186,7 +200,7 @@ export default class Player extends GObject.Object {
         stream: this._stdoutStream,
         onLine: (line) => {
           if (line.trim().startsWith('Failed')) {
-            this.stopPlayer();
+            this.stopPlayer(radio);
             Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
             return false; // stops loop
           }
@@ -194,7 +208,8 @@ export default class Player extends GObject.Object {
       });
     } catch (e) {
       this._keepReading = false;
-      this.stopPlayer();
+      this.stopPlayer(radio);
+      writeLog({ message: 'MPV not found.', type: 'ERROR' }).catch(debug);
       Main.notifyError(
         'MPV not found',
         'Did you have mpv installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
@@ -208,7 +223,7 @@ export default class Player extends GObject.Object {
 
   private sendCommandToMpvSocket(mpvCommand: string): string | null {
     let response: string | null = null;
-
+    writeLog({ message: `Sending commando to mpv socket: ${mpvCommand}`, type: 'INFO' });
     if (this._isCommandRunning) {
       return null;
     }
