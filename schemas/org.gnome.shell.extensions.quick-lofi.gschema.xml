@@ -59,5 +59,10 @@
       <summary>Configure the behavior of indicator clicks.</summary>
       <description>Specifies which actions are triggered when the user clicks the indicator.</description>
     </key>
+    <key name="enable-debug" type="b">
+      <default>false</default>
+      <summary>Enable Debug Logs</summary>
+      <description>Generate detailed logs for error tracking and stack traces.</description>
+    </key>
   </schema>
 </schemalist>

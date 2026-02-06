@@ -59,6 +59,18 @@
           </object>
         </child>
 
+        <child>
+          <object class="AdwSwitchRow" id="enableDebug">
+            <property name="title" translatable="yes">Debug logging</property>
+            <property name="subtitle" translatable="yes">When enabled, app activity is logged to /tmp/quick-lofi.log.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
       </object>
     </child>
 

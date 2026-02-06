@@ -21,6 +21,7 @@ export class InterfacePage extends Adw.PreferencesPage {
           'leftClickRow',
           'middleClickRow',
           'rightClickRow',
+          'enableDebug',
         ],
       },
       this,
@@ -35,6 +36,7 @@ export class InterfacePage extends Adw.PreferencesPage {
   declare private _leftClickRow: Adw.ComboRow;
   declare private _middleClickRow: Adw.ComboRow;
   declare private _rightClickRow: Adw.ComboRow;
+  declare private _enableDebug: Adw.SwitchRow;
   private _indicatorActionsNames: Map<IndicatorActionKey, IndicatorActionValue>;
   private _indicatorActionsSettings: IndicatorActionKey[];
 
@@ -120,6 +122,7 @@ export class InterfacePage extends Adw.PreferencesPage {
       'active',
       Gio.SettingsBindFlags.DEFAULT,
     );
+    this._settings.bind(SETTINGS_KEYS.ENABLE_DEBUG, this._enableDebug, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._handleIndicatorActions();
     writeLog({ message: '[InterfacePage] Interface preferences page initialized', type: 'INFO' });
   }

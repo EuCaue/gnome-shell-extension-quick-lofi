@@ -16,12 +16,13 @@ export const SHORTCUTS = {
 
 export const SETTINGS_KEYS = {
   ...SHORTCUTS,
+  CURRENT_RADIO_PLAYING: 'current-radio-playing',
+  INDICATOR_ACTIONS: 'indicator-actions',
+  POPUP_MAX_HEIGHT: 'popup-max-height',
   RADIOS_LIST: 'radios',
   SET_POPUP_MAX_HEIGHT: 'set-popup-max-height',
-  POPUP_MAX_HEIGHT: 'popup-max-height',
-  CURRENT_RADIO_PLAYING: 'current-radio-playing',
   VOLUME: 'volume',
-  INDICATOR_ACTIONS: 'indicator-actions',
+  ENABLE_DEBUG: 'enable-debug',
 };
 
 // used across modules, keep in sync
