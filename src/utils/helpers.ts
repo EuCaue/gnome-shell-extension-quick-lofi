@@ -55,7 +55,7 @@ export async function writeLog({ message, type = 'LOG' }: Log) {
   try {
     const settings: Gio.Settings = getExtSettings();
     if (settings.get_boolean(SETTINGS_KEYS.ENABLE_DEBUG)) {
-      const filepath: string = GLib.build_filenamev([GLib.get_tmp_dir(), '/quick-lofi.log']);
+      const filepath: string = GLib.build_filenamev([GLib.get_tmp_dir(), `/quick-lofi-${GLib.get_user_name()}.log`]);
       const file: Gio.File = Gio.File.new_for_path(filepath);
       const outputStream: Gio.OutputStream = await file.append_to_async(
         Gio.FileCreateFlags.NONE,
