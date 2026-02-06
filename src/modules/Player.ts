@@ -5,7 +5,6 @@ import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { getExtSettings, writeLog } from '@/utils/helpers';
-import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -68,7 +67,7 @@ export default class Player extends GObject.Object {
   public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
-    }).catch(debug);
+    }).catch(log);
     this._keepReading = false;
 
     if (this._cancellable) {
@@ -98,7 +97,7 @@ export default class Player extends GObject.Object {
             message: `Radio Stopped: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
           })
             .then()
-            .catch(debug);
+            .catch(log);
           this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
           resolve();
         });
@@ -155,7 +154,7 @@ export default class Player extends GObject.Object {
         }
 
         if (line !== null) {
-          writeLog({ message: `MPV OUTPUT: ${line}`, type: 'INFO' }).catch(debug);
+          writeLog({ message: `MPV OUTPUT: ${line}`, type: 'INFO' }).catch(log);
           const keep = onLine(line);
           if (keep === false) {
             this._keepReading = false;
@@ -190,7 +189,7 @@ export default class Player extends GObject.Object {
       this._keepReading = true;
       const [, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
-      await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(debug);
+      await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
 
       this._stdoutStream = new Gio.DataInputStream({
         base_stream: this._proc.get_stdout_pipe(),
@@ -209,7 +208,7 @@ export default class Player extends GObject.Object {
     } catch (e) {
       this._keepReading = false;
       this.stopPlayer(radio);
-      writeLog({ message: 'MPV not found.', type: 'ERROR' }).catch(debug);
+      writeLog({ message: 'MPV not found.', type: 'ERROR' }).catch(log);
       Main.notifyError(
         'MPV not found',
         'Did you have mpv installed?\nhttps://github.com/EuCaue/gnome-shell-extension-quick-lofi?tab=readme-ov-file#dependencies',
