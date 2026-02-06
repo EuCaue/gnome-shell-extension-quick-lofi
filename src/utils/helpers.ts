@@ -72,3 +72,26 @@ export async function writeLog({ message, type = 'LOG' }: Log) {
     console.error('Error while writing log:  ', e, message, type);
   }
 }
+
+export type TypeOf =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'undefined'
+  | 'object'
+  | 'function'
+  | 'symbol'
+  | 'bigint'
+  | 'error';
+export function inspectItem(item: object): Record<string, TypeOf> {
+  const inspected: Record<string, TypeOf> = {};
+  for (const prop in item) {
+    try {
+      const type: TypeOf = typeof item[prop];
+      inspected[prop] = type;
+    } catch (e) {
+      inspected[prop] = 'error';
+    }
+  }
+  return inspected;
+}
