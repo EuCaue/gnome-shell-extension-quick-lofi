@@ -293,7 +293,7 @@ export default class Indicator extends PanelMenu.Button {
     writeLog({ message: '[Indicator] Disposing indicator', type: 'INFO' });
     debug('extension disabled');
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
-    this.mpvPlayer.stopPlayer();
+    this.mpvPlayer.destroy();
     this.signalsHandlers.forEach(({ emitter, signalID }) => {
       emitter.disconnect(signalID);
     });
