@@ -4,6 +4,7 @@ import { type Radio } from '@/types';
 import { writeLog } from '@/utils/helpers';
 import { debug } from '@/utils/debug';
 import type Player from './Player';
+import { ffmpegFormats } from '@/utils/constants';
 
 // MPRIS D-Bus interface specification
 const MPRIS_IFACE_XML = `
@@ -149,8 +150,8 @@ export class MprisController {
       case 'SupportedUriSchemes':
         return new GLib.Variant('as', ['http', 'https', 'file']);
       case 'SupportedMimeTypes':
-        //  TODO: use ffmpeg helper here
-        return new GLib.Variant('as', ['audio/mpeg', 'audio/ogg', 'application/ogg']);
+        const mimeTypes = Array.from(ffmpegFormats).map((format) => `audio/${format}`);
+        return new GLib.Variant('as', mimeTypes);
     }
     return null;
   }
