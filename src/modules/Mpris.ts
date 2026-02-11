@@ -274,7 +274,9 @@ export class MprisController {
       type: 'INFO',
     });
 
-    const builder = new GLib.VariantBuilder(new GLib.VariantType('a{sv}'));
+    const builder = new GLib.VariantBuilder(new GLib.VariantType('a{sv}')) as GLib.VariantBuilder<'a{sv}'> & {
+      add_value(value: GLib.Variant): void;
+    };
 
     debug('CURRENTRADIO', this._currentRadio);
     if (this._currentRadio) {
