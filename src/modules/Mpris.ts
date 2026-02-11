@@ -146,7 +146,7 @@ export class MprisController {
       case 'Identity':
         return new GLib.Variant('s', 'Quick Lofi');
       case 'DesktopEntry':
-        return new GLib.Variant('s', 'gnome-shell-extension-quick-lofi');
+        return new GLib.Variant('s', '');
       case 'SupportedUriSchemes':
         return new GLib.Variant('as', ['http', 'https', 'file']);
       case 'SupportedMimeTypes':
@@ -236,10 +236,10 @@ export class MprisController {
         return new GLib.Variant('b', false);
 
       case 'CanPlay':
-        return new GLib.Variant('b', true);
+        return new GLib.Variant('b', this._currentRadio !== null);
 
       case 'CanPause':
-        return new GLib.Variant('b', true);
+        return new GLib.Variant('b', this._currentRadio !== null && this._player.isPlaying());
 
       case 'CanSeek':
         return new GLib.Variant('b', false);
@@ -443,18 +443,19 @@ export class MprisController {
 
   public updateMetadata(radio: Radio | null): void {
     this._currentRadio = radio;
+
     debug('updateMetadata called with:', radio);
     writeLog({
       message: `MPRIS: Updating metadata - ${JSON.stringify(radio)}`,
       type: 'INFO',
     });
-    this._emitPropertiesChanged(['Metadata', 'PlaybackStatus']);
+    this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause']);
   }
 
   public updatePlaybackStatus(isPaused: boolean): void {
     this._isPaused = isPaused;
     debug('updatePlaybackStatus called:', isPaused);
-    this._emitPropertiesChanged(['PlaybackStatus']);
+    this._emitPropertiesChanged(['PlaybackStatus', 'CanPause']);
   }
 
   private _connectPlayerSignals(): void {
@@ -464,7 +465,8 @@ export class MprisController {
 
     this._player.connect('playback-stopped', () => {
       this._isPaused = false;
-      this._emitPropertiesChanged(['PlaybackStatus']);
+      this._currentRadio = null;
+      this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause']);
     });
   }
 
