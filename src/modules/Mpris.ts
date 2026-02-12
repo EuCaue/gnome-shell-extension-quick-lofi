@@ -5,6 +5,7 @@ import { writeLog } from '@/utils/helpers';
 import { debug } from '@/utils/debug';
 import type Player from './Player';
 import { ffmpegFormats } from '@/utils/constants';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 
 // MPRIS D-Bus interface specification
 const MPRIS_IFACE_XML = `
@@ -77,20 +78,28 @@ export class MprisController {
   private _onBusAcquired(connection: Gio.DBusConnection, name: string): void {
     writeLog({ message: `MPRIS: Bus acquired - ${name}`, type: 'INFO' });
     this._connection = connection;
+  }
+
+  private _onNameAcquired(connection: Gio.DBusConnection, name: string): void {
+    writeLog({ message: `MPRIS: Name acquired - ${name}`, type: 'INFO' });
+    const hasClosures2 = GLib.MAJOR_VERSION > 2 || (GLib.MAJOR_VERSION === 2 && GLib.MINOR_VERSION >= 84);
+    const registerObject = hasClosures2
+      ? connection.register_object_with_closures2.bind(connection)
+      : connection.register_object.bind(connection);
 
     try {
-      this._mprisImplId = connection.register_object_with_closures2(
+      this._mprisImplId = registerObject(
         this._mprisPath,
-        //@ts-expect-error type error
+        // @ts-expect-error type error
         this._nodeInfo.interfaces[0],
         this._handleMediaPlayer2MethodCall.bind(this),
         this._handleMediaPlayer2GetProperty.bind(this),
-        null, // No writable properties on MediaPlayer2
+        null,
       );
 
-      this._playerImplId = connection.register_object_with_closures2(
+      this._playerImplId = registerObject(
         this._mprisPath,
-        //@ts-expect-error type error
+        // @ts-expect-error type error
         this._nodeInfo.interfaces[1],
         this._handlePlayerMethodCall.bind(this),
         this._handlePlayerGetProperty.bind(this),
@@ -101,10 +110,6 @@ export class MprisController {
     } catch (e) {
       writeLog({ message: `MPRIS: Error registering interfaces - ${e}`, type: 'ERROR' });
     }
-  }
-
-  private _onNameAcquired(connection: Gio.DBusConnection, name: string): void {
-    writeLog({ message: `MPRIS: Name acquired - ${name}`, type: 'INFO' });
   }
 
   private _onNameLost(connection: Gio.DBusConnection, name: string): void {
@@ -215,7 +220,7 @@ export class MprisController {
     switch (propertyName) {
       case 'PlaybackStatus':
         if (!this._player.isPlaying()) {
-          return new GLib.Variant('s', 'Stopped');
+          return new GLib.Variant('s', this._currentRadio ? 'Paused' : 'Stopped');
         }
         return new GLib.Variant('s', this._isPaused ? 'Paused' : 'Playing');
 
@@ -227,6 +232,7 @@ export class MprisController {
         return new GLib.Variant('d', volume);
 
       case 'Position':
+        //  TODO: check if the current radio can do this (it will mostly applies for files)
         return new GLib.Variant('x', 0); // Radio streams have no position
 
       case 'CanGoNext':
@@ -239,9 +245,10 @@ export class MprisController {
         return new GLib.Variant('b', this._currentRadio !== null);
 
       case 'CanPause':
-        return new GLib.Variant('b', this._currentRadio !== null && this._player.isPlaying());
+        return new GLib.Variant('b', this._currentRadio !== null);
 
       case 'CanSeek':
+        //  TODO: check if the current radio can do this (it will mostly applies for files)
         return new GLib.Variant('b', false);
 
       case 'CanControl':
@@ -384,7 +391,7 @@ export class MprisController {
         const value = this._handlePlayerGetProperty(
           this._connection,
           '',
-          '/org/mpris/MediaPlayer2',
+          this._mprisPath,
           'org.mpris.MediaPlayer2.Player',
           prop,
         );
@@ -422,7 +429,7 @@ export class MprisController {
 
       this._connection.emit_signal(
         null,
-        '/org/mpris/MediaPlayer2',
+        this._mprisPath,
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         signalParameters,
