@@ -265,7 +265,6 @@ export class MprisController {
     propertyName: string,
     value: GLib.Variant,
   ): boolean {
-    debug('Handling _handlePlayerSetProperty: ', value, propertyName);
     switch (propertyName) {
       case 'Volume':
         const volume = Math.round(value.get_double() * 100);
@@ -285,10 +284,8 @@ export class MprisController {
       add_value(value: GLib.Variant): void;
     };
 
-    debug('CURRENTRADIO', this._currentRadio);
     if (this._currentRadio) {
       const sanitizedId = (this._currentRadio.id || '0').replace(/[^A-Za-z0-9_]/g, '_');
-      debug('INSIDE IF CURRENT RADIO');
 
       // REQUIRED: mpris:trackid
       builder.add_value(
@@ -335,8 +332,6 @@ export class MprisController {
         type: 'INFO',
       });
     } else {
-      debug('INSIDE IF ELSE CURRENT RADIO');
-
       builder.add_value(
         GLib.Variant.new_dict_entry(
           new GLib.Variant('s', 'mpris:trackid'),
@@ -383,11 +378,9 @@ export class MprisController {
     }
 
     try {
-      // Array used to store the dictionary entries (dict_entries)
       const changedPropertiesList: GLib.Variant[] = [];
 
       for (const prop of properties) {
-        // 1. Get the value (it is already a GLib.Variant, e.g. Variant<'s'>)
         const value = this._handlePlayerGetProperty(
           this._connection,
           '',
@@ -397,31 +390,20 @@ export class MprisController {
         );
 
         if (value) {
-          // 2. IMPORTANT: for a a{sv} dictionary, the value must be wrapped in a 'v' Variant
-          // Even if 'value' is already a Variant, we need to explicitly say it fills the 'v' slot
           const variantValue = new GLib.Variant('v', value);
 
-          // 3. Explicitly create the {sv} dictionary entry
           const dictEntry = GLib.Variant.new_dict_entry(new GLib.Variant('s', prop), variantValue);
 
           changedPropertiesList.push(dictEntry);
         }
       }
 
-      // 4. Create the final a{sv} array using the explicit type
       const changedProperties = GLib.Variant.new_array(new GLib.VariantType('{sv}'), changedPropertiesList);
 
       const invalidatedProperties = new GLib.Variant('as', []);
 
-      debug('EMITTING PropertiesChanged:', {
-        interface: 'org.mpris.MediaPlayer2.Player',
-        changed: properties,
-      });
-
-      // 5. Use new_tuple for the signal parameters (sa{sv}as)
-      // This prevents GJS from trying to interpret the array as loose arguments
       const signalParameters = GLib.Variant.new_tuple([
-        //@ts-expect-error typing error
+        //@ts-expect-error type error
         new GLib.Variant('s', 'org.mpris.MediaPlayer2.Player'),
         changedProperties,
         invalidatedProperties,
@@ -441,7 +423,6 @@ export class MprisController {
       });
     } catch (e) {
       writeLog({ message: `MPRIS: Error emitting signal - ${e}`, type: 'ERROR' });
-      debug('EMIT ERROR:', e);
       if (e instanceof Error) {
         logError(e, 'MPRIS Emission Stack');
       }
@@ -451,7 +432,6 @@ export class MprisController {
   public updateMetadata(radio: Radio | null): void {
     this._currentRadio = radio;
 
-    debug('updateMetadata called with:', radio);
     writeLog({
       message: `MPRIS: Updating metadata - ${JSON.stringify(radio)}`,
       type: 'INFO',
@@ -461,7 +441,6 @@ export class MprisController {
 
   public updatePlaybackStatus(isPaused: boolean): void {
     this._isPaused = isPaused;
-    debug('updatePlaybackStatus called:', isPaused);
     this._emitPropertiesChanged(['PlaybackStatus', 'CanPause']);
   }
 

@@ -215,9 +215,7 @@ export default class Player extends GObject.Object {
         },
       });
       // Update MPRIS with new radio metadata
-      debug('MPRIS EXISTS ?', inspectItem(this._mpris));
       if (this._mpris) {
-        debug('RADIO INSIDE MPRIS EXISTS: ', radio);
         this._mpris.updateMetadata(radio);
       }
     } catch (e) {
