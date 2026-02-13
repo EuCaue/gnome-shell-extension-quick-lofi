@@ -4,7 +4,9 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { getExtSettings, writeLog } from '@/utils/helpers';
+import { getExtSettings, inspectItem, writeLog } from '@/utils/helpers';
+import { MprisController } from './Mpris';
+import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -23,6 +25,7 @@ export default class Player extends GObject.Object {
         Signals: {
           'play-state-changed': { param_types: [GObject.TYPE_BOOLEAN] },
           'playback-stopped': { param_types: [] },
+          'radio-changed': { param_types: [GObject.TYPE_STRING] },
         },
       },
       this,
@@ -35,11 +38,13 @@ export default class Player extends GObject.Object {
   private _stdoutStream: Gio.DataInputStream | null = null;
   private _cancellable: Gio.Cancellable | null = null;
   private _settings: Gio.Settings;
+  private _mpris: MprisController | null = null;
 
   static getInstance(): Player {
     if (!_instance) {
       _instance = new Player();
       _instance.initVolumeControl();
+      _instance._mpris = new MprisController(_instance);
     }
     return _instance;
   }
@@ -99,6 +104,9 @@ export default class Player extends GObject.Object {
             .then()
             .catch(log);
           this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
+          if (this._mpris) {
+            this._mpris.updateMetadata(null);
+          }
           resolve();
         });
         try {
@@ -190,6 +198,7 @@ export default class Player extends GObject.Object {
       const [, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
+      this.emit('radio-changed', radio.radioName);
 
       this._stdoutStream = new Gio.DataInputStream({
         base_stream: this._proc.get_stdout_pipe(),
@@ -205,6 +214,10 @@ export default class Player extends GObject.Object {
           }
         },
       });
+      // Update MPRIS with new radio metadata
+      if (this._mpris) {
+        this._mpris.updateMetadata(radio);
+      }
     } catch (e) {
       this._keepReading = false;
       this.stopPlayer(radio);
@@ -251,5 +264,14 @@ export default class Player extends GObject.Object {
     }
     this._isCommandRunning = false;
     return response;
+  }
+
+  public destroy(): void {
+    if (this._mpris) {
+      this._mpris.destroy();
+      this._mpris = null;
+    }
+    this.stopPlayer();
+    _instance = null;
   }
 }
