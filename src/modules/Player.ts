@@ -4,17 +4,16 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { getExtSettings, inspectItem, writeLog } from '@/utils/helpers';
+import { getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
-import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
 
-Gio._promisify(Gio.File.prototype, 'append_to_async');
-Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
+Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
+Gio._promisify(Gio.Subprocess.prototype, 'wait_async', 'wait_finish');
 
 let _instance: Player | null = null;
 
@@ -91,28 +90,23 @@ export default class Player extends GObject.Object {
       const proc = this._proc;
       this._proc = null;
 
-      return new Promise((resolve) => {
-        proc.wait_check_async(null, (p, res) => {
-          try {
-            p.wait_check_finish(res);
-          } catch (e) {}
+      try {
+        proc.force_exit();
+        await proc.wait_async(null);
+        this.emit('playback-stopped');
+        if (GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) {
           GLib.unlink(this._mpvSocket);
-          this.emit('playback-stopped');
-          writeLog({
-            message: `Radio Stopped: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
-          })
-            .then()
-            .catch(log);
-          this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
-          if (this._mpris) {
-            this._mpris.updateMetadata(null);
-          }
-          resolve();
-        });
-        try {
-          proc.force_exit();
-        } catch (e) {}
-      });
+        }
+        this._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
+        if (this._mpris) {
+          this._mpris.updateMetadata(null);
+        }
+        writeLog({
+          message: `Radio Stopped: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
+        }).catch(log);
+      } catch (e) {
+        log(`Error while exiting MPV Process: ${e}`);
+      }
     }
   }
 
@@ -139,42 +133,39 @@ export default class Player extends GObject.Object {
     }
   }
 
-  private _monitorPlayerOutput({
+  private async _monitorPlayerOutput({
     stream,
     onLine,
   }: {
     stream: Gio.DataInputStream;
-    onLine: (line: string) => boolean | void;
+    onLine: (line: string) => Promise<boolean | void>;
   }) {
     this._cancellable = new Gio.Cancellable();
 
-    const readLine = () => {
+    const readLine = async () => {
       if (!this._keepReading || this._proc === null) return;
 
-      stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable, (s, res) => {
-        if (this._cancellable?.is_cancelled()) return;
+      const [bytes] = await stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+      if (this._cancellable?.is_cancelled()) {
+        this._cancellable = null;
+        return;
+      }
 
-        let line: string | null = null;
-        try {
-          [line] = s.read_line_finish_utf8(res);
-        } catch (e) {
+      const line = new TextDecoder('utf-8').decode(bytes);
+
+      if (line !== null) {
+        writeLog({ message: `MPV OUTPUT: ${line}`, type: 'INFO' }).catch(log);
+        const keep = await onLine(line);
+        if (keep === false) {
+          this._keepReading = false;
           return;
         }
+      }
 
-        if (line !== null) {
-          writeLog({ message: `MPV OUTPUT: ${line}`, type: 'INFO' }).catch(log);
-          const keep = onLine(line);
-          if (keep === false) {
-            this._keepReading = false;
-            return;
-          }
-        }
-
-        if (this._keepReading) readLine();
-      });
+      if (this._keepReading) await readLine();
     };
 
-    readLine();
+    await readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
     await this.stopPlayer(radio);
@@ -204,20 +195,20 @@ export default class Player extends GObject.Object {
         base_stream: this._proc.get_stdout_pipe(),
       });
 
-      this._monitorPlayerOutput({
-        stream: this._stdoutStream,
-        onLine: (line) => {
-          if (line.trim().startsWith('Failed')) {
-            this.stopPlayer(radio);
-            Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
-            return false; // stops loop
-          }
-        },
-      });
       // Update MPRIS with new radio metadata
       if (this._mpris) {
         this._mpris.updateMetadata(radio);
       }
+      this._monitorPlayerOutput({
+        stream: this._stdoutStream,
+        onLine: async (line) => {
+          if (line.trim().startsWith('Failed')) {
+            await this.stopPlayer(radio);
+            Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
+            return false; // stops loop
+          }
+        },
+      }).catch(log);
     } catch (e) {
       this._keepReading = false;
       this.stopPlayer(radio);

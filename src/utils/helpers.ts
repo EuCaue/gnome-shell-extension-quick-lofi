@@ -2,6 +2,7 @@ import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
+import { debug } from './debug';
 
 Gio._promisify(Gio.File.prototype, 'append_to_async');
 Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
@@ -67,6 +68,7 @@ export async function writeLog({ message, type = 'LOG' }: Log) {
       const formatedOutput: string = `[${type.toLocaleUpperCase()}] ${GLib.DateTime.new_now_local().format('%b %d %H:%M:%S').toLocaleUpperCase()}: ${message}\n`;
       const bytes: GLib.Bytes = new GLib.Bytes(new TextEncoder().encode(formatedOutput));
       await outputStream.write_bytes_async(bytes, GLib.PRIORITY_DEFAULT, null);
+      debug(formatedOutput);
     }
   } catch (e) {
     console.error('Error while writing log:  ', e, message, type);
