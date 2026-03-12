@@ -43,7 +43,10 @@ export default class Player extends GObject.Object {
     if (!_instance) {
       _instance = new Player();
       _instance.initVolumeControl();
-      _instance._mpris = new MprisController(_instance);
+      _instance._mpris = MprisController.getInstance(_instance);
+      if (_instance._settings.get_boolean(SETTINGS_KEYS.ENABLE_MPRIS)) {
+        _instance._mpris.enable();
+      }
     }
     return _instance;
   }

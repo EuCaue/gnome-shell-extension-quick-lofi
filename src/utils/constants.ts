@@ -23,6 +23,7 @@ export const SETTINGS_KEYS = {
   SET_POPUP_MAX_HEIGHT: 'set-popup-max-height',
   VOLUME: 'volume',
   ENABLE_DEBUG: 'enable-debug',
+  ENABLE_MPRIS: 'enable-mpris',
 };
 
 // used across modules, keep in sync

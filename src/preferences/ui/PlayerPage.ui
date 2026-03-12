@@ -32,6 +32,17 @@
           </object>
         </child>
 
+        <child>
+          <object class="AdwSwitchRow" id="enableMpris">
+            <property name="title" translatable="yes">Enable MRPIS Integration</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
       </object>
     </child>
   </template>

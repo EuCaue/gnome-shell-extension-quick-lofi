@@ -12,13 +12,14 @@ export class PlayerPage extends Adw.PreferencesPage {
       {
         GTypeName: 'PlayerPage',
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/PlayerPage.ui',
-        InternalChildren: ['volumeLevel', 'playerGroup'],
+        InternalChildren: ['volumeLevel', 'playerGroup', 'enableMpris'],
       },
       this,
     );
   }
   declare private _playerGroup: Adw.PreferencesGroup;
   declare private _volumeLevel: Adw.SpinRow;
+  declare private _enableMpris: Adw.SwitchRow;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -59,6 +60,7 @@ export class PlayerPage extends Adw.PreferencesPage {
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
     writeLog({ message: '[PlayerPage] Bound volume level to settings', type: 'INFO' });
     this._handleShortcuts();
     writeLog({ message: '[PlayerPage] Player preferences page initialized', type: 'INFO' });

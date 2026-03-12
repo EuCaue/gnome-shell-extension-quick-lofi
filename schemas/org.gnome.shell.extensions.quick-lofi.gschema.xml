@@ -64,5 +64,10 @@
       <summary>Enable Debug Logs</summary>
       <description>Generate detailed logs for error tracking and stack traces.</description>
     </key>
+    <key name="enable-mpris" type="b">
+      <default>true</default>
+      <summary>Enable MPRIS Integration.</summary>
+      <description>Expose playback controls and metadata to the system via MPRIS.</description>
+    </key>
   </schema>
 </schemalist>

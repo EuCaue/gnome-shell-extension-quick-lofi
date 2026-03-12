@@ -10,6 +10,7 @@ import { type Radio, type QuickLofiExtension } from '@/types';
 import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
 import { debug } from '@utils/debug';
 import { IndicatorActions } from './IndicatorActions';
+import { MprisController } from './Mpris';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -68,6 +69,18 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _bindSettingsChangeEvents(): void {
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MPRIS}`, () => {
+        const mpris = MprisController.getInstance(this.mpvPlayer);
+        const enabled = this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MPRIS);
+        if (enabled) {
+          mpris.enable();
+        } else {
+          mpris.disable();
+        }
+      }),
+    });
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect('changed', (_: any, key: string): void => {
@@ -212,7 +225,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) {}
+      } catch (e) { }
     });
     this.menuSignals = [];
     // @ts-expect-error nothing
@@ -300,7 +313,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) {}
+      } catch (e) { }
     });
     this.signalsHandlers = [];
     this.menuSignals = [];

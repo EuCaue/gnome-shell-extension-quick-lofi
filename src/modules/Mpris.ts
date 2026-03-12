@@ -2,10 +2,8 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { type Radio } from '@/types';
 import { writeLog } from '@/utils/helpers';
-import { debug } from '@/utils/debug';
 import type Player from './Player';
 import { ffmpegFormats } from '@/utils/constants';
-import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 
 // MPRIS D-Bus interface specification
 const MPRIS_IFACE_XML = `
@@ -44,6 +42,7 @@ const MPRIS_IFACE_XML = `
 </node>
 `;
 
+let _instance: MprisController | null = null;
 export class MprisController {
   private _player: any;
   private _ownerId: number = 0;
@@ -54,12 +53,20 @@ export class MprisController {
   private _connection: Gio.DBusConnection | null = null;
   private _nodeInfo: Gio.DBusNodeInfo;
   private _mprisPath: string = '/org/mpris/MediaPlayer2';
+  private _enabled: boolean = false;
+  private _playStateChangedId: number = 0;
+  private _playbackStoppedId: number = 0;
 
-  constructor(player: Player) {
+  static getInstance(player?: Player): MprisController {
+    if (!_instance) {
+      _instance = new MprisController(player);
+    }
+    return _instance;
+  }
+
+  constructor(player?: Player) {
     this._player = player;
     this._nodeInfo = Gio.DBusNodeInfo.new_for_xml(MPRIS_IFACE_XML);
-    this._setupMpris();
-    this._connectPlayerSignals();
   }
 
   private _setupMpris(): void {
@@ -73,6 +80,26 @@ export class MprisController {
       this._onNameAcquired.bind(this),
       this._onNameLost.bind(this),
     );
+  }
+
+  private _teardownMpris(): void {
+    console.log('TEARDOWNMPRIS');
+    if (this._connection) {
+      if (this._mprisImplId > 0) {
+        this._connection.unregister_object(this._mprisImplId);
+        this._mprisImplId = 0;
+      }
+      if (this._playerImplId > 0) {
+        this._connection.unregister_object(this._playerImplId);
+        this._playerImplId = 0;
+      }
+    }
+
+    if (this._ownerId > 0) {
+      Gio.bus_unown_name(this._ownerId);
+      this._ownerId = 0;
+    }
+    this._connection = null;
   }
 
   private _onBusAcquired(connection: Gio.DBusConnection, name: string): void {
@@ -391,17 +418,13 @@ export class MprisController {
 
         if (value) {
           const variantValue = new GLib.Variant('v', value);
-
           const dictEntry = GLib.Variant.new_dict_entry(new GLib.Variant('s', prop), variantValue);
-
           changedPropertiesList.push(dictEntry);
         }
       }
 
       const changedProperties = GLib.Variant.new_array(new GLib.VariantType('{sv}'), changedPropertiesList);
-
       const invalidatedProperties = new GLib.Variant('as', []);
-
       const signalParameters = GLib.Variant.new_tuple([
         //@ts-expect-error type error
         new GLib.Variant('s', 'org.mpris.MediaPlayer2.Player'),
@@ -445,34 +468,63 @@ export class MprisController {
   }
 
   private _connectPlayerSignals(): void {
-    this._player.connect('play-state-changed', (_player: any, isPaused: boolean) => {
+    if (!this._player) {
+      return;
+    }
+    if (this._playStateChangedId > 0 || this._playbackStoppedId > 0) {
+      return;
+    }
+
+    this._playStateChangedId = this._player.connect('play-state-changed', (_player: any, isPaused: boolean) => {
       this.updatePlaybackStatus(isPaused);
     });
 
-    this._player.connect('playback-stopped', () => {
+    this._playbackStoppedId = this._player.connect('playback-stopped', () => {
       this._isPaused = false;
       this._currentRadio = null;
       this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause']);
     });
   }
 
+  private _disconnectPlayerSignals(): void {
+    if (!this._player) {
+      return;
+    }
+
+    if (this._playStateChangedId > 0) {
+      this._player.disconnect(this._playStateChangedId);
+      this._playStateChangedId = 0;
+    }
+
+    if (this._playbackStoppedId > 0) {
+      this._player.disconnect(this._playbackStoppedId);
+      this._playbackStoppedId = 0;
+    }
+  }
+
+  public enable(): void {
+    if (this._enabled) {
+      return;
+    }
+    writeLog({ message: 'MPRIS: Enabling', type: 'INFO' });
+    this._connectPlayerSignals();
+    this._setupMpris();
+    this._enabled = true;
+  }
+
+  public disable(): void {
+    if (!this._enabled) {
+      return;
+    }
+    writeLog({ message: 'MPRIS: Disabling', type: 'INFO' });
+    this._disconnectPlayerSignals();
+    this._teardownMpris();
+    this._enabled = false;
+  }
+
   public destroy(): void {
     writeLog({ message: 'MPRIS: Destroying controller', type: 'INFO' });
-
-    if (this._connection) {
-      if (this._mprisImplId > 0) {
-        this._connection.unregister_object(this._mprisImplId);
-      }
-      if (this._playerImplId > 0) {
-        this._connection.unregister_object(this._playerImplId);
-      }
-    }
-
-    if (this._ownerId > 0) {
-      Gio.bus_unown_name(this._ownerId);
-    }
-
-    this._connection = null;
-    this._currentRadio = null;
+    this.disable();
+    _instance = null;
   }
 }
