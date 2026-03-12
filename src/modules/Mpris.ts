@@ -44,7 +44,7 @@ const MPRIS_IFACE_XML = `
 
 let _instance: MprisController | null = null;
 export class MprisController {
-  private _player: any;
+  private _player: Player;
   private _ownerId: number = 0;
   private _mprisImplId: number = 0;
   private _playerImplId: number = 0;
@@ -83,7 +83,6 @@ export class MprisController {
   }
 
   private _teardownMpris(): void {
-    console.log('TEARDOWNMPRIS');
     if (this._connection) {
       if (this._mprisImplId > 0) {
         this._connection.unregister_object(this._mprisImplId);
@@ -517,13 +516,13 @@ export class MprisController {
       return;
     }
     writeLog({ message: 'MPRIS: Disabling', type: 'INFO' });
-    this._disconnectPlayerSignals();
     this._teardownMpris();
     this._enabled = false;
   }
 
   public destroy(): void {
     writeLog({ message: 'MPRIS: Destroying controller', type: 'INFO' });
+    this._disconnectPlayerSignals();
     this.disable();
     _instance = null;
   }
