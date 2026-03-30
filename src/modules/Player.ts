@@ -177,15 +177,23 @@ export default class Player extends GObject.Object {
     }
     //  TODO: use a map for this;
     const MPV_OPTIONS: Array<string> = [
-      `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
+      '--audio-buffer=500',
+      '--cache=yes',
+      '--cache-secs=30',
       '--demuxer-lavf-o=extension_picky=0',
-      `--input-ipc-server=${this._mpvSocket}`,
-      '--loop-playlist=force',
-      '--no-video',
-      '--ytdl-format=best*[vcodec=none]',
-      '--ytdl-raw-options-add=force-ipv4=',
+      '--demuxer-max-bytes=50MiB',
+      '--gapless-audio=yes',
+      '--loop-playlist=force', // TODO: Something in the UI would be nice.
       '--msg-level=all=warn',
+      '--no-video',
+      '--replaygain=track',
+      '--ytdl-format=bestaudio/best',
+      '--ytdl-raw-options-add=force-ipv4=',
+      `--input-ipc-server=${this._mpvSocket}`,
+      `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
       `"${radio.radioUrl}"`,
+      //  TODO: make something in the UI for this
+      //  --ytdl-raw-options-add=cookies-from-browser
     ];
     try {
       this._keepReading = true;
