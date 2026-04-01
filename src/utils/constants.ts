@@ -24,6 +24,7 @@ export const SETTINGS_KEYS = {
   VOLUME: 'volume',
   ENABLE_DEBUG: 'enable-debug',
   ENABLE_MPRIS: 'enable-mpris',
+  MPV_ARGUMENTS: 'mpv-arguments',
 };
 
 // used across modules, keep in sync

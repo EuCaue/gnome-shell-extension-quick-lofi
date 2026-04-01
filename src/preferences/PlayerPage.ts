@@ -4,7 +4,8 @@ import GObject from 'gi://GObject';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 import { Shortcut } from '@/types';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
-import { writeLog } from '@utils/helpers';
+import { handleErrorRow, writeLog } from '@utils/helpers';
+import { debug } from '@/utils/debug';
 
 export class PlayerPage extends Adw.PreferencesPage {
   static {
@@ -12,7 +13,7 @@ export class PlayerPage extends Adw.PreferencesPage {
       {
         GTypeName: 'PlayerPage',
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/PlayerPage.ui',
-        InternalChildren: ['volumeLevel', 'playerGroup', 'enableMpris'],
+        InternalChildren: ['volumeLevel', 'playerGroup', 'enableMpris', 'mpvArguments'],
       },
       this,
     );
@@ -20,6 +21,7 @@ export class PlayerPage extends Adw.PreferencesPage {
   declare private _playerGroup: Adw.PreferencesGroup;
   declare private _volumeLevel: Adw.SpinRow;
   declare private _enableMpris: Adw.SwitchRow;
+  declare private _mpvArguments: Adw.EntryRow;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -56,11 +58,36 @@ export class PlayerPage extends Adw.PreferencesPage {
     writeLog({ message: `[PlayerPage] Created ${shortcuts.length} shortcut rows`, type: 'INFO' });
   }
 
+  private _handleMpvArguments(w: Adw.EntryRow) {
+    let args = w.text;
+    console.log('ARGS', args);
+    if (args.length === 0) {
+      handleErrorRow(w, 'No recommeded making this empty.');
+    }
+    if (args.lastIndexOf(',') === args.length - 1) {
+      args = args.substring(0, args.length - 1);
+      console.log('parsed args', args);
+    }
+    const regex = /^(--[\w-]+(=\S+)?,?\s*)*$/;
+    debug(regex.test(args));
+    if (regex.test(args)) {
+      //  TODO: should set on the ui correcltly
+      const finalArgs: Array<string> = args.split(/,\s*/);
+      console.log('FINALARGS', finalArgs);
+      this._settings.set_strv(SETTINGS_KEYS.MPV_ARGUMENTS, finalArgs);
+      w.text = finalArgs.join(', ');
+    } else {
+      handleErrorRow(w, 'Wrong format (--option=value)');
+      return;
+    }
+  }
+
   constructor(private _settings: Gio.Settings) {
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
+    this._mpvArguments.set_text(this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS).join(', '));
     writeLog({ message: '[PlayerPage] Bound volume level to settings', type: 'INFO' });
     this._handleShortcuts();
     writeLog({ message: '[PlayerPage] Player preferences page initialized', type: 'INFO' });

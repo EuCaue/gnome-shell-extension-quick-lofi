@@ -6,6 +6,7 @@ import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
+import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -176,28 +177,35 @@ export default class Player extends GObject.Object {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
     }
     //  TODO: use a map for this;
-    const MPV_OPTIONS: Array<string> = [
-      '--audio-buffer=500',
-      '--cache=yes',
-      '--cache-secs=30',
-      '--demuxer-lavf-o=extension_picky=0',
-      '--demuxer-max-bytes=50MiB',
-      '--gapless-audio=yes',
-      '--loop-playlist=force', // TODO: Something in the UI would be nice.
-      '--msg-level=all=warn',
+    // const MPV_OPTIONS: Array<string> = [
+    //   '--audio-buffer=500',
+    //   '--cache=yes',
+    //   '--cache-secs=30',
+    //   '--demuxer-lavf-o=extension_picky=0',
+    //   '--demuxer-max-bytes=50MiB',
+    //   '--gapless-audio=yes',
+    //   '--loop-playlist=force', // TODO: Something in the UI would be nice.
+    //   '--msg-level=all=warn',
+    //   '--no-video',
+    //   '--replaygain=track',
+    //   '--ytdl-format=bestaudio/best',
+    //   '--ytdl-raw-options-add=force-ipv4=',
+    //   `--input-ipc-server=${this._mpvSocket}`,
+    //   `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
+    //   `"${radio.radioUrl}"`,
+    //   //  TODO: make something in the UI for this
+    //   //  --ytdl-raw-options-add=cookies-from-browser
+    // ];
+    const DEFAULT: Array<string> = [
       '--no-video',
-      '--replaygain=track',
-      '--ytdl-format=bestaudio/best',
-      '--ytdl-raw-options-add=force-ipv4=',
       `--input-ipc-server=${this._mpvSocket}`,
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
       `"${radio.radioUrl}"`,
-      //  TODO: make something in the UI for this
-      //  --ytdl-raw-options-add=cookies-from-browser
     ];
+    const MPV_OPTIONS: Array<string> = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...DEFAULT];
     try {
       this._keepReading = true;
-      const [, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
+      const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
       this.emit('radio-changed', radio.radioName);
@@ -213,7 +221,7 @@ export default class Player extends GObject.Object {
       this._monitorPlayerOutput({
         stream: this._stdoutStream,
         onLine: async (line) => {
-          if (line.trim().startsWith('Failed')) {
+          if (line.trim().startsWith('Failed') || line.trim().startsWith('Error')) {
             await this.stopPlayer(radio);
             Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
             return false; // stops loop
