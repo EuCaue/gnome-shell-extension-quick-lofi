@@ -205,6 +205,7 @@ export default class Player extends GObject.Object {
     const MPV_OPTIONS: Array<string> = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...DEFAULT];
     try {
       this._keepReading = true;
+      //  TODO: check how safe is this
       const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
