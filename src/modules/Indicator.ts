@@ -225,7 +225,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) { }
+      } catch (e) {}
     });
     this.menuSignals = [];
     // @ts-expect-error nothing
@@ -313,7 +313,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) { }
+      } catch (e) {}
     });
     this.signalsHandlers = [];
     this.menuSignals = [];

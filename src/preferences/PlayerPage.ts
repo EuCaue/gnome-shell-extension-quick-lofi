@@ -1,5 +1,6 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
+import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 import { Shortcut } from '@/types';
@@ -61,20 +62,16 @@ export class PlayerPage extends Adw.PreferencesPage {
 
   private _handleMpvArguments(w: Adw.EntryRow) {
     let args = w.text;
-    console.log('ARGS', args);
     if (args.length === 0) {
-      handleErrorRow(w, 'No recommeded making this empty.');
+      handleErrorRow(w, 'Not recommeded making this empty.');
     }
     if (args.lastIndexOf(',') === args.length - 1) {
       args = args.substring(0, args.length - 1);
-      console.log('parsed args', args);
     }
     const regex = /^(--[\w-]+(=\S+)?,?\s*)*$/;
     debug(regex.test(args));
     if (regex.test(args)) {
-      //  TODO: should set on the ui correcltly
       const finalArgs: Array<string> = args.split(/,\s*/);
-      console.log('FINALARGS', finalArgs);
       //  TODO: when this change, restart player with the new options
       this._settings.set_strv(SETTINGS_KEYS.MPV_ARGUMENTS, finalArgs);
       w.text = finalArgs.join(', ');
@@ -84,14 +81,38 @@ export class PlayerPage extends Adw.PreferencesPage {
     }
   }
 
+  private _handleMpvArgumentsButtons() {
+    const tooltipButton = new Gtk.Button({
+      iconName: 'help-about',
+      cursor: new Gdk.Cursor({ name: 'help' }),
+      valign: Gtk.Align.CENTER,
+    });
+    tooltipButton.tooltipMarkup = `<b>Advanced MPV arguments</b>
+These are passed directly to the player on startup.
+<span foreground="orange"><b>⚠ Handle with care.</b></span> If playback breaks, use the reset button to restore defaults.`;
+
+    const resetButton = new Gtk.Button({
+      iconName: 'folder-backup-symbolic',
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+      valign: Gtk.Align.CENTER,
+    });
+    resetButton.set_tooltip_text('Something went wrong? Reset all arguments back to their default values.');
+    resetButton.connect('clicked', () => {
+      const defaultValues = this._settings.get_default_value(SETTINGS_KEYS.MPV_ARGUMENTS).get_strv();
+      this._settings.set_strv(SETTINGS_KEYS.MPV_ARGUMENTS, defaultValues);
+      this._mpvArguments.set_text(defaultValues.join(', '));
+    });
+
+    this._mpvArguments.add_suffix(tooltipButton);
+    this._mpvArguments.add_suffix(resetButton);
+  }
   constructor(private _settings: Gio.Settings) {
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._mpvArguments.set_text(this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS).join(', '));
-    //  TODO: make reset button
-    //  TODO: make popver button
+    this._handleMpvArgumentsButtons();
     writeLog({ message: '[PlayerPage] Bound volume level to settings', type: 'INFO' });
     this._handleShortcuts();
     writeLog({ message: '[PlayerPage] Player preferences page initialized', type: 'INFO' });
