@@ -68,8 +68,7 @@ export class PlayerPage extends Adw.PreferencesPage {
     if (args.lastIndexOf(',') === args.length - 1) {
       args = args.substring(0, args.length - 1);
     }
-    const regex = /^(--[\w-]+(=\S+)?,?\s*)*$/;
-    debug(regex.test(args));
+    const regex = /^(--[\w-]+(=(("[^"]*")|('[^']*')|[^,\s]+))?,?\s*)*$/;
     if (regex.test(args)) {
       const finalArgs: Array<string> = args.split(/,\s*/);
       //  TODO: when this change, restart player with the new options

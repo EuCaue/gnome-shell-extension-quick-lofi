@@ -70,7 +70,7 @@
       <description>Expose playback controls and metadata to the system via MPRIS.</description>
     </key>
     <key name="mpv-arguments" type="as">
-      <default>['--audio-buffer=500','--cache=yes','--cache-secs=30','--demuxer-lavf-o=extension_picky=0','--demuxer-max-bytes=50MiB','--gapless-audio=yes','--loop-playlist=force','--msg-level=all=warn','--no-video','--replaygain=track','--ytdl-format=bestaudio/best','--ytdl-raw-options-add=force-ipv4=']</default>
+      <default>['--audio-buffer=0.5','--cache=yes','--cache-secs=30','--demuxer-lavf-o=extension_picky=0','--demuxer-max-bytes=50MiB','--gapless-audio=yes','--loop-playlist=force','--msg-level=all=warn','--no-video','--replaygain=track','--ytdl-format=bestaudio/best','--ytdl-raw-options-add=force-ipv4=']</default>
       <summary>Default MPV arguments</summary>
       <description>Expose playback controls and metadata to the system via MPRIS.</description>
     </key>
