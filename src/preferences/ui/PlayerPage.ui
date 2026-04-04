@@ -33,7 +33,6 @@
 
       <child>
         <object class="AdwEntryRow" id="mpvArguments">
-          <signal name="apply" handler="_handleMpvArguments" swapped="no"/>
           <property name="title" translatable="yes">MPV Arguments</property>
           <property name="show-apply-button">true</property>
         </object>

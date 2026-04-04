@@ -6,7 +6,6 @@ import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 import { Shortcut } from '@/types';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
 import { handleErrorRow, writeLog } from '@utils/helpers';
-import { debug } from '@/utils/debug';
 import Gtk from '@girs/gtk-4.0';
 
 export class PlayerPage extends Adw.PreferencesPage {
@@ -73,7 +72,7 @@ export class PlayerPage extends Adw.PreferencesPage {
       const finalArgs: Array<string> = args.split(/,\s*/);
       //  TODO: when this change, restart player with the new options
       this._settings.set_strv(SETTINGS_KEYS.MPV_ARGUMENTS, finalArgs);
-      w.text = finalArgs.join(', ');
+      w.set_text(finalArgs.join(', '));
     } else {
       handleErrorRow(w, 'Wrong format (--option=value)');
       return;
@@ -105,6 +104,21 @@ These are passed directly to the player on startup.
     this._mpvArguments.add_suffix(tooltipButton);
     this._mpvArguments.add_suffix(resetButton);
   }
+
+  private _setupMpvArgumentsBehavior() {
+    const row = this._mpvArguments;
+    const getSaved = () => this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS).join(', ');
+    const updateApplyButton = () => {
+      row.set_show_apply_button(row.text !== getSaved());
+    };
+    row.connect('changed', updateApplyButton);
+    row.connect('apply', (w) => {
+      this._handleMpvArguments(w);
+      updateApplyButton();
+    });
+    updateApplyButton();
+  }
+
   constructor(private _settings: Gio.Settings) {
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
@@ -112,6 +126,7 @@ These are passed directly to the player on startup.
     this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._mpvArguments.set_text(this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS).join(', '));
     this._handleMpvArgumentsButtons();
+    this._setupMpvArgumentsBehavior();
     writeLog({ message: '[PlayerPage] Bound volume level to settings', type: 'INFO' });
     this._handleShortcuts();
     writeLog({ message: '[PlayerPage] Player preferences page initialized', type: 'INFO' });
