@@ -70,7 +70,6 @@ export class PlayerPage extends Adw.PreferencesPage {
     const regex = /^(--[\w-]+(=(("[^"]*")|('[^']*')|[^,\s]+))?,?\s*)*$/;
     if (regex.test(args)) {
       const finalArgs: Array<string> = args.split(/,\s*/);
-      //  TODO: when this change, restart player with the new options
       this._settings.set_strv(SETTINGS_KEYS.MPV_ARGUMENTS, finalArgs);
       w.set_text(finalArgs.join(', '));
     } else {

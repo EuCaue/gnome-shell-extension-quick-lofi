@@ -6,7 +6,6 @@ import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
-import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {

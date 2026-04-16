@@ -1,6 +1,7 @@
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
+import * as Main from '@girs/gnome-shell/ui/main';
 import Gio from 'gi://Gio';
 import Player from './Player';
 import St from 'gi://St';
@@ -69,6 +70,14 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _bindSettingsChangeEvents(): void {
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.MPV_ARGUMENTS}`, () => {
+        if (this.mpvPlayer.isPlaying()) {
+          Main.notify('QUICK LOFI', 'Settings updated. Restart the radio to apply the new playback arguments.');
+        }
+      }),
+    });
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MPRIS}`, () => {
