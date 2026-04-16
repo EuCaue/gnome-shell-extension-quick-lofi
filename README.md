@@ -71,9 +71,9 @@ sudo zypper install mpv
 
 3. Log out and back in.
 
-### Manual installation
+### Manual installation (stable)
 
-> You’re installing the latest release, which may not work on older GNOME versions, check the release notes.
+> You're installing the latest release, which may not work on older GNOME versions, check the release notes.
 > Requires `Node` and `NPM`.
 
 1. Clone the repository:
@@ -96,11 +96,42 @@ sudo zypper install mpv
 
 4. Log out and back in.
 
+### From the `develop` branch (latest, may be unstable)
+
+> Use this if you want the newest features before they hit a release.
+> Requires `Node` and `NPM`.
+>
+> ⚠️ The `develop` branch targets the latest GNOME version and **your current version may not be supported**.
+
+1. Clone the repository and switch to the `develop` branch:
+
+   ```bash
+   git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+   cd gnome-shell-extension-quick-lofi
+   git checkout develop
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Build and install:
+
+   ```bash
+   npm run install:prod
+   ```
+
+4. Log out and back in.
+
 ---
 
 ## Development
 
 > Requires `Node` and `NPM`.
+>
+> Pull requests should be opened against the **`develop`** branch.
 
 Set up a local environment to work on the extension:
 
@@ -111,13 +142,19 @@ Set up a local environment to work on the extension:
    cd gnome-shell-extension-quick-lofi
    ```
 
-2. Install dependencies:
+2. Switch to the `develop` branch:
+
+   ```bash
+   git checkout develop
+   ```
+
+3. Install dependencies:
 
    ```bash
    npm install
    ```
 
-3. Build and run the extension in a nested GNOME Wayland session:
+4. Build and run the extension in a nested GNOME Wayland session:
 
    ```bash
    npm run run:dev
@@ -127,7 +164,7 @@ Set up a local environment to work on the extension:
 
 ## Troubleshooting
 
-If something isn’t working as expected, enabling debug logs helps a lot when diagnosing problems.
+If something isn't working as expected, enabling debug logs helps a lot when diagnosing problems.
 Please follow the steps below **before opening an issue**.
 
 ### Enable debug logging
@@ -190,10 +227,10 @@ When opening a new issue, please include:
 
 Contributions are always welcome! 💡
 
-1. **Fork** the repository and create a new branch for your changes.
-2. **Make your improvements** whether it’s fixing a bug, improving code, or adding a feature.
+1. **Fork** the repository and create a new branch based on **`develop`** for your changes.
+2. **Make your improvements** whether it's fixing a bug, improving code, or adding a feature.
 3. **Commit and push** your changes to your branch.
-4. **Open a pull request** with a short description of what you’ve done.
+4. **Open a pull request** against the **`develop`** branch with a short description of what you've done.
 5. If you find any bugs or have ideas, feel free to **open an issue** anytime!
 
 ---
