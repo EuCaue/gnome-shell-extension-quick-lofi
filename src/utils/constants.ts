@@ -5,6 +5,8 @@ export const ICONS = {
   POPUP_PLAY: 'media-playback-start-symbolic',
   POPUP_STOP: 'media-playback-stop-symbolic',
   POPUP_PAUSE: 'media-playback-pause-symbolic',
+  MINI_PLAYER_SKIP_BACKWARD: 'media-skip-backward-symbolic',
+  MINI_PLAYER_SKIP_FORWARD: 'media-skip-forward-symbolic',
 };
 
 export const SHORTCUTS = {

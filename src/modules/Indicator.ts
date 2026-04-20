@@ -179,75 +179,72 @@ export default class Indicator extends PanelMenu.Button {
       can_focus: true,
       reactive: true,
     });
-
     miniPlayerItem.style = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
+
     const miniPlayerBoxLayout = new St.BoxLayout({
       vertical: true,
       x_expand: true,
-      y_expand: true,
-      margin_left: 0,
-      margin_right: 0,
     });
-    miniPlayerItem.add_child(miniPlayerBoxLayout);
 
     //  TODO: change with the current radio playing
     const currentRadio = 'Lofi Hip-Hop';
     const currentRadioLabel = new St.Label({
       text: currentRadio,
-      x_expand: true,
       xAlign: Clutter.ActorAlign.CENTER,
-      style: 'font-weight: bold; margin-bottom: 20px',
+      style: 'font-weight: bold; margin-bottom: 10px',
     });
 
-    //  TODO: solve this margin issue
-    const timeTrackingBox = new St.BoxLayout({ vertical: false, x_expand: true });
+    const timeTrackingBox = new St.BoxLayout({ vertical: false, x_expand: false });
     //  TODO: make this work with arrow keys
     const timeTrackingSlider = new Slider.Slider(0.5);
+    const trackingTimeStyles = 'font-size: 0.9em;';
     timeTrackingSlider.x_expand = true;
     timeTrackingSlider.style = 'margin-left: 4px; margin-right: 4px;';
     const isLive = true ? 'LIVE' : '10:30';
+
     const currentTime = new St.Label({
       text: '2:30',
-      style: 'font-size: 0.9em;',
+      style: trackingTimeStyles,
     });
     const endTime = new St.Label({
       text: isLive,
-      style: 'font-size: 0.9em;',
+      style: trackingTimeStyles,
     });
+
     timeTrackingBox.add_child(currentTime);
     timeTrackingBox.add_child(timeTrackingSlider);
     timeTrackingBox.add_child(endTime);
 
-    //  TODO: improve layout, make the box not clickeble and connect callbacs
     const controlsBox = new St.BoxLayout({
       vertical: false,
-      reactive: true,
       marginBottom: 10,
       xAlign: Clutter.ActorAlign.CENTER,
       x_expand: true,
+      style: 'margin-bottom: 20px;',
     });
-    controlsBox.style = 'margin-bottom: 20px';
-    const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
-    const iconSize = 24;
+    const controlsStyle: string = 'color: inherit; background: transparent; padding: 4px;';
+
+    const isPaused: boolean = this.mpvPlayer.getProperty('pause')?.data ?? false;
+    const iconSize: number = 24;
 
     const prev = new St.Button({ x_expand: false });
     const prevIcon = new St.Icon({
-      iconName: 'media-skip-backward-symbolic',
+      iconName: ICONS.MINI_PLAYER_SKIP_BACKWARD,
       iconSize,
-      style: 'color: inherit; background: transparent; padding: 4px;',
+      style: `${controlsStyle}`,
     });
     prev.set_child(prevIcon);
     prev.connect('clicked', () => {
       debug('cliced: prev');
+      debug(this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER));
     });
 
     const pause = new St.Button({ x_expand: false });
     const pauseIcon = new St.Icon({
-      icon_name: isPaused ? 'media-playback-start-symbolic' : 'media-playback-pause-symbolic',
+      iconName: isPaused ? ICONS.POPUP_PLAY : ICONS.POPUP_PAUSE,
       iconSize,
-      style: 'color: inherit; background: transparent; padding: 4px;',
+      style: `${controlsStyle}`,
     });
-
     pause.set_child(pauseIcon);
     pause.connect('clicked', () => {
       debug('cliced: pause');
@@ -255,9 +252,9 @@ export default class Indicator extends PanelMenu.Button {
 
     const next = new St.Button({ x_expand: false });
     const nextIcon = new St.Icon({
-      icon_name: 'media-skip-forward-symbolic',
+      iconName: ICONS.MINI_PLAYER_SKIP_FORWARD,
       iconSize,
-      style: 'color: inherit; background: transparent; padding: 4px;',
+      style: `${controlsStyle}`,
     });
     next.set_child(nextIcon);
     next.connect('clicked', () => {
@@ -271,7 +268,9 @@ export default class Indicator extends PanelMenu.Button {
     miniPlayerBoxLayout.add_child(currentRadioLabel);
     miniPlayerBoxLayout.add_child(controlsBox);
     miniPlayerBoxLayout.add_child(timeTrackingBox);
-    debug('LENGTH', popup.length);
+
+    miniPlayerItem.add_child(miniPlayerBoxLayout);
+
     popup.addMenuItem(miniPlayerItem, popup.length - 1);
   }
 
