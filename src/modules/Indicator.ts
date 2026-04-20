@@ -12,6 +12,7 @@ import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
 import { debug } from '@utils/debug';
 import { IndicatorActions } from './IndicatorActions';
 import { MprisController } from './Mpris';
+import Clutter from '@girs/clutter-17';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -171,6 +172,109 @@ export default class Indicator extends PanelMenu.Button {
     });
   }
 
+  private _createMiniPlayer(popup: PopupMenu.PopupMenuBase) {
+    const miniPlayerItem = new PopupMenu.PopupBaseMenuItem({
+      activate: true,
+      hover: true,
+      can_focus: true,
+      reactive: true,
+    });
+
+    miniPlayerItem.style = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
+    const miniPlayerBoxLayout = new St.BoxLayout({
+      vertical: true,
+      x_expand: true,
+      y_expand: true,
+      margin_left: 0,
+      margin_right: 0,
+    });
+    miniPlayerItem.add_child(miniPlayerBoxLayout);
+
+    //  TODO: change with the current radio playing
+    const currentRadio = 'Lofi Hip-Hop';
+    const currentRadioLabel = new St.Label({
+      text: currentRadio,
+      x_expand: true,
+      xAlign: Clutter.ActorAlign.CENTER,
+      style: 'font-weight: bold; margin-bottom: 20px',
+    });
+
+    //  TODO: solve this margin issue
+    const timeTrackingBox = new St.BoxLayout({ vertical: false, x_expand: true });
+    //  TODO: make this work with arrow keys
+    const timeTrackingSlider = new Slider.Slider(0.5);
+    timeTrackingSlider.x_expand = true;
+    timeTrackingSlider.style = 'margin-left: 4px; margin-right: 4px;';
+    const isLive = true ? 'LIVE' : '10:30';
+    const currentTime = new St.Label({
+      text: '2:30',
+      style: 'font-size: 0.9em;',
+    });
+    const endTime = new St.Label({
+      text: isLive,
+      style: 'font-size: 0.9em;',
+    });
+    timeTrackingBox.add_child(currentTime);
+    timeTrackingBox.add_child(timeTrackingSlider);
+    timeTrackingBox.add_child(endTime);
+
+    //  TODO: improve layout, make the box not clickeble and connect callbacs
+    const controlsBox = new St.BoxLayout({
+      vertical: false,
+      reactive: true,
+      marginBottom: 10,
+      xAlign: Clutter.ActorAlign.CENTER,
+      x_expand: true,
+    });
+    controlsBox.style = 'margin-bottom: 20px';
+    const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
+    const iconSize = 24;
+
+    const prev = new St.Button({ x_expand: false });
+    const prevIcon = new St.Icon({
+      iconName: 'media-skip-backward-symbolic',
+      iconSize,
+      style: 'color: inherit; background: transparent; padding: 4px;',
+    });
+    prev.set_child(prevIcon);
+    prev.connect('clicked', () => {
+      debug('cliced: prev');
+    });
+
+    const pause = new St.Button({ x_expand: false });
+    const pauseIcon = new St.Icon({
+      icon_name: isPaused ? 'media-playback-start-symbolic' : 'media-playback-pause-symbolic',
+      iconSize,
+      style: 'color: inherit; background: transparent; padding: 4px;',
+    });
+
+    pause.set_child(pauseIcon);
+    pause.connect('clicked', () => {
+      debug('cliced: pause');
+    });
+
+    const next = new St.Button({ x_expand: false });
+    const nextIcon = new St.Icon({
+      icon_name: 'media-skip-forward-symbolic',
+      iconSize,
+      style: 'color: inherit; background: transparent; padding: 4px;',
+    });
+    next.set_child(nextIcon);
+    next.connect('clicked', () => {
+      debug('cliced: next');
+    });
+
+    controlsBox.add_child(prev);
+    controlsBox.add_child(pause);
+    controlsBox.add_child(next);
+
+    miniPlayerBoxLayout.add_child(currentRadioLabel);
+    miniPlayerBoxLayout.add_child(controlsBox);
+    miniPlayerBoxLayout.add_child(timeTrackingBox);
+    debug('LENGTH', popup.length);
+    popup.addMenuItem(miniPlayerItem, popup.length - 1);
+  }
+
   private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
     const extPath = this._extension.path;
     const icon = `INDICATOR_${playing.toUpperCase()}` as keyof typeof ICONS;
@@ -306,6 +410,7 @@ export default class Indicator extends PanelMenu.Button {
       popupSection.addMenuItem(menuItem);
     });
     this._createVolumeSlider(popupSection);
+    this._createMiniPlayer(popupSection);
     // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
     this._handlePopupMaxHeight();
