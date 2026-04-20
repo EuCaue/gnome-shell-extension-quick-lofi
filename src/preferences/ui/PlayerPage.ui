@@ -49,6 +49,17 @@
         </object>
       </child>
 
+      <child>
+        <object class="AdwSwitchRow" id="enableMiniPlayer">
+          <property name="title" translatable="yes">Enable Mini Player</property>
+          <property name="cursor">
+            <object class="GdkCursor">
+              <property name="name">pointer</property>
+            </object>
+          </property>
+        </object>
+      </child>
+
     </object>
   </child>
 </template>

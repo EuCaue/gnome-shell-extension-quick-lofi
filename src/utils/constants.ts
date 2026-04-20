@@ -25,6 +25,7 @@ export const SETTINGS_KEYS = {
   ENABLE_DEBUG: 'enable-debug',
   ENABLE_MPRIS: 'enable-mpris',
   MPV_ARGUMENTS: 'mpv-arguments',
+  ENABLE_MINI_PLAYER: 'enable-mini-player',
 };
 
 // used across modules, keep in sync

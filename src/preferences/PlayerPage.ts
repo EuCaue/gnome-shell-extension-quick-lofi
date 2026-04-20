@@ -14,7 +14,7 @@ export class PlayerPage extends Adw.PreferencesPage {
       {
         GTypeName: 'PlayerPage',
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/PlayerPage.ui',
-        InternalChildren: ['volumeLevel', 'playerGroup', 'enableMpris', 'mpvArguments'],
+        InternalChildren: ['volumeLevel', 'playerGroup', 'enableMpris', 'mpvArguments', 'enableMiniPlayer'],
       },
       this,
     );
@@ -22,6 +22,7 @@ export class PlayerPage extends Adw.PreferencesPage {
   declare private _playerGroup: Adw.PreferencesGroup;
   declare private _volumeLevel: Adw.SpinRow;
   declare private _enableMpris: Adw.SwitchRow;
+  declare private _enableMiniPlayer: Adw.SwitchRow;
   declare private _mpvArguments: Adw.EntryRow;
 
   private _handleShortcuts() {
@@ -123,6 +124,12 @@ These are passed directly to the player on startup.
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(
+      SETTINGS_KEYS.ENABLE_MINI_PLAYER,
+      this._enableMiniPlayer,
+      'active',
+      Gio.SettingsBindFlags.DEFAULT,
+    );
     this._mpvArguments.set_text(this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS).join(', '));
     this._handleMpvArgumentsButtons();
     this._setupMpvArgumentsBehavior();
