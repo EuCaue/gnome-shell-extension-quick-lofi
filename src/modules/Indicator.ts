@@ -12,7 +12,7 @@ import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
 import { debug } from '@utils/debug';
 import { IndicatorActions } from './IndicatorActions';
 import { MprisController } from './Mpris';
-import Clutter from '@girs/clutter-17';
+import MiniPLayer from './MiniPlayer';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -25,6 +25,7 @@ export default class Indicator extends PanelMenu.Button {
   private _extension: QuickLofiExtension;
   private _isUpdatingCurrentRadio: boolean = false;
   private mpvPlayer: Player;
+  private _miniPlayer: MiniPLayer;
   public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
 
@@ -33,6 +34,7 @@ export default class Indicator extends PanelMenu.Button {
     writeLog({ message: '[Indicator] Initializing indicator', type: 'INFO' });
     this._extension = ext;
     this.mpvPlayer = Player.getInstance();
+    this._miniPlayer = new MiniPLayer();
     this._icon = new St.Icon({
       gicon: Gio.icon_new_for_string(this._extension.path + ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
@@ -128,12 +130,20 @@ export default class Indicator extends PanelMenu.Button {
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
         // stop player if current radio was removed
+        //  TODO: refactor this out into a separate util
+        const currentRadioPlayingID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+        debug('CURRENTRADIOPLAYINGID', currentRadioPlayingID);
+        const currentRadioPlaying = this._radios.find((radio) => radio.id === currentRadioPlayingID);
+        debug('CURRENTRADIOPLAYING', currentRadioPlaying);
         if (
           this.mpvPlayer.isPlaying() &&
           this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
         ) {
           this.mpvPlayer.stopPlayer();
+          return;
         }
+        this._miniPlayer.currentRadio.text = currentRadioPlaying.radioName;
+        // this._miniPlayer.getEndTime();
       }),
     });
     this.signalsHandlers.push({
@@ -152,6 +162,7 @@ export default class Indicator extends PanelMenu.Button {
       emitter: this.mpvPlayer,
       signalID: this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
+        this._miniPlayer.playIcon.set_icon_name(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP);
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
       }),
     });
@@ -165,6 +176,9 @@ export default class Indicator extends PanelMenu.Button {
         }
         this._updateIndicatorIcon({ playing: 'default' });
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
+        this._miniPlayer.playIcon.set_icon_name(ICONS.POPUP_PLAY);
+        this._miniPlayer.currentRadio.set_text('No Radio Playing! :)');
+        //  TODO: reset time
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
         this._activeRadioPopupItem.set_style('font-weight: normal');
         this._activeRadioPopupItem = null;
@@ -172,107 +186,106 @@ export default class Indicator extends PanelMenu.Button {
     });
   }
 
-  private _createMiniPlayer(popup: PopupMenu.PopupMenuBase) {
-    const miniPlayerItem = new PopupMenu.PopupBaseMenuItem({
-      activate: true,
-      hover: true,
-      can_focus: true,
-      reactive: true,
-    });
-    miniPlayerItem.style = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
-
-    const miniPlayerBoxLayout = new St.BoxLayout({
-      vertical: true,
-      x_expand: true,
-    });
-
-    //  TODO: change with the current radio playing
-    const currentRadio = 'Lofi Hip-Hop';
-    const currentRadioLabel = new St.Label({
-      text: currentRadio,
-      xAlign: Clutter.ActorAlign.CENTER,
-      style: 'font-weight: bold; margin-bottom: 10px',
-    });
-
-    const timeTrackingBox = new St.BoxLayout({ vertical: false, x_expand: false });
-    //  TODO: make this work with arrow keys
-    const timeTrackingSlider = new Slider.Slider(0.5);
-    const trackingTimeStyles = 'font-size: 0.9em;';
-    timeTrackingSlider.x_expand = true;
-    timeTrackingSlider.style = 'margin-left: 4px; margin-right: 4px;';
-    const isLive = true ? 'LIVE' : '10:30';
-
-    const currentTime = new St.Label({
-      text: '2:30',
-      style: trackingTimeStyles,
-    });
-    const endTime = new St.Label({
-      text: isLive,
-      style: trackingTimeStyles,
-    });
-
-    timeTrackingBox.add_child(currentTime);
-    timeTrackingBox.add_child(timeTrackingSlider);
-    timeTrackingBox.add_child(endTime);
-
-    const controlsBox = new St.BoxLayout({
-      vertical: false,
-      marginBottom: 10,
-      xAlign: Clutter.ActorAlign.CENTER,
-      x_expand: true,
-      style: 'margin-bottom: 20px;',
-    });
-    const controlsStyle: string = 'color: inherit; background: transparent; padding: 4px;';
-
-    const isPaused: boolean = this.mpvPlayer.getProperty('pause')?.data ?? false;
-    const iconSize: number = 24;
-
-    const prev = new St.Button({ x_expand: false });
-    const prevIcon = new St.Icon({
-      iconName: ICONS.MINI_PLAYER_SKIP_BACKWARD,
-      iconSize,
-      style: `${controlsStyle}`,
-    });
-    prev.set_child(prevIcon);
-    prev.connect('clicked', () => {
-      debug('cliced: prev');
-      debug(this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER));
-    });
-
-    const pause = new St.Button({ x_expand: false });
-    const pauseIcon = new St.Icon({
-      iconName: isPaused ? ICONS.POPUP_PLAY : ICONS.POPUP_PAUSE,
-      iconSize,
-      style: `${controlsStyle}`,
-    });
-    pause.set_child(pauseIcon);
-    pause.connect('clicked', () => {
-      debug('cliced: pause');
-    });
-
-    const next = new St.Button({ x_expand: false });
-    const nextIcon = new St.Icon({
-      iconName: ICONS.MINI_PLAYER_SKIP_FORWARD,
-      iconSize,
-      style: `${controlsStyle}`,
-    });
-    next.set_child(nextIcon);
-    next.connect('clicked', () => {
-      debug('cliced: next');
-    });
-
-    controlsBox.add_child(prev);
-    controlsBox.add_child(pause);
-    controlsBox.add_child(next);
-
-    miniPlayerBoxLayout.add_child(currentRadioLabel);
-    miniPlayerBoxLayout.add_child(controlsBox);
-    miniPlayerBoxLayout.add_child(timeTrackingBox);
-
-    miniPlayerItem.add_child(miniPlayerBoxLayout);
-
-    popup.addMenuItem(miniPlayerItem, popup.length - 1);
-  }
+  // private _createMiniPlayer(popup: PopupMenu.PopupMenuBase) {
+  //
+  //   const miniPlayerItem = new PopupMenu.PopupBaseMenuItem({
+  //     activate: true,
+  //     hover: true,
+  //     can_focus: true,
+  //     reactive: true,
+  //   });
+  //   miniPlayerItem.style = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
+  //
+  //   const miniPlayerBoxLayout = new St.BoxLayout({
+  //     vertical: true,
+  //     x_expand: true,
+  //   });
+  //
+  //   //  TODO: change with the current radio playing
+  //   const currentRadioLabel = new St.Label({
+  //     text: this._miniPlayer?.currentRadioName ?? 'No Radio Playing',
+  //     xAlign: Clutter.ActorAlign.CENTER,
+  //     style: 'font-weight: bold; margin-bottom: 10px',
+  //   });
+  //   debug(this._miniPlayer);
+  //
+  //   const timeTrackingBox = new St.BoxLayout({ vertical: false, x_expand: false });
+  //   //  TODO: make this work with arrow keys
+  //   const timeTrackingSlider = new Slider.Slider(0.5);
+  //   const trackingTimeStyles = 'font-size: 0.9em;';
+  //   timeTrackingSlider.x_expand = true;
+  //   timeTrackingSlider.style = 'margin-left: 4px; margin-right: 4px;';
+  //   const isLive = true ? 'LIVE' : '10:30'; // get on start player
+  //
+  //   const currentTime = new St.Label({
+  //     text: '2:30',
+  //     style: trackingTimeStyles,
+  //   }); // polling?
+  //   const endTime = new St.Label({
+  //     text: isLive,
+  //     style: trackingTimeStyles,
+  //   }); // get on start player
+  //
+  //   timeTrackingBox.add_child(currentTime);
+  //   timeTrackingBox.add_child(timeTrackingSlider);
+  //   timeTrackingBox.add_child(endTime);
+  //
+  //   const controlsBox = new St.BoxLayout({
+  //     vertical: false,
+  //     marginBottom: 10,
+  //     xAlign: Clutter.ActorAlign.CENTER,
+  //     x_expand: true,
+  //     style: 'margin-bottom: 20px;',
+  //   });
+  //   const controlsStyle: string = 'color: inherit; background: transparent; padding: 4px;';
+  //   const iconSize: number = 24;
+  //
+  //   const prev = new St.Button({ x_expand: false });
+  //   const prevIcon = new St.Icon({
+  //     iconName: ICONS.MINI_PLAYER_SKIP_BACKWARD,
+  //     iconSize,
+  //     style: `${controlsStyle}`,
+  //   });
+  //   prev.set_child(prevIcon);
+  //   prev.connect('clicked', () => {
+  //     debug('cliced: prev');
+  //   });
+  //
+  //   const pause = new St.Button({ x_expand: false });
+  //   const pauseIcon = new St.Icon({
+  //     iconName: this._miniPlayer.icon,
+  //     iconSize,
+  //     style: `${controlsStyle}`,
+  //   });
+  //   pause.set_child(pauseIcon);
+  //   pause.connect('clicked', () => {
+  //     debug('cliced: pause');
+  //     this.mpvPlayer.playPause();
+  //   });
+  //
+  //   const next = new St.Button({ x_expand: false });
+  //   const nextIcon = new St.Icon({
+  //     iconName: ICONS.MINI_PLAYER_SKIP_FORWARD,
+  //     iconSize,
+  //     style: `${controlsStyle}`,
+  //   });
+  //   next.set_child(nextIcon);
+  //   next.connect('clicked', () => {
+  //     debug('cliced: next');
+  //   });
+  //
+  //   controlsBox.add_child(prev);
+  //   controlsBox.add_child(pause);
+  //   controlsBox.add_child(next);
+  //
+  //   miniPlayerBoxLayout.add_child(currentRadioLabel);
+  //   miniPlayerBoxLayout.add_child(controlsBox);
+  //   miniPlayerBoxLayout.add_child(timeTrackingBox);
+  //
+  //   miniPlayerItem.add_child(miniPlayerBoxLayout);
+  //
+  //   popup.addMenuItem(miniPlayerItem, popup.length - 1);
+  // }
 
   private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
     const extPath = this._extension.path;
@@ -319,6 +332,8 @@ export default class Indicator extends PanelMenu.Button {
     child.set_style('font-weight: bold');
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
     this._activeRadioPopupItem = child;
+    this._miniPlayer.getEndTime();
+    this._miniPlayer.getCurrentTime();
   }
 
   private _handleButtonClick(): void {
@@ -409,7 +424,7 @@ export default class Indicator extends PanelMenu.Button {
       popupSection.addMenuItem(menuItem);
     });
     this._createVolumeSlider(popupSection);
-    this._createMiniPlayer(popupSection);
+    this._miniPlayer.createMiniPlayer(popupSection);
     // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
     this._handlePopupMaxHeight();

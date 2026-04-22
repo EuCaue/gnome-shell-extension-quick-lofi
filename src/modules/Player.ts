@@ -6,6 +6,7 @@ import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
+import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -128,7 +129,7 @@ export default class Player extends GObject.Object {
     }
   }
 
-  public getProperty(prop: string): { data: boolean; request_id: number; error: string } | null {
+  public getProperty<T>(prop: string): { data: T; request_id: number; error: string } | null {
     if (this._proc) {
       const command = this.createCommand({ command: ['get_property', prop] });
       const output = this.sendCommandToMpvSocket(command);
@@ -229,6 +230,7 @@ export default class Player extends GObject.Object {
         },
       }).catch(log);
     } catch (e) {
+      logError(e, 'QUICK LOFI ERROR');
       this._keepReading = false;
       this.stopPlayer(radio);
       writeLog({ message: 'MPV not found.', type: 'ERROR' }).catch(log);
@@ -266,6 +268,7 @@ export default class Player extends GObject.Object {
       const dataInputStream = new Gio.DataInputStream({ base_stream: inputStream });
       const [res] = dataInputStream.read_line_utf8(null);
       response = res;
+
       outputStream.close(null);
       inputStream.close(null);
       connection.close(null);
