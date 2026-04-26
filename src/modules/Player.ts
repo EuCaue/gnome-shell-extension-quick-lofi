@@ -227,6 +227,11 @@ export default class Player extends GObject.Object {
             Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
             return false; // stops loop
           }
+          if (this.getProperty<boolean>('pause')?.data) {
+            debug('PAUSED AND RUNNING', this.getProperty<boolean>('pause')?.data);
+          } else {
+            debug('RUNNING', this.getProperty<boolean>('pause')?.data);
+          }
         },
       }).catch(log);
     } catch (e) {
