@@ -130,21 +130,13 @@ export default class Indicator extends PanelMenu.Button {
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
-        // stop player if current radio was removed
-        //  TODO: refactor this out into a separate util
-        const currentRadioPlayingID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
-        debug('CURRENTRADIOPLAYINGID', currentRadioPlayingID);
-        const currentRadioPlaying = this._radios.find((radio) => radio.id === currentRadioPlayingID);
-        debug('CURRENTRADIOPLAYING', currentRadioPlaying);
+        //  NOTE: stop player if current radio was removed
         if (
           this.mpvPlayer.isPlaying() &&
           this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
         ) {
           this.mpvPlayer.stopPlayer();
           return;
-        }
-        if (this.mpvPlayer.isPlaying()) {
-          this._miniPlayer.currentRadio.set_text(currentRadioPlaying.radioName);
         }
       }),
     });
@@ -164,13 +156,6 @@ export default class Indicator extends PanelMenu.Button {
       emitter: this.mpvPlayer,
       signalID: this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
-        this._miniPlayer.playIcon.set_icon_name(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP);
-        if (isPaused) {
-          this._miniPlayer.shouldStop = true;
-        } else {
-          this._miniPlayer.shouldStop = false;
-          this._miniPlayer.getCurrentTime();
-        }
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
       }),
     });
@@ -253,8 +238,6 @@ export default class Indicator extends PanelMenu.Button {
     this._activeRadioPopupItem = child;
     //  TODO: improve the constructor
     this._miniPlayer.createMiniPlayer(this._popupSection);
-    this._miniPlayer.playIcon.set_icon_name(ICONS.POPUP_STOP);
-    this._miniPlayer.currentRadio.set_text(currentRadio.radioName);
   }
 
   private _handleButtonClick(): void {

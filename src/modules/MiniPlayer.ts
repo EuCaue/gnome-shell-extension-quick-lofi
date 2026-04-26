@@ -2,7 +2,6 @@ import { type PopupMenuSection, type PopupBaseMenuItem } from '@girs/gnome-shell
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import St from 'gi://St';
 import Clutter from '@girs/clutter-17';
-import GLib from 'gi://GLib';
 import { ICONS, SETTINGS_KEYS } from '@/utils/constants';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import { debug } from '@/utils/debug';
@@ -10,9 +9,6 @@ import Player from './Player';
 import Gio from '@girs/gio-2.0';
 import { getExtSettings } from '@/utils/helpers';
 
-//  TODO: when restoring, doesn't came with the values
-//  TODO: text for the currentTime is undefined, not setting in any case
-//  TODO: radioName not setting either
 export default class MiniPlayer {
   private static _instance: MiniPlayer | null = null;
 
@@ -21,13 +17,22 @@ export default class MiniPlayer {
   public endTime!: St.Label;
   public playIcon!: St.Icon;
   public timeTrackingSlider!: Slider.Slider;
-  public shouldStop = false;
+  private _shouldStop = false;
   public mpvPlayer: Player;
 
   private _miniPlayerItem: PopupBaseMenuItem | null = null;
-  private _currentTimeTimeoutId: number | null = null;
-  private _endTimeTimeoutId: number | null = null;
   private _settings: Gio.Settings;
+
+  private _duration = 0;
+  private _isSeekable = false;
+  private _isUpdatingSlider = false;
+
+  private _positionSignalId: number | null = null;
+  private _durationSignalId: number | null = null;
+  private _seekableSignalId: number | null = null;
+  private _playStateSignalId: number | null = null;
+  private _playbackStoppedSignalId: number | null = null;
+  private _radioChangedSignalId: number | null = null;
 
   public static getInstance(): MiniPlayer {
     if (!MiniPlayer._instance) {
@@ -47,7 +52,7 @@ export default class MiniPlayer {
       return;
     }
 
-    this.shouldStop = false;
+    this._shouldStop = false;
 
     this._miniPlayerItem = new PopupMenu.PopupBaseMenuItem({
       activate: true,
@@ -63,13 +68,8 @@ export default class MiniPlayer {
       x_expand: true,
     });
 
-    const currentRadioPlayingID = this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
-    const [currentRadioName]: string[] = this._settings
-      .get_strv(SETTINGS_KEYS.RADIOS_LIST)
-      .find((radio) => radio.endsWith(currentRadioPlayingID))
-      .split(' - ');
     this.currentRadio = new St.Label({
-      text: currentRadioName,
+      text: this._getCurrentRadioName(),
       xAlign: Clutter.ActorAlign.CENTER,
       style: 'font-weight: bold; margin-bottom: 10px',
     });
@@ -79,9 +79,10 @@ export default class MiniPlayer {
       x_expand: false,
     });
 
-    this.timeTrackingSlider = new Slider.Slider(0.5);
+    this.timeTrackingSlider = new Slider.Slider(0);
     this.timeTrackingSlider.x_expand = true;
     this.timeTrackingSlider.style = 'margin-left: 4px; margin-right: 4px;';
+    this.timeTrackingSlider.set_reactive(false);
 
     const trackingTimeStyles = 'font-size: 0.9em;';
 
@@ -127,7 +128,8 @@ export default class MiniPlayer {
       reactive: true,
     });
 
-    const isPaused = this.mpvPlayer.getProperty('pause')?.data ?? { data: false };
+    const isPaused = this.mpvPlayer.getProperty<boolean>('pause')?.data ?? false;
+
     this.playIcon = new St.Icon({
       iconName: isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP,
       iconSize,
@@ -176,11 +178,104 @@ export default class MiniPlayer {
 
     this._miniPlayerItem.add_child(miniPlayerBoxLayout);
 
-    //  TODO: make await before adding into the UI
-    this.getCurrentTime();
-    this.getEndTime();
+    this._connectPlayerSignals();
+
+    this.timeTrackingSlider.connect('drag-end', () => {
+      if (!this._isSeekable || this._duration <= 0) return;
+
+      const position = this.timeTrackingSlider.value * this._duration;
+      this.mpvPlayer.seekTo(position);
+    });
 
     popup.addMenuItem(this._miniPlayerItem, popup.length - 1);
+  }
+
+  private _connectPlayerSignals(): void {
+    this._positionSignalId = this.mpvPlayer.connect('position-changed', (_player, position: number) => {
+      if (!this._miniPlayerItem) return;
+
+      this.currentTime.set_text(this._parseTime(position));
+
+      if (this._duration > 0 && this._isSeekable) {
+        this._isUpdatingSlider = true;
+        this.timeTrackingSlider.value = position / this._duration;
+        this._isUpdatingSlider = false;
+      }
+    });
+
+    this._durationSignalId = this.mpvPlayer.connect('duration-changed', (_player, duration: number) => {
+      if (!this._miniPlayerItem) return;
+
+      this._duration = duration;
+
+      if (!duration || duration <= 0) {
+        this.endTime.set_text('00:00');
+        return;
+      }
+
+      if (!this._isSeekable) {
+        this.endTime.set_text('LIVE');
+        this.timeTrackingSlider.value = 1;
+        this.timeTrackingSlider.set_reactive(false);
+        return;
+      }
+
+      this.endTime.set_text(this._parseTime(duration));
+      this.timeTrackingSlider.set_reactive(true);
+    });
+
+    this._seekableSignalId = this.mpvPlayer.connect('seekable-changed', (_player, seekable: boolean) => {
+      if (!this._miniPlayerItem) return;
+
+      this._isSeekable = seekable;
+
+      if (!seekable) {
+        this.endTime.set_text('LIVE');
+        this.timeTrackingSlider.value = 1;
+        this.timeTrackingSlider.set_reactive(false);
+        return;
+      }
+
+      this.timeTrackingSlider.set_reactive(true);
+    });
+
+    this._playStateSignalId = this.mpvPlayer.connect('play-state-changed', (_player, isPaused: boolean) => {
+      if (!this._miniPlayerItem) return;
+
+      this.playIcon.iconName = isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP;
+    });
+
+    this._playbackStoppedSignalId = this.mpvPlayer.connect('playback-stopped', () => {
+      if (!this._miniPlayerItem) return;
+
+      this._duration = 0;
+      this._isSeekable = false;
+
+      this.currentTime.set_text('00:00');
+      this.endTime.set_text('00:00');
+      this.timeTrackingSlider.value = 0;
+      this.timeTrackingSlider.set_reactive(false);
+    });
+
+    this._radioChangedSignalId = this.mpvPlayer.connect('radio-changed', (_player, radioName: string) => {
+      if (!this._miniPlayerItem) return;
+
+      this.currentRadio.set_text(radioName);
+    });
+  }
+
+  private _getCurrentRadioName(): string {
+    const currentRadioPlayingID = this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+
+    const currentRadio = this._settings
+      .get_strv(SETTINGS_KEYS.RADIOS_LIST)
+      .find((radio) => radio.endsWith(currentRadioPlayingID));
+
+    if (!currentRadio) return 'Quick Lofi';
+
+    const [currentRadioName] = currentRadio.split(' - ');
+
+    return currentRadioName ?? 'Quick Lofi';
   }
 
   private _parseTime(time: string | number | undefined): string {
@@ -189,98 +284,48 @@ export default class MiniPlayer {
     if (isNaN(parsed)) return '00:00';
 
     const hours = Math.floor(parsed / 3600);
-    const minutes = String(Math.ceil((parsed % 3600) / 60)).padStart(2, '0');
+    const minutes = String(Math.floor((parsed % 3600) / 60)).padStart(2, '0');
     const seconds = String(Math.floor(parsed % 60)).padStart(2, '0');
 
     return `${hours > 0 ? `${hours}:` : ''}${minutes}:${seconds}`;
   }
 
-  //  TODO: clear and set again on pause
-  public getCurrentTime() {
-    if (this._currentTimeTimeoutId) {
-      GLib.source_remove(this._currentTimeTimeoutId);
-      this._currentTimeTimeoutId = null;
+  private _disconnectPlayerSignals(): void {
+    if (this._positionSignalId !== null) {
+      this.mpvPlayer.disconnect(this._positionSignalId);
+      this._positionSignalId = null;
     }
 
-    this._currentTimeTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-      if (this.shouldStop || !this._miniPlayerItem) {
-        this._currentTimeTimeoutId = null;
-        return GLib.SOURCE_REMOVE;
-      }
-
-      const time = this.mpvPlayer.getProperty<number>('playback-time')?.data;
-      if (!time) {
-        return GLib.SOURCE_CONTINUE;
-      }
-      debug('TIME', time);
-      const currentTime = this._parseTime(time);
-      debug('CURRENTTIME', currentTime);
-
-      if (currentTime === this.endTime.get_text()) {
-        debug('HERE', this.endTime.get_text());
-        this.currentTime.set_text('');
-        this._currentTimeTimeoutId = null;
-        return GLib.SOURCE_REMOVE;
-      }
-
-      this.currentTime.set_text(currentTime);
-      return GLib.SOURCE_CONTINUE;
-    });
-  }
-
-  private _isLiveStream() {
-    const seekable = this.mpvPlayer.getProperty<boolean>('seekable')?.data;
-    debug('SEEKABLE1', seekable);
-
-    return !seekable;
-  }
-
-  public getEndTime() {
-    if (this._endTimeTimeoutId) {
-      GLib.source_remove(this._endTimeTimeoutId);
-      this._endTimeTimeoutId = null;
+    if (this._durationSignalId !== null) {
+      this.mpvPlayer.disconnect(this._durationSignalId);
+      this._durationSignalId = null;
     }
 
-    this._endTimeTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_HIGH, 1, () => {
-      if (this.shouldStop || !this._miniPlayerItem) {
-        this._endTimeTimeoutId = null;
-        return GLib.SOURCE_REMOVE;
-      }
+    if (this._seekableSignalId !== null) {
+      this.mpvPlayer.disconnect(this._seekableSignalId);
+      this._seekableSignalId = null;
+    }
 
-      const duration = this.mpvPlayer.getProperty<number>('duration')?.data;
+    if (this._playStateSignalId !== null) {
+      this.mpvPlayer.disconnect(this._playStateSignalId);
+      this._playStateSignalId = null;
+    }
 
-      if (!duration) {
-        return GLib.SOURCE_CONTINUE;
-      }
+    if (this._playbackStoppedSignalId !== null) {
+      this.mpvPlayer.disconnect(this._playbackStoppedSignalId);
+      this._playbackStoppedSignalId = null;
+    }
 
-      if (this._isLiveStream()) {
-        this.endTime.set_text('LIVE');
-        this.timeTrackingSlider.set_reactive(false);
-        this.timeTrackingSlider.value = 1;
-        this._endTimeTimeoutId = null;
-        return GLib.SOURCE_REMOVE;
-      }
-
-      const endTime = this._parseTime(duration);
-      this.endTime.set_text(endTime);
-
-      this._endTimeTimeoutId = null;
-      return GLib.SOURCE_REMOVE;
-    });
+    if (this._radioChangedSignalId !== null) {
+      this.mpvPlayer.disconnect(this._radioChangedSignalId);
+      this._radioChangedSignalId = null;
+    }
   }
 
   public dispose() {
-    this.shouldStop = true;
+    this._shouldStop = true;
 
-    if (this._currentTimeTimeoutId) {
-      GLib.source_remove(this._currentTimeTimeoutId);
-      this._currentTimeTimeoutId = null;
-    }
-
-    if (this._endTimeTimeoutId) {
-      GLib.source_remove(this._endTimeTimeoutId);
-      this._endTimeTimeoutId = null;
-    }
+    this._disconnectPlayerSignals();
 
     if (this._miniPlayerItem) {
       this._miniPlayerItem.destroy();

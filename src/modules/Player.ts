@@ -26,6 +26,9 @@ export default class Player extends GObject.Object {
           'play-state-changed': { param_types: [GObject.TYPE_BOOLEAN] },
           'playback-stopped': { param_types: [] },
           'radio-changed': { param_types: [GObject.TYPE_STRING] },
+          'position-changed': { param_types: [GObject.TYPE_DOUBLE] },
+          'duration-changed': { param_types: [GObject.TYPE_DOUBLE] },
+          'seekable-changed': { param_types: [GObject.TYPE_BOOLEAN] },
         },
       },
       this,
@@ -39,6 +42,7 @@ export default class Player extends GObject.Object {
   private _cancellable: Gio.Cancellable | null = null;
   private _settings: Gio.Settings;
   private _mpris: MprisController | null = null;
+  private _positionTimerId: number | null = null;
 
   static getInstance(): Player {
     if (!_instance) {
@@ -72,11 +76,23 @@ export default class Player extends GObject.Object {
     });
   }
 
+  public seekTo(seconds: number): void {
+    const command = this.createCommand({
+      command: ['seek', `${seconds}`, 'absolute', 'exact'],
+    });
+
+    this.sendCommandToMpvSocket(command);
+  }
+
   public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
     }).catch(log);
     this._keepReading = false;
+    if (this._positionTimerId !== null) {
+      GLib.source_remove(this._positionTimerId);
+      this._positionTimerId = null;
+    }
 
     if (this._cancellable) {
       this._cancellable.cancel();
@@ -215,10 +231,13 @@ export default class Player extends GObject.Object {
         base_stream: this._proc.get_stdout_pipe(),
       });
 
+      this._startPositionUpdates();
+
       // Update MPRIS with new radio metadata
       if (this._mpris) {
         this._mpris.updateMetadata(radio);
       }
+      //  TODO: make the player accept a list of props that can be called here
       this._monitorPlayerOutput({
         stream: this._stdoutStream,
         onLine: async (line) => {
@@ -245,7 +264,26 @@ export default class Player extends GObject.Object {
       );
     }
   }
+  private _startPositionUpdates(): void {
+    if (this._positionTimerId !== null) return;
 
+    this._positionTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+      if (!this._proc) {
+        this._positionTimerId = null;
+        return GLib.SOURCE_REMOVE;
+      }
+
+      const position = this.getProperty<number>('playback-time')?.data ?? 0;
+      const duration = this.getProperty<number>('duration')?.data ?? 0;
+      const seekable = this.getProperty<boolean>('seekable')?.data ?? false;
+
+      this.emit('position-changed', position);
+      this.emit('duration-changed', duration);
+      this.emit('seekable-changed', seekable);
+
+      return GLib.SOURCE_CONTINUE;
+    });
+  }
   private createCommand(command: PlayerCommand): PlayerCommandString {
     return JSON.stringify(command) + '\n';
   }
