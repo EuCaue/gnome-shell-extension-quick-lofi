@@ -3,6 +3,7 @@ import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { debug } from './debug';
+import { Radio } from '@/types';
 
 Gio._promisify(Gio.File.prototype, 'append_to_async');
 Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
@@ -96,4 +97,17 @@ export function inspectItem(item: object): Record<string, TypeOf> {
     }
   }
   return inspected;
+}
+
+export function parseRadios(radios?: Array<string>): Array<Radio> {
+  const settings = getExtSettings();
+  const radiosRaw: string[] = radios ?? settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
+  const radiosParsed: Array<Radio> = radiosRaw.map((entry: string) => {
+    const parts = entry.split(' - ');
+    const radioName = (parts[0] || '').trim();
+    const radioUrl = (parts[1] || '').trim();
+    const id = (parts[2] || '').trim();
+    return { radioName, radioUrl, id };
+  });
+  return radiosParsed;
 }

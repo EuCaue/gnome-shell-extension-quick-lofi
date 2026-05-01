@@ -84,6 +84,16 @@ export default class Player extends GObject.Object {
     this.sendCommandToMpvSocket(command);
   }
 
+  public playlistNext() {
+    const command = this.createCommand({ command: ['playlist-next'] });
+    this.sendCommandToMpvSocket(command);
+  }
+
+  public playlistPrev() {
+    const command = this.createCommand({ command: ['playlist-prev'] });
+    this.sendCommandToMpvSocket(command);
+  }
+
   public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
@@ -188,6 +198,7 @@ export default class Player extends GObject.Object {
     await readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
+    //  TODO: emit start player
     await this.stopPlayer(radio);
     if (radio.radioUrl.startsWith('~')) {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);

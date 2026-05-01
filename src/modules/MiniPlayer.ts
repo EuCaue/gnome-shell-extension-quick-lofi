@@ -7,7 +7,8 @@ import * as Slider from '@girs/gnome-shell/ui/slider';
 import { debug } from '@/utils/debug';
 import Player from './Player';
 import Gio from '@girs/gio-2.0';
-import { getExtSettings } from '@/utils/helpers';
+import { getExtSettings, parseRadios } from '@/utils/helpers';
+import { Radio } from '@/types';
 
 export default class MiniPlayer {
   private static _instance: MiniPlayer | null = null;
@@ -68,6 +69,7 @@ export default class MiniPlayer {
       x_expand: true,
     });
 
+    //  TODO: in playlist mode, show the current playing
     this.currentRadio = new St.Label({
       text: this._getCurrentRadioName(),
       xAlign: Clutter.ActorAlign.CENTER,
@@ -120,6 +122,13 @@ export default class MiniPlayer {
 
     prev.set_child(prevIcon);
     prev.connect('clicked', () => {
+      const playlistCount = this.mpvPlayer.getProperty<number>('playlist-count')?.data ?? 1;
+      if (playlistCount > 1) {
+        this.mpvPlayer.playlistPrev();
+      } else {
+        const prevRadio = this._findPrevRadio();
+        this.mpvPlayer.startPlayer(prevRadio);
+      }
       debug('clicked: prev');
     });
 
@@ -165,6 +174,13 @@ export default class MiniPlayer {
 
     next.set_child(nextIcon);
     next.connect('clicked', () => {
+      const playlistCount = this.mpvPlayer.getProperty<number>('playlist-count')?.data ?? 1;
+      if (playlistCount > 1) {
+        this.mpvPlayer.playlistNext();
+      } else {
+        const nextRadio = this._findNextRadio();
+        this.mpvPlayer.startPlayer(nextRadio);
+      }
       debug('clicked: next');
     });
 
@@ -187,7 +203,39 @@ export default class MiniPlayer {
       this.mpvPlayer.seekTo(position);
     });
 
-    popup.addMenuItem(this._miniPlayerItem, popup.length - 1);
+    popup.addMenuItem(this._miniPlayerItem, popup.numMenuItems - 1);
+  }
+
+  private _findNextRadio(): Radio | undefined {
+    return this._findRadio((_radio, index, radios, currentRadioPlayingID) => {
+      if (radios[index].id === currentRadioPlayingID) {
+        return radios[(index + 1) % radios.length];
+      }
+      return undefined;
+    });
+  }
+
+  private _findPrevRadio(): Radio | undefined {
+    return this._findRadio((_radio, index, radios, currentRadioPlayingID) => {
+      if (radios[index].id === currentRadioPlayingID) {
+        return radios[(index - 1 + radios.length) % radios.length];
+      }
+      return undefined;
+    });
+  }
+
+  private _findRadio(
+    cb: (radio: Radio, index: number, radios: Array<Radio>, currentRadioPlayingID: string) => Radio | undefined,
+  ): Radio | undefined {
+    const settings = getExtSettings();
+    const currentRadioPlayingID = settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+    const radios = parseRadios();
+    for (let i = 0; i < radios.length; i++) {
+      const radio = radios[i];
+      const result = cb(radio, i, radios, currentRadioPlayingID);
+      if (result) return result;
+    }
+    return undefined;
   }
 
   private _connectPlayerSignals(): void {
