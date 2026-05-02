@@ -25,7 +25,7 @@ export default class Player extends GObject.Object {
         Signals: {
           'play-state-changed': { param_types: [GObject.TYPE_BOOLEAN] },
           'playback-stopped': { param_types: [] },
-          'radio-changed': { param_types: [GObject.TYPE_STRING] },
+          'playback-started': { param_types: [GObject.TYPE_STRING, GObject.TYPE_STRING, GObject.TYPE_STRING] },
           'position-changed': { param_types: [GObject.TYPE_DOUBLE] },
           'duration-changed': { param_types: [GObject.TYPE_DOUBLE] },
           'seekable-changed': { param_types: [GObject.TYPE_BOOLEAN] },
@@ -236,7 +236,7 @@ export default class Player extends GObject.Object {
       const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
-      this.emit('radio-changed', radio.radioName);
+      this.emit('playback-started', radio.id, radio.radioName, radio.radioUrl);
 
       this._stdoutStream = new Gio.DataInputStream({
         base_stream: this._proc.get_stdout_pipe(),

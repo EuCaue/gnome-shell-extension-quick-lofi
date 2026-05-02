@@ -305,7 +305,7 @@ export default class MiniPlayer {
       this.timeTrackingSlider.set_reactive(false);
     });
 
-    this._radioChangedSignalId = this.mpvPlayer.connect('radio-changed', (_player, radioName: string) => {
+    this._radioChangedSignalId = this.mpvPlayer.connect('playback-started', (_player, radioName: string) => {
       if (!this._miniPlayerItem) return;
 
       this.currentRadio.set_text(radioName);

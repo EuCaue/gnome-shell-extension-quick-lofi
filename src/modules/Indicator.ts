@@ -154,6 +154,19 @@ export default class Indicator extends PanelMenu.Button {
     });
     this.signalsHandlers.push({
       emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('playback-started', (_sender: Player, radioID: string) => {
+        const pos = this._radios.findIndex((radio) => radio.id === radioID);
+        const child = this._popupSection._getMenuItems()[pos] as PopupMenu.PopupImageMenuItem;
+        this._updateIndicatorIcon({ playing: 'playing' });
+        child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
+        child.set_style('font-weight: bold');
+        this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
+        this._activeRadioPopupItem = child;
+        this._miniPlayer.createMiniPlayer(this._popupSection);
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
       signalID: this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
@@ -227,17 +240,9 @@ export default class Indicator extends PanelMenu.Button {
       this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
       this._activeRadioPopupItem.set_style('font-weight: normal');
       this._updateIndicatorIcon({ playing: 'default' });
-      //  TODO: destroy here if isn't destroying or updating in the other evetns
     }
     writeLog({ message: `[Indicator] Starting new radio: ${currentRadio?.radioName}`, type: 'INFO' });
     await this.mpvPlayer.startPlayer(currentRadio);
-    this._updateIndicatorIcon({ playing: 'playing' });
-    child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
-    child.set_style('font-weight: bold');
-    this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
-    this._activeRadioPopupItem = child;
-    //  TODO: improve the constructor
-    this._miniPlayer.createMiniPlayer(this._popupSection);
   }
 
   private _handleButtonClick(): void {
@@ -259,6 +264,7 @@ export default class Indicator extends PanelMenu.Button {
       } catch (e) {}
     });
     this.menuSignals = [];
+    this._miniPlayer.dispose();
     // @ts-expect-error nothing
     this.menu.box.destroy_all_children();
     this._radios = [];
