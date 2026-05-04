@@ -355,3 +355,11 @@ export const ffmpegFormats = new Set([
   'yop',
   'yuv4mpegpipe',
 ]);
+
+export type MOUSE_BUTTONS_KEYS = 'LEFT' | 'MIDDLE' | 'RIGHT';
+export type MOUSE_BUTTONS_VALUES = 1 | 2 | 3;
+export const MOUSE_BUTTONS = new Map<MOUSE_BUTTONS_KEYS, MOUSE_BUTTONS_VALUES>([
+  ['LEFT', 1],
+  ['MIDDLE', 2],
+  ['RIGHT', 3],
+]);

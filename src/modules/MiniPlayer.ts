@@ -2,9 +2,8 @@ import { type PopupMenuSection, type PopupBaseMenuItem } from '@girs/gnome-shell
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import St from 'gi://St';
 import Clutter from '@girs/clutter-17';
-import { ICONS, SETTINGS_KEYS } from '@/utils/constants';
+import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { debug } from '@/utils/debug';
 import Player from './Player';
 import Gio from '@girs/gio-2.0';
 import { getExtSettings, parseRadios } from '@/utils/helpers';
@@ -113,7 +112,7 @@ export default class MiniPlayer {
     const controlsStyle = 'color: inherit; background: transparent; padding: 4px;';
     const iconSize = 24;
 
-    const prev = new St.Button({ x_expand: false });
+    const prev = new St.Button({ x_expand: false, reactive: true });
     const prevIcon = new St.Icon({
       iconName: ICONS.MINI_PLAYER_SKIP_BACKWARD,
       iconSize,
@@ -121,15 +120,14 @@ export default class MiniPlayer {
     });
 
     prev.set_child(prevIcon);
-    prev.connect('clicked', () => {
-      const playlistCount = this.mpvPlayer.getProperty<number>('playlist-count')?.data ?? 1;
-      if (playlistCount > 1) {
-        this.mpvPlayer.playlistPrev();
-      } else {
-        const prevRadio = this._findPrevRadio();
-        this.mpvPlayer.startPlayer(prevRadio);
+    prev.connect('button-press-event', (_, event) => {
+      const btnClicked = event.get_button();
+      if (MOUSE_BUTTONS.get('LEFT') === btnClicked) {
+        this.mpvPlayer.prev();
       }
-      debug('clicked: prev');
+      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
+        this.mpvPlayer.prev('radio');
+      }
     });
 
     const pause = new St.Button({
@@ -149,15 +147,13 @@ export default class MiniPlayer {
 
     pause.connect('button-press-event', (_, event) => {
       const btnClicked = event.get_button();
-      const LMB = 1;
-      const RMB = 3;
 
-      if (btnClicked === LMB) {
+      if (btnClicked === MOUSE_BUTTONS.get('LEFT')) {
         this.mpvPlayer.playPause();
         return Clutter.EVENT_STOP;
       }
 
-      if (btnClicked === RMB) {
+      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
         this.mpvPlayer.stopPlayer();
         return Clutter.EVENT_STOP;
       }
@@ -165,7 +161,7 @@ export default class MiniPlayer {
       return Clutter.EVENT_PROPAGATE;
     });
 
-    const next = new St.Button({ x_expand: false });
+    const next = new St.Button({ x_expand: false, reactive: true });
     const nextIcon = new St.Icon({
       iconName: ICONS.MINI_PLAYER_SKIP_FORWARD,
       iconSize,
@@ -173,15 +169,14 @@ export default class MiniPlayer {
     });
 
     next.set_child(nextIcon);
-    next.connect('clicked', () => {
-      const playlistCount = this.mpvPlayer.getProperty<number>('playlist-count')?.data ?? 1;
-      if (playlistCount > 1) {
-        this.mpvPlayer.playlistNext();
-      } else {
-        const nextRadio = this._findNextRadio();
-        this.mpvPlayer.startPlayer(nextRadio);
+    next.connect('button-press-event', (_, event) => {
+      const btnClicked = event.get_button();
+      if (MOUSE_BUTTONS.get('LEFT') === btnClicked) {
+        this.mpvPlayer.next();
       }
-      debug('clicked: next');
+      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
+        this.mpvPlayer.next('radio');
+      }
     });
 
     controlsBox.add_child(prev);
@@ -204,38 +199,6 @@ export default class MiniPlayer {
     });
 
     popup.addMenuItem(this._miniPlayerItem, popup.numMenuItems - 1);
-  }
-
-  private _findNextRadio(): Radio | undefined {
-    return this._findRadio((_radio, index, radios, currentRadioPlayingID) => {
-      if (radios[index].id === currentRadioPlayingID) {
-        return radios[(index + 1) % radios.length];
-      }
-      return undefined;
-    });
-  }
-
-  private _findPrevRadio(): Radio | undefined {
-    return this._findRadio((_radio, index, radios, currentRadioPlayingID) => {
-      if (radios[index].id === currentRadioPlayingID) {
-        return radios[(index - 1 + radios.length) % radios.length];
-      }
-      return undefined;
-    });
-  }
-
-  private _findRadio(
-    cb: (radio: Radio, index: number, radios: Array<Radio>, currentRadioPlayingID: string) => Radio | undefined,
-  ): Radio | undefined {
-    const settings = getExtSettings();
-    const currentRadioPlayingID = settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
-    const radios = parseRadios();
-    for (let i = 0; i < radios.length; i++) {
-      const radio = radios[i];
-      const result = cb(radio, i, radios, currentRadioPlayingID);
-      if (result) return result;
-    }
-    return undefined;
   }
 
   private _connectPlayerSignals(): void {

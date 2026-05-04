@@ -111,3 +111,16 @@ export function parseRadios(radios?: Array<string>): Array<Radio> {
   });
   return radiosParsed;
 }
+export function findRadio(
+  cb: (radio: Radio, index: number, radios: Array<Radio>, currentRadioPlayingID: string) => Radio | undefined,
+): Radio | undefined {
+  const settings = getExtSettings();
+  const currentRadioPlayingID = settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+  const radios = parseRadios();
+  for (let i = 0; i < radios.length; i++) {
+    const radio = radios[i];
+    const result = cb(radio, i, radios, currentRadioPlayingID);
+    if (result) return result;
+  }
+  return undefined;
+}

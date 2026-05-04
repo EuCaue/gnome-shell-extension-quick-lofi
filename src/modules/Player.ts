@@ -4,14 +4,15 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { getExtSettings, writeLog } from '@/utils/helpers';
+import { findRadio, getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
-import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
+
+type NavigationMode = 'auto' | 'radio';
 
 Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
 Gio._promisify(Gio.Subprocess.prototype, 'wait_async', 'wait_finish');
@@ -82,6 +83,101 @@ export default class Player extends GObject.Object {
     });
 
     this.sendCommandToMpvSocket(command);
+  }
+
+  public next(mode: NavigationMode = 'auto'): Radio | undefined {
+    if (this._proc) {
+      if (mode === 'radio') {
+        this._nextRadio();
+        return undefined;
+      }
+      this._nextAuto();
+    }
+  }
+
+  public prev(mode: NavigationMode = 'auto'): Radio | undefined {
+    if (this._proc) {
+      if (mode === 'radio') {
+        this._prevRadio();
+        return undefined;
+      }
+      this._prevAuto();
+    }
+  }
+
+  //  TODO: handle loop file?
+  private _nextAuto() {
+    const playlistTotal = this.getProperty<number>('playlist-count')?.data ?? 0;
+    const playlistPosition = this.getProperty<number>('playlist-pos')?.data ?? 0;
+
+    const hasPlaylist = playlistTotal > 1;
+    const isLastItem = playlistPosition >= playlistTotal - 1;
+    const shouldLoopPlaylist =
+      (this._settings
+        .get_strv(SETTINGS_KEYS.MPV_ARGUMENTS)
+        .slice()
+        .reverse()
+        .find((arg) => arg === '--loop-playlist' || arg.startsWith('--loop-playlist=')) || '--loop-playlist=no') !==
+      '--loop-playlist=no';
+
+    if (!hasPlaylist) {
+      this._nextRadio();
+      return;
+    }
+
+    if (isLastItem && !shouldLoopPlaylist) {
+      this._nextRadio();
+      return;
+    }
+
+    this.playlistNext();
+  }
+
+  private _nextRadio() {
+    const nextRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
+      if (radios[index].id === currentRadioPlayingID) {
+        return radios[(index + 1) % radios.length];
+      }
+      return undefined;
+    });
+    this.startPlayer(nextRadio);
+  }
+
+  private _prevAuto() {
+    const playlistTotal = this.getProperty<number>('playlist-count')?.data ?? 0;
+    const playlistPosition = this.getProperty<number>('playlist-pos')?.data ?? 0;
+
+    const hasPlaylist = playlistTotal > 1;
+    const isFirstItem = playlistPosition <= 0; // zero-based
+    const shouldLoopPlaylist =
+      (this._settings
+        .get_strv(SETTINGS_KEYS.MPV_ARGUMENTS)
+        .slice()
+        .reverse()
+        .find((arg) => arg === '--loop-playlist' || arg.startsWith('--loop-playlist=')) || '--loop-playlist=no') !==
+      '--loop-playlist=no';
+
+    if (!hasPlaylist) {
+      this._prevRadio();
+      return;
+    }
+
+    if (isFirstItem && !shouldLoopPlaylist) {
+      this._prevRadio();
+      return;
+    }
+
+    this.playlistPrev();
+  }
+
+  private _prevRadio() {
+    const prevRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
+      if (radios[index].id === currentRadioPlayingID) {
+        return radios[(index - 1 + radios.length) % radios.length];
+      }
+      return undefined;
+    });
+    this.startPlayer(prevRadio);
   }
 
   public playlistNext() {
@@ -198,31 +294,12 @@ export default class Player extends GObject.Object {
     await readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
-    //  TODO: emit start player
     await this.stopPlayer(radio);
     if (radio.radioUrl.startsWith('~')) {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
     }
-    //  TODO: use a map for this;
-    // const MPV_OPTIONS: Array<string> = [
-    //   '--audio-buffer=500',
-    //   '--cache=yes',
-    //   '--cache-secs=30',
-    //   '--demuxer-lavf-o=extension_picky=0',
-    //   '--demuxer-max-bytes=50MiB',
-    //   '--gapless-audio=yes',
-    //   '--loop-playlist=force', // TODO: Something in the UI would be nice.
-    //   '--msg-level=all=warn',
-    //   '--no-video',
-    //   '--replaygain=track',
-    //   '--ytdl-format=bestaudio/best',
-    //   '--ytdl-raw-options-add=force-ipv4=',
-    //   `--input-ipc-server=${this._mpvSocket}`,
-    //   `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
-    //   `"${radio.radioUrl}"`,
-    //   //  TODO: make something in the UI for this
-    //   //  --ytdl-raw-options-add=cookies-from-browser
-    // ];
+    //  TODO: make something in the UI for this
+    //  --ytdl-raw-options-add=cookies-from-browser
     const DEFAULT: Array<string> = [
       '--no-video',
       `--input-ipc-server=${this._mpvSocket}`,
@@ -232,7 +309,6 @@ export default class Player extends GObject.Object {
     const MPV_OPTIONS: Array<string> = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...DEFAULT];
     try {
       this._keepReading = true;
-      //  TODO: check how safe is this
       const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
@@ -248,7 +324,6 @@ export default class Player extends GObject.Object {
       if (this._mpris) {
         this._mpris.updateMetadata(radio);
       }
-      //  TODO: make the player accept a list of props that can be called here
       this._monitorPlayerOutput({
         stream: this._stdoutStream,
         onLine: async (line) => {
@@ -256,11 +331,6 @@ export default class Player extends GObject.Object {
             await this.stopPlayer(radio);
             Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
             return false; // stops loop
-          }
-          if (this.getProperty<boolean>('pause')?.data) {
-            debug('PAUSED AND RUNNING', this.getProperty<boolean>('pause')?.data);
-          } else {
-            debug('RUNNING', this.getProperty<boolean>('pause')?.data);
           }
         },
       }).catch(log);
