@@ -14,6 +14,10 @@ export const SHORTCUTS = {
   STOP_SHORTCUT: 'stop-quick-lofi',
   INCREASE_VOLUME_SHORTCUT: 'increase-volume',
   DECREASE_VOLUME_SHORTCUT: 'decrease-volume',
+  NEXT_SHORTCUT: 'next',
+  PREVIOUS_SHORTCUT: 'previous',
+  NEXT_RADIO_SHORTCUT: 'next-radio',
+  PREVIOUS_RADIO_SHORTCUT: 'previous-radio',
 };
 
 export const SETTINGS_KEYS = {

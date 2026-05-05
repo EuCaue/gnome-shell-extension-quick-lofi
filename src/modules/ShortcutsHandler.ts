@@ -87,6 +87,42 @@ export default class ShortcutsHandler {
         this._settings.set_int(SETTINGS_KEYS.VOLUME, newVolume);
       },
     );
+    Main.wm.addKeybinding(
+      SHORTCUTS.NEXT_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.next();
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.PREVIOUS_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.prev();
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.NEXT_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.next('radio');
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.PREVIOUS_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.prev('radio');
+      },
+    );
   }
 
   private _removeShortcuts() {

@@ -48,6 +48,26 @@ export class PlayerPage extends Adw.PreferencesPage {
         title: 'Decrease Volume',
         subtitle: 'Lower the volume by the system step.',
       },
+      {
+        settingsKey: SHORTCUTS.NEXT_SHORTCUT,
+        title: 'Next',
+        subtitle: 'Go to the next playlist item or radio, following the playback flow.',
+      },
+      {
+        settingsKey: SHORTCUTS.PREVIOUS_SHORTCUT,
+        title: 'Previous',
+        subtitle: 'Go to the previous playlist item or radio, following the playback flow.',
+      },
+      {
+        settingsKey: SHORTCUTS.NEXT_RADIO_SHORTCUT,
+        title: 'Next Radio',
+        subtitle: 'Skip to the next radio, ignoring the current playlist.',
+      },
+      {
+        settingsKey: SHORTCUTS.PREVIOUS_RADIO_SHORTCUT,
+        title: 'Previous Radio',
+        subtitle: 'Go to the previous radio, ignoring the current playlist.',
+      },
     ];
 
     shortcuts.forEach((shortcut) => {
