@@ -88,25 +88,22 @@ export default class Player extends GObject.Object {
   public next(mode: NavigationMode = 'auto'): Radio | undefined {
     if (this._proc) {
       if (mode === 'radio') {
-        this._nextRadio();
-        return undefined;
+        return this._nextRadio();
       }
-      this._nextAuto();
+      return this._nextAuto();
     }
   }
 
   public prev(mode: NavigationMode = 'auto'): Radio | undefined {
     if (this._proc) {
       if (mode === 'radio') {
-        this._prevRadio();
-        return undefined;
+        return this._prevRadio();
       }
-      this._prevAuto();
+      return this._prevAuto();
     }
   }
 
-  //  TODO: handle loop file?
-  private _nextAuto() {
+  private _nextAuto(): Radio | undefined {
     const playlistTotal = this.getProperty<number>('playlist-count')?.data ?? 0;
     const playlistPosition = this.getProperty<number>('playlist-pos')?.data ?? 0;
 
@@ -121,16 +118,15 @@ export default class Player extends GObject.Object {
       '--loop-playlist=no';
 
     if (!hasPlaylist) {
-      this._nextRadio();
-      return;
+      return this._nextRadio();
     }
 
     if (isLastItem && !shouldLoopPlaylist) {
-      this._nextRadio();
-      return;
+      return this._nextRadio();
     }
 
     this.playlistNext();
+    return;
   }
 
   private _nextRadio() {
@@ -141,9 +137,10 @@ export default class Player extends GObject.Object {
       return undefined;
     });
     this.startPlayer(nextRadio);
+    return nextRadio;
   }
 
-  private _prevAuto() {
+  private _prevAuto(): Radio | undefined {
     const playlistTotal = this.getProperty<number>('playlist-count')?.data ?? 0;
     const playlistPosition = this.getProperty<number>('playlist-pos')?.data ?? 0;
 
@@ -158,16 +155,15 @@ export default class Player extends GObject.Object {
       '--loop-playlist=no';
 
     if (!hasPlaylist) {
-      this._prevRadio();
-      return;
+      return this._prevRadio();
     }
 
     if (isFirstItem && !shouldLoopPlaylist) {
-      this._prevRadio();
-      return;
+      return this._prevRadio();
     }
 
     this.playlistPrev();
+    return undefined;
   }
 
   private _prevRadio() {
@@ -178,6 +174,7 @@ export default class Player extends GObject.Object {
       return undefined;
     });
     this.startPlayer(prevRadio);
+    return prevRadio;
   }
 
   public playlistNext() {

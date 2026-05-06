@@ -182,7 +182,6 @@ export default class Indicator extends PanelMenu.Button {
         }
         this._updateIndicatorIcon({ playing: 'default' });
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
-        //  TODO: clear everything about it
         this._miniPlayer.dispose();
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
         this._activeRadioPopupItem.set_style('font-weight: normal');

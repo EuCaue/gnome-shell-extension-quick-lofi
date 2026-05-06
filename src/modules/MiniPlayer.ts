@@ -68,7 +68,7 @@ export default class MiniPlayer {
       x_expand: true,
     });
 
-    //  TODO: in playlist mode, show the current playing
+    //  TODO: in playlist mode, show the current playing item name
     this.currentRadio = new St.Label({
       text: this._getCurrentRadioName(),
       xAlign: Clutter.ActorAlign.CENTER,
