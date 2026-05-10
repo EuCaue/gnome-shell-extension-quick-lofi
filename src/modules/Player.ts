@@ -6,6 +6,7 @@ import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
 import { findRadio, getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
+import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -44,6 +45,9 @@ export default class Player extends GObject.Object {
   private _settings: Gio.Settings;
   private _mpris: MprisController | null = null;
   private _positionTimerId: number | null = null;
+
+  private _canNotifySocketError: boolean = false;
+  private _socketNotifyTimerId: number | null = null;
 
   static getInstance(): Player {
     if (!_instance) {
@@ -192,6 +196,13 @@ export default class Player extends GObject.Object {
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
     }).catch(log);
     this._keepReading = false;
+    this._canNotifySocketError = false;
+
+    if (this._socketNotifyTimerId !== null) {
+      GLib.source_remove(this._socketNotifyTimerId);
+      this._socketNotifyTimerId = null;
+    }
+
     if (this._positionTimerId !== null) {
       GLib.source_remove(this._positionTimerId);
       this._positionTimerId = null;
@@ -240,7 +251,8 @@ export default class Player extends GObject.Object {
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
     this.sendCommandToMpvSocket(playPauseCommand);
-    const result = this.getProperty('pause');
+    const result = this.getProperty<boolean>('pause');
+
     writeLog({ message: `Toggling the pause state. Paused: ${result?.data}` });
     if (result) {
       const isPaused = result.data;
@@ -249,10 +261,29 @@ export default class Player extends GObject.Object {
   }
 
   public getProperty<T>(prop: string): { data: T; request_id: number; error: string } | null {
-    if (this._proc) {
-      const command = this.createCommand({ command: ['get_property', prop] });
-      const output = this.sendCommandToMpvSocket(command);
-      return JSON.parse(output) ?? null;
+    if (!this._proc || !GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) {
+      return null;
+    }
+
+    const command = this.createCommand({ command: ['get_property', prop] });
+    const output = this.sendCommandToMpvSocket(command);
+
+    if (!output) {
+      return null;
+    }
+
+    try {
+      const result = JSON.parse(output);
+
+      if (result.error && result.error !== 'success') {
+        debug(`Failed to get MPV property "${prop}":`, result.error);
+        return null;
+      }
+
+      return result;
+    } catch (e) {
+      debug(`Invalid MPV response for property "${prop}":`, output);
+      return null;
     }
   }
 
@@ -292,6 +323,20 @@ export default class Player extends GObject.Object {
   }
   public async startPlayer(radio: Radio): Promise<void> {
     await this.stopPlayer(radio);
+
+    this._canNotifySocketError = false;
+
+    if (this._socketNotifyTimerId !== null) {
+      GLib.source_remove(this._socketNotifyTimerId);
+      this._socketNotifyTimerId = null;
+    }
+
+    this._socketNotifyTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 3000, () => {
+      this._canNotifySocketError = true;
+      this._socketNotifyTimerId = null;
+      return GLib.SOURCE_REMOVE;
+    });
+
     if (radio.radioUrl.startsWith('~')) {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
     }
@@ -368,7 +413,9 @@ export default class Player extends GObject.Object {
 
   private sendCommandToMpvSocket(mpvCommand: string): string | null {
     let response: string | null = null;
-    writeLog({ message: `Sending commando to mpv socket: ${mpvCommand}`, type: 'INFO' });
+
+    writeLog({ message: `Sending command to mpv socket: ${mpvCommand}`, type: 'INFO' });
+
     if (this._isCommandRunning) {
       return null;
     }
@@ -394,9 +441,21 @@ export default class Player extends GObject.Object {
       inputStream.close(null);
       connection.close(null);
     } catch (e) {
-      Main.notifyError('Error while connecting to the MPV SOCKET', e.message);
+      if (!this._proc) {
+        return null;
+      }
+
+      if (!this._canNotifySocketError) {
+        debug('MPV socket not ready yet:', e);
+        return null;
+      }
+
+      Main.notifyError('Error while connecting to MPV socket', e.message);
+      debug('MPV socket error:', e);
+    } finally {
+      this._isCommandRunning = false;
     }
-    this._isCommandRunning = false;
+
     return response;
   }
 

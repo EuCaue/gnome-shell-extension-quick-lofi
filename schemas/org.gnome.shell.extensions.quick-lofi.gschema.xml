@@ -104,5 +104,10 @@
       <summary>Default MPV arguments</summary>
       <description>List of command-line arguments used when launching MPV.</description>
     </key>
+    <key name="cookies-from-browser" type="s">
+      <default>""</default>
+      <summary>Which Browser should mpv use for cookiej</summary>
+      <description>List of command-line arguments used when launching MPV.</description>
+    </key>
   </schema>
 </schemalist>

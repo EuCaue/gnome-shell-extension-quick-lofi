@@ -32,6 +32,7 @@ export const SETTINGS_KEYS = {
   ENABLE_MPRIS: 'enable-mpris',
   MPV_ARGUMENTS: 'mpv-arguments',
   ENABLE_MINI_PLAYER: 'enable-mini-player',
+  COOKIES_FROM_BROWSER: 'cookies-from-browser',
 };
 
 // used across modules, keep in sync

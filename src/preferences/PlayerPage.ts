@@ -7,6 +7,12 @@ import { Shortcut } from '@/types';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
 import { handleErrorRow, writeLog } from '@utils/helpers';
 import Gtk from '@girs/gtk-4.0';
+import { debug } from '@/utils/debug';
+
+type Browsers = {
+  name: string;
+  executable: string;
+};
 
 export class PlayerPage extends Adw.PreferencesPage {
   static {
@@ -14,7 +20,15 @@ export class PlayerPage extends Adw.PreferencesPage {
       {
         GTypeName: 'PlayerPage',
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/PlayerPage.ui',
-        InternalChildren: ['volumeLevel', 'playerGroup', 'enableMpris', 'mpvArguments', 'enableMiniPlayer'],
+        InternalChildren: [
+          'volumeLevel',
+          'playerGroup',
+          'enableMpris',
+          'mpvArguments',
+          'enableMiniPlayer',
+          'cookiesFromBrowser',
+          'browsers',
+        ],
       },
       this,
     );
@@ -24,6 +38,8 @@ export class PlayerPage extends Adw.PreferencesPage {
   declare private _enableMpris: Adw.SwitchRow;
   declare private _enableMiniPlayer: Adw.SwitchRow;
   declare private _mpvArguments: Adw.EntryRow;
+  declare private _cookiesFromBrowser: Adw.ComboRow;
+  declare private _browsers: Gtk.StringList;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -139,6 +155,58 @@ These are passed directly to the player on startup.
     updateApplyButton();
   }
 
+  private _handleCookieFromBrowser() {
+    //  TODO: show which browser is from flatpak and set default for ""
+    const currentBrowser = this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[0];
+    debug('CURRENTBROWSER', currentBrowser);
+    const isFlatpak = currentBrowser.includes('Flatpak');
+    debug('ISFLATPAK', isFlatpak);
+    const availableBrowsers: Array<Browsers> = Gio.AppInfo.get_all()
+      .filter((app) => {
+        const types = app.get_supported_types();
+        return types?.includes('x-scheme-handler/http') || types?.includes('x-scheme-handler/https');
+      })
+      .map((app) => ({
+        name: app.get_display_name(),
+        executable: app.get_executable(),
+      }));
+    availableBrowsers.unshift({ name: 'None', executable: '' });
+
+    for (const browser of availableBrowsers) {
+      const isFlatpak = browser.executable.includes('flatpak');
+      this._browsers.append(`${browser.name} ${isFlatpak ? '(Flatpak)' : ''}`);
+    }
+    //  TODO: find which browser is selected now
+    if (currentBrowser !== 'None') {
+      for (let i = 0; i < availableBrowsers.length; i++) {
+        // find the browser
+        // use the index for set selected
+        const browser = availableBrowsers[i];
+        debug('BROWSER', browser, 'INDEX: ', i);
+        const isFlatpak = browser.name.includes('Flatpak');
+        debug('ISFLATPAK', isFlatpak);
+        if (
+          (isFlatpak && currentBrowser.includes('Flatpak') && currentBrowser === browser.name) ||
+          (!isFlatpak && !currentBrowser.includes('Flatpak') && currentBrowser === browser.name)
+        ) {
+          this._cookiesFromBrowser.set_selected(i);
+        }
+      }
+    } else {
+      debug('HERE INSIDE INF');
+      this._cookiesFromBrowser.set_selected(Gtk.INVALID_LIST_POSITION);
+    }
+
+    this._cookiesFromBrowser.connect('notify::selected', (row) => {
+      const browserIdx = row.get_selected();
+      debug('BROWSERIDX', browserIdx);
+      debug('BROWSER SELECTED: ', availableBrowsers[browserIdx].name);
+      const selectedBrowser = availableBrowsers[browserIdx];
+      const value: string = `${selectedBrowser.name} - ${selectedBrowser.executable}`;
+      this._settings.set_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER, value);
+    });
+  }
+
   constructor(private _settings: Gio.Settings) {
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
@@ -150,11 +218,13 @@ These are passed directly to the player on startup.
       'active',
       Gio.SettingsBindFlags.DEFAULT,
     );
+
     this._mpvArguments.set_text(this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS).join(', '));
     this._handleMpvArgumentsButtons();
     this._setupMpvArgumentsBehavior();
     writeLog({ message: '[PlayerPage] Bound volume level to settings', type: 'INFO' });
     this._handleShortcuts();
+    this._handleCookieFromBrowser();
     writeLog({ message: '[PlayerPage] Player preferences page initialized', type: 'INFO' });
   }
 }
