@@ -4,6 +4,7 @@ import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import Gio from 'gi://Gio';
 import Player from './Player';
 import St from 'gi://St';
+import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import { ICONS, IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
 import { type Radio, type QuickLofiExtension } from '@/types';
@@ -210,12 +211,16 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _handleButtonClick(): void {
-    this.connect('button-press-event', (_, event) => {
+    this.connect('captured-event', (_, event) => {
+      if (event.type() !== Clutter.EventType.BUTTON_PRESS) {
+        return Clutter.EVENT_PROPAGATE;
+      }
       const mouseBtn = event.get_button() - 1;
       const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
       const action = actions[mouseBtn] as IndicatorActionKey;
-      writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}`, type: 'INFO' });
-      this._indicatorActions.actions.get(action)();
+      writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}, type: 'INFO'` });
+      this._indicatorActions.actions.get(action)?.();
+      return Clutter.EVENT_STOP;
     });
   }
 
@@ -225,7 +230,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) { }
+      } catch (e) {}
     });
     this.menuSignals = [];
     // @ts-expect-error nothing
@@ -313,7 +318,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) { }
+      } catch (e) {}
     });
     this.signalsHandlers = [];
     this.menuSignals = [];
