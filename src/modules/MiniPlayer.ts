@@ -1,13 +1,12 @@
 import { type PopupMenuSection, type PopupBaseMenuItem } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import St from 'gi://St';
-import Clutter from '@girs/clutter-17';
+import Clutter from 'gi://Clutter';
 import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import Player from './Player';
 import Gio from '@girs/gio-2.0';
-import { getExtSettings, parseRadios } from '@/utils/helpers';
-import { Radio } from '@/types';
+import { getExtSettings } from '@/utils/helpers';
 
 export default class MiniPlayer {
   private static _instance: MiniPlayer | null = null;

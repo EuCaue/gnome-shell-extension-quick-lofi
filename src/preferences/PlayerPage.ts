@@ -1,5 +1,6 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
@@ -9,9 +10,58 @@ import { handleErrorRow, writeLog } from '@utils/helpers';
 import Gtk from '@girs/gtk-4.0';
 import { debug } from '@/utils/debug';
 
-type Browsers = {
+const BROWSER_YTDLP_MAP: Record<string, string> = {
+  // Chrome-based
+  'google-chrome': 'chrome',
+  'google-chrome-stable': 'chrome',
+  chromium: 'chromium',
+  'chromium-browser': 'chromium',
+  'brave-browser': 'brave',
+  'microsoft-edge': 'edge',
+  'vivaldi-stable': 'vivaldi',
+  opera: 'opera',
+  // Firefox-based
+  firefox: 'firefox',
+  'firefox-esr': 'firefox',
+  'zen-browser': 'firefox',
+  waterfox: 'firefox',
+  // Flatpak App IDs
+  'com.google.Chrome': 'chrome',
+  'org.chromium.Chromium': 'chromium',
+  'com.brave.Browser': 'brave',
+  'com.microsoft.Edge': 'edge',
+  'org.mozilla.firefox': 'firefox',
+  'net.waterfox.waterfox': 'firefox',
+  'io.gitlab.librewolf-community': 'firefox',
+  'io.filo.zen': 'firefox',
+};
+
+const FLATPAK_COOKIES_CANDIDATES: Record<string, string[]> = {
+  'org.mozilla.firefox': ['~/.var/app/org.mozilla.firefox/.mozilla'],
+  'net.waterfox.waterfox': ['~/.var/app/net.waterfox.waterfox/.waterfox'],
+  'io.gitlab.librewolf-community': ['~/.var/app/io.gitlab.librewolf-community/.librewolf'],
+  'io.filo.zen': ['~/.var/app/io.filo.zen/.zen'],
+  'com.google.Chrome': ['~/.var/app/com.google.Chrome/config/google-chrome'],
+  'org.chromium.Chromium': ['~/.var/app/org.chromium.Chromium/config/chromium'],
+  'com.brave.Browser': ['~/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser'],
+  'com.microsoft.Edge': ['~/.var/app/com.microsoft.Edge/config/microsoft-edge'],
+};
+
+function resolveFlatpakCookiesPath(appId: string): string | null {
+  const candidates = FLATPAK_COOKIES_CANDIDATES[appId];
+  if (!candidates) return null;
+  for (const candidate of candidates) {
+    const expanded = candidate.replace('~', GLib.get_home_dir());
+    if (GLib.file_test(expanded, GLib.FileTest.IS_DIR)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+type Browser = {
   name: string;
-  executable: string;
+  ytdlp: string;
 };
 
 export class PlayerPage extends Adw.PreferencesPage {
@@ -28,6 +78,7 @@ export class PlayerPage extends Adw.PreferencesPage {
           'enableMiniPlayer',
           'cookiesFromBrowser',
           'browsers',
+          'customCookiesFromBrowser',
         ],
       },
       this,
@@ -40,6 +91,7 @@ export class PlayerPage extends Adw.PreferencesPage {
   declare private _mpvArguments: Adw.EntryRow;
   declare private _cookiesFromBrowser: Adw.ComboRow;
   declare private _browsers: Gtk.StringList;
+  declare private _customCookiesFromBrowser: Adw.EntryRow;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -156,54 +208,75 @@ These are passed directly to the player on startup.
   }
 
   private _handleCookieFromBrowser() {
-    //  TODO: show which browser is from flatpak and set default for ""
     const currentBrowser = this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[0];
     debug('CURRENTBROWSER', currentBrowser);
-    const isFlatpak = currentBrowser.includes('Flatpak');
-    debug('ISFLATPAK', isFlatpak);
-    const availableBrowsers: Array<Browsers> = Gio.AppInfo.get_all()
+
+    const availableBrowsers: Array<Browser> = Gio.AppInfo.get_all()
       .filter((app) => {
         const types = app.get_supported_types();
         return types?.includes('x-scheme-handler/http') || types?.includes('x-scheme-handler/https');
       })
-      .map((app) => ({
-        name: app.get_display_name(),
-        executable: app.get_executable(),
-      }));
-    availableBrowsers.unshift({ name: 'None', executable: '' });
+      .map((app) => {
+        const name = app.get_display_name();
+        const cmd = app.get_commandline() ?? '';
+        const isFlatpak = cmd.includes('flatpak run');
+
+        if (isFlatpak) {
+          const parts = cmd.split(' ');
+          const appId = parts.find((part) => /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9._-]+$/.test(part)) ?? '';
+          const engine = BROWSER_YTDLP_MAP[appId] ?? '';
+          if (!engine) return null;
+          const cookiesPath = resolveFlatpakCookiesPath(appId);
+          const ytdlp = cookiesPath ? `${engine}:${cookiesPath}` : '';
+          return { name: `${name} (Flatpak)`, ytdlp };
+        }
+
+        const exeName = (app.get_executable() ?? '').split('/').pop() ?? '';
+        const ytdlp = BROWSER_YTDLP_MAP[exeName] ?? '';
+        return { name, ytdlp };
+      });
+    availableBrowsers.unshift({ name: 'Other', ytdlp: 'other' });
+    availableBrowsers.unshift({ name: 'None', ytdlp: '' });
+    debug('AVAIL: ', availableBrowsers);
 
     for (const browser of availableBrowsers) {
-      const isFlatpak = browser.executable.includes('flatpak');
-      this._browsers.append(`${browser.name} ${isFlatpak ? '(Flatpak)' : ''}`);
+      this._browsers.append(browser.name);
     }
-    //  TODO: find which browser is selected now
+
     if (currentBrowser !== 'None') {
-      for (let i = 0; i < availableBrowsers.length; i++) {
-        // find the browser
-        // use the index for set selected
-        const browser = availableBrowsers[i];
-        debug('BROWSER', browser, 'INDEX: ', i);
-        const isFlatpak = browser.name.includes('Flatpak');
-        debug('ISFLATPAK', isFlatpak);
-        if (
-          (isFlatpak && currentBrowser.includes('Flatpak') && currentBrowser === browser.name) ||
-          (!isFlatpak && !currentBrowser.includes('Flatpak') && currentBrowser === browser.name)
-        ) {
-          this._cookiesFromBrowser.set_selected(i);
+      for (const index in availableBrowsers) {
+        const browser = availableBrowsers[index];
+        if (currentBrowser === browser.name) {
+          debug('Found Browser: ', currentBrowser);
+          this._cookiesFromBrowser.set_selected(parseInt(index));
+          break;
         }
       }
     } else {
-      debug('HERE INSIDE INF');
+      debug('HERE INSIDE NONE');
       this._cookiesFromBrowser.set_selected(Gtk.INVALID_LIST_POSITION);
     }
 
     this._cookiesFromBrowser.connect('notify::selected', (row) => {
       const browserIdx = row.get_selected();
-      debug('BROWSERIDX', browserIdx);
-      debug('BROWSER SELECTED: ', availableBrowsers[browserIdx].name);
       const selectedBrowser = availableBrowsers[browserIdx];
-      const value: string = `${selectedBrowser.name} - ${selectedBrowser.executable}`;
+      debug('BROWSER SELECTED:', selectedBrowser);
+      const value = `${selectedBrowser.name} - ${selectedBrowser.ytdlp}`;
+      debug('VALUE :', value);
+      if (selectedBrowser.name === 'Other') {
+        debug('OTHER: ', selectedBrowser);
+        this._customCookiesFromBrowser.set_visible(true);
+        this._customCookiesFromBrowser.connect('apply', (row) => {
+          const customBrowser = row.get_text();
+          debug('CUSTOM BROWSER:', customBrowser);
+          const customValue = `${selectedBrowser.name} - ${customBrowser}`;
+          debug('CUSTOM VALUE:', customValue);
+          this._settings.set_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER, customValue);
+        });
+        return;
+      }
       this._settings.set_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER, value);
+      this._customCookiesFromBrowser.set_visible(false);
     });
   }
 

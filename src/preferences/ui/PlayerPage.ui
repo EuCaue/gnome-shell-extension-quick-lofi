@@ -71,8 +71,34 @@
             </property>
           </object>
         </child>
+        <child>
+          <object class="AdwEntryRow" id="customCookiesFromBrowser">
+            <property name="title" translatable="yes">Custom Browser for Cookies: </property>
+            <property name="show-apply-button">true</property>
+            <property name="visible">false</property>
+            <child type="suffix">
+              <object class="GtkButton" id="customCookiesFromBrowserHelp">
+                <property name="icon-name">help-about</property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">&lt;b&gt;Custom cookies-from-browser&lt;/b&gt;
+        Manually specify the browser and profile path to extract cookies from.
+        Format: &lt;tt&gt;browser:path/to/profile&lt;/tt&gt;
 
-      </object>
+        &lt;b&gt;Examples:&lt;/b&gt;
+        &lt;tt&gt;firefox&lt;/tt&gt; — use default Firefox profile
+        &lt;tt&gt;firefox:~/.waterfox/profiles/default&lt;/tt&gt; — custom Firefox-based profile
+        &lt;tt&gt;chrome:~/.config/google-chrome&lt;/tt&gt; — custom Chrome profile
+
+        &lt;span foreground="orange"&gt;&lt;b&gt;⚠ The path must point to the folder containing the browser profiles, not the profile itself.&lt;/b&gt;&lt;/span&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        </object>
     </child>
   </template>
 </interface>
