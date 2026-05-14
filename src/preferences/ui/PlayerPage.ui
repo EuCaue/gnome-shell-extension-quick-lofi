@@ -69,7 +69,23 @@
               <object class="GtkStringList" id="browsers">
               </object>
             </property>
-          </object>
+            <child type="suffix">
+              <object class="GtkButton" id="cookiesFromBrowserInfo">
+                <property name="visible">false</property>
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">To use the cookies from browser feature, you &lt;b&gt;must have Node.js or Deno installed&lt;/b&gt; on your system.</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+            </object>
         </child>
         <child>
           <object class="AdwEntryRow" id="customCookiesFromBrowser">
@@ -79,6 +95,11 @@
             <child type="suffix">
               <object class="GtkButton" id="customCookiesFromBrowserHelp">
                 <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
                 <property name="valign">center</property>
                 <property name="tooltip-markup" translatable="yes">&lt;b&gt;Custom cookies-from-browser&lt;/b&gt;
         Manually specify the browser and profile path to extract cookies from.

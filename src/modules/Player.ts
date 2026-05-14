@@ -351,23 +351,30 @@ export default class Player extends GObject.Object {
     const [cookiesFromBrowserName, cookiesFromBrowserYtdlp] = this._settings
       .get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER)
       .split(' - ');
-    debug('COOKIES_FROM_BROWSER', cookiesFromBrowserName, cookiesFromBrowserYtdlp);
-    // TODO: Crashing mpv for some reason
-    // TODO: Refactor the message for the user to show that he needs node to use this feature.
-    // TODO: Need to parse better the error and show the user a better message when the cookies are needed.
-    const cookiesArgs =
-      cookiesFromBrowserName !== 'None' && cookiesFromBrowserYtdlp
-        ? [
-            `--ytdl-raw-options-add=cookies-from-browser=${cookiesFromBrowserYtdlp}`,
-            '--ytdl-raw-options-add=js-runtimes=node',
-            '--ytdl-raw-options-add=remote-components=ejs:github',
-          ]
-        : [];
-    const MPV_OPTIONS: Array<string> = [
-      ...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS),
-      ...cookiesArgs,
-      ...DEFAULT,
-    ];
+    const node = GLib.find_program_in_path('node');
+    const deno = GLib.find_program_in_path('deno');
+
+    const jsRuntime = node ? 'node' : deno ? 'deno' : null;
+
+    const shouldUseBrowserCookies = cookiesFromBrowserName !== 'None' && !!cookiesFromBrowserYtdlp;
+
+    if (shouldUseBrowserCookies && !jsRuntime) {
+      Main.notifyError('Node.js or Deno is required to use cookies from browser.');
+      return;
+    }
+
+    const cookiesArgs: string[] = [];
+
+    if (shouldUseBrowserCookies) {
+      cookiesArgs.push(
+        `--ytdl-raw-options-add=cookies-from-browser=${cookiesFromBrowserYtdlp}`,
+        `--ytdl-raw-options-add=js-runtimes=${jsRuntime}`,
+        '--ytdl-raw-options-add=remote-components=ejs:github',
+      );
+    }
+
+    const MPV_OPTIONS: string[] = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...cookiesArgs, ...DEFAULT];
+
     debug('MPV_OPTIONS', MPV_OPTIONS);
     try {
       this._keepReading = true;

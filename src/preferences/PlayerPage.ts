@@ -226,6 +226,7 @@ export class PlayerPage extends Adw.PreferencesPage {
           'cookiesFromBrowser',
           'browsers',
           'customCookiesFromBrowser',
+          'cookiesFromBrowserInfo',
         ],
       },
       this,
@@ -239,6 +240,7 @@ export class PlayerPage extends Adw.PreferencesPage {
   declare private _cookiesFromBrowser: Adw.ComboRow;
   declare private _browsers: Gtk.StringList;
   declare private _customCookiesFromBrowser: Adw.EntryRow;
+  declare private _cookiesFromBrowserInfo: Gtk.Button;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -355,6 +357,11 @@ These are passed directly to the player on startup.
   }
 
   private _handleCookieFromBrowser() {
+    if (GLib.find_program_in_path('node') === null && GLib.find_program_in_path('deno') === null) {
+      this._cookiesFromBrowser.set_activatable(false);
+      this._cookiesFromBrowserInfo.set_visible(true);
+      return;
+    }
     const currentBrowser = this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[0];
     debug('CURRENTBROWSER', currentBrowser);
 
