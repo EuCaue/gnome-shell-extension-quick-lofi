@@ -346,12 +346,33 @@ export default class Player extends GObject.Object {
       '--no-video',
       `--input-ipc-server=${this._mpvSocket}`,
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
-      `"${radio.radioUrl}"`,
+      radio.radioUrl,
     ];
-    const MPV_OPTIONS: Array<string> = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...DEFAULT];
+    const [cookiesFromBrowserName, cookiesFromBrowserYtdlp] = this._settings
+      .get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER)
+      .split(' - ');
+    debug('COOKIES_FROM_BROWSER', cookiesFromBrowserName, cookiesFromBrowserYtdlp);
+    // TODO: Crashing mpv for some reason
+    // TODO: Refactor the message for the user to show that he needs node to use this feature.
+    // TODO: Need to parse better the error and show the user a better message when the cookies are needed.
+    const cookiesArgs =
+      cookiesFromBrowserName !== 'None' && cookiesFromBrowserYtdlp
+        ? [
+            `--ytdl-raw-options-add=cookies-from-browser=${cookiesFromBrowserYtdlp}`,
+            '--ytdl-raw-options-add=js-runtimes=node',
+            '--ytdl-raw-options-add=remote-components=ejs:github',
+          ]
+        : [];
+    const MPV_OPTIONS: Array<string> = [
+      ...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS),
+      ...cookiesArgs,
+      ...DEFAULT,
+    ];
+    debug('MPV_OPTIONS', MPV_OPTIONS);
     try {
       this._keepReading = true;
-      const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
+      // const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
+      const argv = ['mpv', ...MPV_OPTIONS.filter(Boolean)];
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
       this.emit('playback-started', radio.id, radio.radioName, radio.radioUrl);
@@ -370,6 +391,7 @@ export default class Player extends GObject.Object {
         stream: this._stdoutStream,
         onLine: async (line) => {
           if (line.trim().startsWith('Failed') || line.trim().startsWith('Error')) {
+            debug('LINE: ', line);
             await this.stopPlayer(radio);
             Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
             return false; // stops loop

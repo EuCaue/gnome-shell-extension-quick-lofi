@@ -10,6 +10,18 @@ import { handleErrorRow, writeLog } from '@utils/helpers';
 import Gtk from '@girs/gtk-4.0';
 import { debug } from '@/utils/debug';
 
+const BROWSER_YTDLP: Array<string> = [
+  'brave',
+  'chrome',
+  'chromium',
+  'edge',
+  'firefox',
+  'opera',
+  'safari',
+  'vivaldi',
+  'whale',
+];
+
 const BROWSER_YTDLP_MAP: Record<string, string> = {
   // Chrome-based
   'google-chrome': 'chrome',
@@ -37,7 +49,7 @@ const BROWSER_YTDLP_MAP: Record<string, string> = {
 };
 
 const FLATPAK_COOKIES_CANDIDATES: Record<string, string[]> = {
-  'org.mozilla.firefox': ['~/.var/app/org.mozilla.firefox/.mozilla'],
+  'org.mozilla.firefox': ['~/.var/app/org.mozilla.firefox/.mozilla/firefox'],
   'net.waterfox.waterfox': ['~/.var/app/net.waterfox.waterfox/.waterfox'],
   'io.gitlab.librewolf-community': ['~/.var/app/io.gitlab.librewolf-community/.librewolf'],
   'io.filo.zen': ['~/.var/app/io.filo.zen/.zen'],
@@ -47,14 +59,149 @@ const FLATPAK_COOKIES_CANDIDATES: Record<string, string[]> = {
   'com.microsoft.Edge': ['~/.var/app/com.microsoft.Edge/config/microsoft-edge'],
 };
 
+const NATIVE_BROWSERS_COOKIES_CANDIDATES: Record<string, string[]> = {
+  firefox: ['~/.mozilla/firefox'],
+  'firefox-esr': ['~/.mozilla/firefox'],
+  'zen-browser': ['~/.zen'],
+  waterfox: ['~/.waterfox'],
+  librewolf: ['~/.librewolf'],
+  chrome: ['~/.config/google-chrome'],
+  'google-chrome': ['~/.config/google-chrome'],
+  chromium: ['~/.config/chromium'],
+  'chromium-browser': ['~/.config/chromium'],
+  brave: ['~/.config/BraveSoftware/Brave-Browser'],
+  'brave-browser': ['~/.config/BraveSoftware/Brave-Browser'],
+  'microsoft-edge': ['~/.config/microsoft-edge'],
+  opera: ['~/.config/opera'],
+  vivaldi: ['~/.config/vivaldi'],
+  'vivaldi-stable': ['~/.config/vivaldi'],
+};
+
+const FIREFOX_ENGINES: Array<string> = ['firefox', 'firefox-esr', 'zen-browser', 'waterfox', 'librewolf'];
+
+const CHROMIUM_ENGINES: Array<string> = [
+  'chrome',
+  'google-chrome',
+  'google-chrome-stable',
+  'chromium',
+  'chromium-browser',
+  'brave',
+  'brave-browser',
+  'microsoft-edge',
+  'opera',
+  'vivaldi',
+  'vivaldi-stable',
+];
+
+function getFirefoxDefaultProfile(basePath: string): string | null {
+  try {
+    const installsPath = GLib.build_filenamev([basePath, 'installs.ini']);
+
+    if (GLib.file_test(installsPath, GLib.FileTest.EXISTS)) {
+      const [, contents] = GLib.file_get_contents(installsPath);
+      const text = new TextDecoder().decode(contents);
+
+      const match = text.match(/^Default=(.+)$/m);
+
+      if (match?.[1]) {
+        return GLib.build_filenamev([basePath, match[1].trim()]);
+      }
+    }
+
+    const profilesPath = GLib.build_filenamev([basePath, 'profiles.ini']);
+
+    if (GLib.file_test(profilesPath, GLib.FileTest.EXISTS)) {
+      const [, contents] = GLib.file_get_contents(profilesPath);
+      const text = new TextDecoder().decode(contents);
+
+      const profileBlocks = text.split(/\[Profile\d+\]/);
+
+      for (const block of profileBlocks) {
+        if (block.includes('Default=1')) {
+          const pathMatch = block.match(/^Path=(.+)$/m);
+
+          if (pathMatch?.[1]) {
+            return GLib.build_filenamev([basePath, pathMatch[1].trim()]);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    log(`[ QUICK LOFI ] Failed to resolve Firefox profile: ${e}`);
+  }
+  return null;
+}
+
+function getChromiumDefaultProfile(baseDir: string): string | null {
+  const localState = GLib.build_filenamev([baseDir, 'Local State']);
+
+  if (!GLib.file_test(localState, GLib.FileTest.EXISTS)) {
+    return null;
+  }
+
+  try {
+    const [ok, contents] = GLib.file_get_contents(localState);
+
+    if (!ok) return null;
+
+    const text = new TextDecoder().decode(contents);
+    const json = JSON.parse(text);
+    const profileName = json.profile?.last_used ?? 'Default';
+    const profilePath = GLib.build_filenamev([baseDir, profileName]);
+
+    if (GLib.file_test(profilePath, GLib.FileTest.IS_DIR)) {
+      return profilePath;
+    }
+  } catch (error) {
+    debug('ERROR PARSING CHROMIUM PROFILE:', error);
+  }
+
+  return null;
+}
+
+function resolveBrowserProfile(baseDir: string, browserId: string): string | null {
+  if (FIREFOX_ENGINES.includes(browserId)) {
+    return getFirefoxDefaultProfile(baseDir);
+  }
+
+  if (CHROMIUM_ENGINES.includes(browserId)) {
+    return getChromiumDefaultProfile(baseDir);
+  }
+
+  return null;
+}
+
 function resolveFlatpakCookiesPath(appId: string): string | null {
   const candidates = FLATPAK_COOKIES_CANDIDATES[appId];
   if (!candidates) return null;
+
   for (const candidate of candidates) {
     const expanded = candidate.replace('~', GLib.get_home_dir());
-    if (GLib.file_test(expanded, GLib.FileTest.IS_DIR)) {
-      return candidate;
+    if (!GLib.file_test(expanded, GLib.FileTest.IS_DIR)) {
+      continue;
     }
+    const profile = resolveBrowserProfile(expanded, appId);
+    if (profile) {
+      return profile;
+    }
+    return expanded;
+  }
+  return null;
+}
+
+function resolveNativeCookiesPath(exeName: string): string | null {
+  const candidates = NATIVE_BROWSERS_COOKIES_CANDIDATES[exeName];
+  if (!candidates) return null;
+  for (const candidate of candidates) {
+    const expanded = candidate.replace('~', GLib.get_home_dir());
+    if (!GLib.file_test(expanded, GLib.FileTest.IS_DIR)) {
+      continue;
+    }
+    const profile = resolveBrowserProfile(expanded, exeName);
+    if (profile) {
+      return profile;
+    }
+    return expanded;
   }
   return null;
 }
@@ -227,14 +374,24 @@ These are passed directly to the player on startup.
           const engine = BROWSER_YTDLP_MAP[appId] ?? '';
           if (!engine) return null;
           const cookiesPath = resolveFlatpakCookiesPath(appId);
-          const ytdlp = cookiesPath ? `${engine}:${cookiesPath}` : '';
-          return { name: `${name} (Flatpak)`, ytdlp };
+          const ytdlp = cookiesPath ? `${engine}:${cookiesPath}` : engine;
+          return {
+            name: `${name} (Flatpak)`,
+            ytdlp,
+          };
         }
-
         const exeName = (app.get_executable() ?? '').split('/').pop() ?? '';
-        const ytdlp = BROWSER_YTDLP_MAP[exeName] ?? '';
-        return { name, ytdlp };
-      });
+        const engine = BROWSER_YTDLP_MAP[exeName] ?? '';
+        if (!engine) return null;
+        const cookiesPath = resolveNativeCookiesPath(exeName);
+        const ytdlp = cookiesPath ? `${engine}:${cookiesPath}` : engine;
+        return {
+          name,
+          ytdlp,
+        };
+      })
+      .filter((browser): browser is Browser => browser !== null);
+
     availableBrowsers.unshift({ name: 'Other', ytdlp: 'other' });
     availableBrowsers.unshift({ name: 'None', ytdlp: '' });
     debug('AVAIL: ', availableBrowsers);
@@ -247,8 +404,14 @@ These are passed directly to the player on startup.
       for (const index in availableBrowsers) {
         const browser = availableBrowsers[index];
         if (currentBrowser === browser.name) {
-          debug('Found Browser: ', currentBrowser);
+          debug('Found Browser: ', currentBrowser, browser);
           this._cookiesFromBrowser.set_selected(parseInt(index));
+          if (browser.name === 'Other') {
+            this._customCookiesFromBrowser.set_visible(true);
+            this._customCookiesFromBrowser.set_text(
+              this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[1],
+            );
+          }
           break;
         }
       }
@@ -266,11 +429,21 @@ These are passed directly to the player on startup.
       if (selectedBrowser.name === 'Other') {
         debug('OTHER: ', selectedBrowser);
         this._customCookiesFromBrowser.set_visible(true);
+        this._customCookiesFromBrowser.set_text('');
         this._customCookiesFromBrowser.connect('apply', (row) => {
-          const customBrowser = row.get_text();
-          debug('CUSTOM BROWSER:', customBrowser);
+          const customBrowser = row.get_text().trim();
+          const [browser, ..._rest] = customBrowser.split(':');
+          const browserKey = browser.toLocaleLowerCase();
+          if (!BROWSER_YTDLP.includes(browserKey)) {
+            // TODO: Improve the way that the error message displays.
+            handleErrorRow(
+              row,
+              `"${browser}" is not a supported engine. Supported engines are: ${BROWSER_YTDLP.join(', ')}.`,
+            );
+            return;
+          }
+
           const customValue = `${selectedBrowser.name} - ${customBrowser}`;
-          debug('CUSTOM VALUE:', customValue);
           this._settings.set_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER, customValue);
         });
         return;
