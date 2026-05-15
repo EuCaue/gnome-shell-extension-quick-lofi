@@ -435,7 +435,6 @@ These are passed directly to the player on startup.
           const [browser, ..._rest] = customBrowser.split(':');
           const browserKey = browser.toLocaleLowerCase();
           if (!BROWSER_YTDLP.includes(browserKey)) {
-            // TODO: Improve the way that the error message displays.
             const label = new Gtk.Label({
               label: `"${browser}" is not a supported engine. Supported engines are: ${BROWSER_YTDLP.join(', ')}.`,
               wrap: true,
