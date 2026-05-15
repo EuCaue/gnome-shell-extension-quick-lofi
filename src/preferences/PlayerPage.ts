@@ -363,7 +363,6 @@ These are passed directly to the player on startup.
       return;
     }
     const currentBrowser = this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[0];
-    debug('CURRENTBROWSER', currentBrowser);
 
     const availableBrowsers: Array<Browser> = Gio.AppInfo.get_all()
       .filter((app) => {
@@ -401,7 +400,6 @@ These are passed directly to the player on startup.
 
     availableBrowsers.unshift({ name: 'Other', ytdlp: 'other' });
     availableBrowsers.unshift({ name: 'None', ytdlp: '' });
-    debug('AVAIL: ', availableBrowsers);
 
     for (const browser of availableBrowsers) {
       this._browsers.append(browser.name);
@@ -411,7 +409,6 @@ These are passed directly to the player on startup.
       for (const index in availableBrowsers) {
         const browser = availableBrowsers[index];
         if (currentBrowser === browser.name) {
-          debug('Found Browser: ', currentBrowser, browser);
           this._cookiesFromBrowser.set_selected(parseInt(index));
           if (browser.name === 'Other') {
             this._customCookiesFromBrowser.set_visible(true);
@@ -423,18 +420,14 @@ These are passed directly to the player on startup.
         }
       }
     } else {
-      debug('HERE INSIDE NONE');
       this._cookiesFromBrowser.set_selected(Gtk.INVALID_LIST_POSITION);
     }
 
     this._cookiesFromBrowser.connect('notify::selected', (row) => {
       const browserIdx = row.get_selected();
       const selectedBrowser = availableBrowsers[browserIdx];
-      debug('BROWSER SELECTED:', selectedBrowser);
       const value = `${selectedBrowser.name} - ${selectedBrowser.ytdlp}`;
-      debug('VALUE :', value);
       if (selectedBrowser.name === 'Other') {
-        debug('OTHER: ', selectedBrowser);
         this._customCookiesFromBrowser.set_visible(true);
         this._customCookiesFromBrowser.set_text('');
         this._customCookiesFromBrowser.connect('apply', (row) => {

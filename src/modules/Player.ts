@@ -375,7 +375,6 @@ export default class Player extends GObject.Object {
 
     const MPV_OPTIONS: string[] = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...cookiesArgs, ...DEFAULT];
 
-    debug('MPV_OPTIONS', MPV_OPTIONS);
     try {
       this._keepReading = true;
       // const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
@@ -398,7 +397,6 @@ export default class Player extends GObject.Object {
         stream: this._stdoutStream,
         onLine: async (line) => {
           if (line.trim().startsWith('Failed') || line.trim().startsWith('Error')) {
-            debug('LINE: ', line);
             await this.stopPlayer(radio);
             Main.notifyError(`Error while playing: ${radio.radioName}`, line.trim());
             return false; // stops loop
@@ -475,12 +473,10 @@ export default class Player extends GObject.Object {
       }
 
       if (!this._canNotifySocketError) {
-        debug('MPV socket not ready yet:', e);
         return null;
       }
 
       Main.notifyError('Error while connecting to MPV socket', e.message);
-      debug('MPV socket error:', e);
     } finally {
       this._isCommandRunning = false;
     }
