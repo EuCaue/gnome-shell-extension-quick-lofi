@@ -4,13 +4,16 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import GObject from 'gi://GObject';
 import { type Radio } from '@/types';
 import { SETTINGS_KEYS } from '@utils/constants';
-import { getExtSettings, writeLog } from '@/utils/helpers';
+import { findRadio, getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
+import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
   command: Array<string | boolean>;
 };
+
+type NavigationMode = 'auto' | 'radio';
 
 Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
 Gio._promisify(Gio.Subprocess.prototype, 'wait_async', 'wait_finish');
@@ -24,7 +27,10 @@ export default class Player extends GObject.Object {
         Signals: {
           'play-state-changed': { param_types: [GObject.TYPE_BOOLEAN] },
           'playback-stopped': { param_types: [] },
-          'radio-changed': { param_types: [GObject.TYPE_STRING] },
+          'playback-started': { param_types: [GObject.TYPE_STRING, GObject.TYPE_STRING, GObject.TYPE_STRING] },
+          'position-changed': { param_types: [GObject.TYPE_DOUBLE] },
+          'duration-changed': { param_types: [GObject.TYPE_DOUBLE] },
+          'seekable-changed': { param_types: [GObject.TYPE_BOOLEAN] },
         },
       },
       this,
@@ -38,6 +44,10 @@ export default class Player extends GObject.Object {
   private _cancellable: Gio.Cancellable | null = null;
   private _settings: Gio.Settings;
   private _mpris: MprisController | null = null;
+  private _positionTimerId: number | null = null;
+
+  private _canNotifySocketError: boolean = false;
+  private _socketNotifyTimerId: number | null = null;
 
   static getInstance(): Player {
     if (!_instance) {
@@ -71,11 +81,132 @@ export default class Player extends GObject.Object {
     });
   }
 
+  public seekTo(seconds: number): void {
+    const command = this.createCommand({
+      command: ['seek', `${seconds}`, 'absolute', 'exact'],
+    });
+
+    this.sendCommandToMpvSocket(command);
+  }
+
+  public next(mode: NavigationMode = 'auto'): Radio | undefined {
+    if (this._proc) {
+      if (mode === 'radio') {
+        return this._nextRadio();
+      }
+      return this._nextAuto();
+    }
+  }
+
+  public prev(mode: NavigationMode = 'auto'): Radio | undefined {
+    if (this._proc) {
+      if (mode === 'radio') {
+        return this._prevRadio();
+      }
+      return this._prevAuto();
+    }
+  }
+
+  private _nextAuto(): Radio | undefined {
+    const playlistTotal = this.getProperty<number>('playlist-count')?.data ?? 0;
+    const playlistPosition = this.getProperty<number>('playlist-pos')?.data ?? 0;
+
+    const hasPlaylist = playlistTotal > 1;
+    const isLastItem = playlistPosition >= playlistTotal - 1;
+    const shouldLoopPlaylist =
+      (this._settings
+        .get_strv(SETTINGS_KEYS.MPV_ARGUMENTS)
+        .slice()
+        .reverse()
+        .find((arg) => arg === '--loop-playlist' || arg.startsWith('--loop-playlist=')) || '--loop-playlist=no') !==
+      '--loop-playlist=no';
+
+    if (!hasPlaylist) {
+      return this._nextRadio();
+    }
+
+    if (isLastItem && !shouldLoopPlaylist) {
+      return this._nextRadio();
+    }
+
+    this.playlistNext();
+    return;
+  }
+
+  private _nextRadio() {
+    const nextRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
+      if (radios[index].id === currentRadioPlayingID) {
+        return radios[(index + 1) % radios.length];
+      }
+      return undefined;
+    });
+    this.startPlayer(nextRadio);
+    return nextRadio;
+  }
+
+  private _prevAuto(): Radio | undefined {
+    const playlistTotal = this.getProperty<number>('playlist-count')?.data ?? 0;
+    const playlistPosition = this.getProperty<number>('playlist-pos')?.data ?? 0;
+
+    const hasPlaylist = playlistTotal > 1;
+    const isFirstItem = playlistPosition <= 0; // zero-based
+    const shouldLoopPlaylist =
+      (this._settings
+        .get_strv(SETTINGS_KEYS.MPV_ARGUMENTS)
+        .slice()
+        .reverse()
+        .find((arg) => arg === '--loop-playlist' || arg.startsWith('--loop-playlist=')) || '--loop-playlist=no') !==
+      '--loop-playlist=no';
+
+    if (!hasPlaylist) {
+      return this._prevRadio();
+    }
+
+    if (isFirstItem && !shouldLoopPlaylist) {
+      return this._prevRadio();
+    }
+
+    this.playlistPrev();
+    return undefined;
+  }
+
+  private _prevRadio() {
+    const prevRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
+      if (radios[index].id === currentRadioPlayingID) {
+        return radios[(index - 1 + radios.length) % radios.length];
+      }
+      return undefined;
+    });
+    this.startPlayer(prevRadio);
+    return prevRadio;
+  }
+
+  public playlistNext() {
+    const command = this.createCommand({ command: ['playlist-next'] });
+    this.sendCommandToMpvSocket(command);
+  }
+
+  public playlistPrev() {
+    const command = this.createCommand({ command: ['playlist-prev'] });
+    this.sendCommandToMpvSocket(command);
+  }
+
   public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
     }).catch(log);
     this._keepReading = false;
+    this._canNotifySocketError = false;
+
+    if (this._socketNotifyTimerId !== null) {
+      GLib.source_remove(this._socketNotifyTimerId);
+      this._socketNotifyTimerId = null;
+    }
+
+    if (this._positionTimerId !== null) {
+      GLib.source_remove(this._positionTimerId);
+      this._positionTimerId = null;
+    }
 
     if (this._cancellable) {
       this._cancellable.cancel();
@@ -120,7 +251,8 @@ export default class Player extends GObject.Object {
   public playPause(): void {
     const playPauseCommand = this.createCommand({ command: ['cycle', 'pause'] });
     this.sendCommandToMpvSocket(playPauseCommand);
-    const result = this.getProperty('pause');
+    const result = this.getProperty<boolean>('pause');
+
     writeLog({ message: `Toggling the pause state. Paused: ${result?.data}` });
     if (result) {
       const isPaused = result.data;
@@ -128,11 +260,30 @@ export default class Player extends GObject.Object {
     }
   }
 
-  public getProperty(prop: string): { data: boolean; request_id: number; error: string } | null {
-    if (this._proc) {
-      const command = this.createCommand({ command: ['get_property', prop] });
-      const output = this.sendCommandToMpvSocket(command);
-      return JSON.parse(output) ?? null;
+  public getProperty<T>(prop: string): { data: T; request_id: number; error: string } | null {
+    if (!this._proc || !GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) {
+      return null;
+    }
+
+    const command = this.createCommand({ command: ['get_property', prop] });
+    const output = this.sendCommandToMpvSocket(command);
+
+    if (!output) {
+      return null;
+    }
+
+    try {
+      const result = JSON.parse(output);
+
+      if (result.error && result.error !== 'success') {
+        debug(`Failed to get MPV property "${prop}":`, result.error);
+        return null;
+      }
+
+      return result;
+    } catch (e) {
+      debug(`Invalid MPV response for property "${prop}":`, output);
+      return null;
     }
   }
 
@@ -172,47 +323,71 @@ export default class Player extends GObject.Object {
   }
   public async startPlayer(radio: Radio): Promise<void> {
     await this.stopPlayer(radio);
+
+    this._canNotifySocketError = false;
+
+    if (this._socketNotifyTimerId !== null) {
+      GLib.source_remove(this._socketNotifyTimerId);
+      this._socketNotifyTimerId = null;
+    }
+
+    this._socketNotifyTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 3000, () => {
+      this._canNotifySocketError = true;
+      this._socketNotifyTimerId = null;
+      return GLib.SOURCE_REMOVE;
+    });
+
     if (radio.radioUrl.startsWith('~')) {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
     }
-    //  TODO: use a map for this;
-    // const MPV_OPTIONS: Array<string> = [
-    //   '--audio-buffer=500',
-    //   '--cache=yes',
-    //   '--cache-secs=30',
-    //   '--demuxer-lavf-o=extension_picky=0',
-    //   '--demuxer-max-bytes=50MiB',
-    //   '--gapless-audio=yes',
-    //   '--loop-playlist=force', // TODO: Something in the UI would be nice.
-    //   '--msg-level=all=warn',
-    //   '--no-video',
-    //   '--replaygain=track',
-    //   '--ytdl-format=bestaudio/best',
-    //   '--ytdl-raw-options-add=force-ipv4=',
-    //   `--input-ipc-server=${this._mpvSocket}`,
-    //   `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
-    //   `"${radio.radioUrl}"`,
-    //   //  TODO: make something in the UI for this
-    //   //  --ytdl-raw-options-add=cookies-from-browser
-    // ];
+    //  TODO: make something in the UI for this
+    //  --ytdl-raw-options-add=cookies-from-browser
     const DEFAULT: Array<string> = [
       '--no-video',
       `--input-ipc-server=${this._mpvSocket}`,
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
-      `"${radio.radioUrl}"`,
+      radio.radioUrl,
     ];
-    const MPV_OPTIONS: Array<string> = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...DEFAULT];
+    const [cookiesFromBrowserName, cookiesFromBrowserYtdlp] = this._settings
+      .get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER)
+      .split(' - ');
+    const node = GLib.find_program_in_path('node');
+    const deno = GLib.find_program_in_path('deno');
+
+    const jsRuntime = node ? 'node' : deno ? 'deno' : null;
+
+    const shouldUseBrowserCookies = cookiesFromBrowserName !== 'None' && !!cookiesFromBrowserYtdlp;
+
+    if (shouldUseBrowserCookies && !jsRuntime) {
+      Main.notifyError('Node.js or Deno is required to use cookies from browser.');
+      return;
+    }
+
+    const cookiesArgs: string[] = [];
+
+    if (shouldUseBrowserCookies) {
+      cookiesArgs.push(
+        `--ytdl-raw-options-add=cookies-from-browser=${cookiesFromBrowserYtdlp}`,
+        `--ytdl-raw-options-add=js-runtimes=${jsRuntime}`,
+        '--ytdl-raw-options-add=remote-components=ejs:github',
+      );
+    }
+
+    const MPV_OPTIONS: string[] = [...this._settings.get_strv(SETTINGS_KEYS.MPV_ARGUMENTS), ...cookiesArgs, ...DEFAULT];
+
     try {
       this._keepReading = true;
-      //  TODO: check how safe is this
-      const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
+      // const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
+      const argv = ['mpv', ...MPV_OPTIONS.filter(Boolean)];
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);
-      this.emit('radio-changed', radio.radioName);
+      this.emit('playback-started', radio.id, radio.radioName, radio.radioUrl);
 
       this._stdoutStream = new Gio.DataInputStream({
         base_stream: this._proc.get_stdout_pipe(),
       });
+
+      this._startPositionUpdates();
 
       // Update MPRIS with new radio metadata
       if (this._mpris) {
@@ -229,6 +404,7 @@ export default class Player extends GObject.Object {
         },
       }).catch(log);
     } catch (e) {
+      logError(e, 'QUICK LOFI ERROR');
       this._keepReading = false;
       this.stopPlayer(radio);
       writeLog({ message: 'MPV not found.', type: 'ERROR' }).catch(log);
@@ -238,14 +414,35 @@ export default class Player extends GObject.Object {
       );
     }
   }
+  private _startPositionUpdates(): void {
+    if (this._positionTimerId !== null) return;
 
+    this._positionTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+      if (!this._proc) {
+        this._positionTimerId = null;
+        return GLib.SOURCE_REMOVE;
+      }
+
+      const position = this.getProperty<number>('playback-time')?.data ?? 0;
+      const duration = this.getProperty<number>('duration')?.data ?? 0;
+      const seekable = this.getProperty<boolean>('seekable')?.data ?? false;
+
+      this.emit('position-changed', position);
+      this.emit('duration-changed', duration);
+      this.emit('seekable-changed', seekable);
+
+      return GLib.SOURCE_CONTINUE;
+    });
+  }
   private createCommand(command: PlayerCommand): PlayerCommandString {
     return JSON.stringify(command) + '\n';
   }
 
   private sendCommandToMpvSocket(mpvCommand: string): string | null {
     let response: string | null = null;
-    writeLog({ message: `Sending commando to mpv socket: ${mpvCommand}`, type: 'INFO' });
+
+    writeLog({ message: `Sending command to mpv socket: ${mpvCommand}`, type: 'INFO' });
+
     if (this._isCommandRunning) {
       return null;
     }
@@ -266,13 +463,24 @@ export default class Player extends GObject.Object {
       const dataInputStream = new Gio.DataInputStream({ base_stream: inputStream });
       const [res] = dataInputStream.read_line_utf8(null);
       response = res;
+
       outputStream.close(null);
       inputStream.close(null);
       connection.close(null);
     } catch (e) {
-      Main.notifyError('Error while connecting to the MPV SOCKET', e.message);
+      if (!this._proc) {
+        return null;
+      }
+
+      if (!this._canNotifySocketError) {
+        return null;
+      }
+
+      Main.notifyError('Error while connecting to MPV socket', e.message);
+    } finally {
+      this._isCommandRunning = false;
     }
-    this._isCommandRunning = false;
+
     return response;
   }
 

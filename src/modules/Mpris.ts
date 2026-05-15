@@ -27,6 +27,14 @@ const MPRIS_IFACE_XML = `
     <method name="PlayPause"/>
     <method name="Stop"/>
     <method name="Play"/>
+    <method name="Seek">
+      <arg direction="in" name="Offset" type="x"/>
+    </method>
+
+    <method name="SetPosition">
+      <arg direction="in" name="TrackId" type="o"/>
+      <arg direction="in" name="Position" type="x"/>
+    </method>
     
     <property name="PlaybackStatus" type="s" access="read"/>
     <property name="Metadata" type="a{sv}" access="read"/>
@@ -56,6 +64,10 @@ export class MprisController {
   private _enabled: boolean = false;
   private _playStateChangedId: number = 0;
   private _playbackStoppedId: number = 0;
+  private _positionChangedId: number = 0;
+  private _positionSeconds: number = 0;
+  private _seekableChangedId: number = 0;
+  private _canSeek: boolean = false;
 
   static getInstance(player?: Player): MprisController {
     if (!_instance) {
@@ -226,11 +238,43 @@ export class MprisController {
         break;
 
       case 'Next':
-      case 'Previous':
-        // Not implemented - would need playlist
+        this._player.next();
         invocation.return_value(null);
         break;
+      case 'Previous':
+        this._player.prev();
+        invocation.return_value(null);
+        break;
+      case 'Seek': {
+        const [offset] = parameters.deep_unpack() as [number];
 
+        if (!this._canSeek) {
+          invocation.return_value(null);
+          break;
+        }
+
+        const offsetSeconds = offset / 1_000_000;
+        const targetPosition = Math.max(0, this._positionSeconds + offsetSeconds);
+
+        this._player.seekTo(targetPosition);
+        invocation.return_value(null);
+        break;
+      }
+
+      case 'SetPosition': {
+        const [_trackId, position] = parameters.deep_unpack() as [string, number];
+
+        if (!this._canSeek) {
+          invocation.return_value(null);
+          break;
+        }
+
+        const seconds = Math.max(0, position / 1_000_000);
+
+        this._player.seekTo(seconds);
+        invocation.return_value(null);
+        break;
+      }
       default:
         invocation.return_error_literal(22, Gio.DBusError.UNKNOWN_METHOD, `Method ${methodName} not implemented`);
     }
@@ -258,14 +302,13 @@ export class MprisController {
         return new GLib.Variant('d', volume);
 
       case 'Position':
-        //  TODO: check if the current radio can do this (it will mostly applies for files)
-        return new GLib.Variant('x', 0); // Radio streams have no position
+        return new GLib.Variant('x', Math.floor(this._positionSeconds * 1_000_000));
 
       case 'CanGoNext':
-        return new GLib.Variant('b', false);
+        return new GLib.Variant('b', true);
 
       case 'CanGoPrevious':
-        return new GLib.Variant('b', false);
+        return new GLib.Variant('b', true);
 
       case 'CanPlay':
         return new GLib.Variant('b', this._currentRadio !== null);
@@ -274,8 +317,7 @@ export class MprisController {
         return new GLib.Variant('b', this._currentRadio !== null);
 
       case 'CanSeek':
-        //  TODO: check if the current radio can do this (it will mostly applies for files)
-        return new GLib.Variant('b', false);
+        return new GLib.Variant('b', this._canSeek);
 
       case 'CanControl':
         return new GLib.Variant('b', true);
@@ -470,7 +512,12 @@ export class MprisController {
     if (!this._player) {
       return;
     }
-    if (this._playStateChangedId > 0 || this._playbackStoppedId > 0) {
+    if (
+      this._playStateChangedId > 0 ||
+      this._playbackStoppedId > 0 ||
+      this._positionChangedId > 0 ||
+      this._seekableChangedId > 0
+    ) {
       return;
     }
 
@@ -481,7 +528,17 @@ export class MprisController {
     this._playbackStoppedId = this._player.connect('playback-stopped', () => {
       this._isPaused = false;
       this._currentRadio = null;
-      this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause']);
+      this._positionSeconds = 0;
+      this._canSeek = false;
+      this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause', 'CanSeek', 'Position']);
+    });
+    this._positionChangedId = this._player.connect('position-changed', (_player, position: number) => {
+      this._positionSeconds = position;
+      this._emitPropertiesChanged(['Position']);
+    });
+    this._seekableChangedId = this._player.connect('seekable-changed', (_player: any, canSeek: boolean) => {
+      this._canSeek = canSeek;
+      this._emitPropertiesChanged(['CanSeek']);
     });
   }
 
@@ -498,6 +555,15 @@ export class MprisController {
     if (this._playbackStoppedId > 0) {
       this._player.disconnect(this._playbackStoppedId);
       this._playbackStoppedId = 0;
+    }
+
+    if (this._positionChangedId > 0) {
+      this._player.disconnect(this._positionChangedId);
+      this._positionChangedId = 0;
+    }
+    if (this._seekableChangedId > 0) {
+      this._player.disconnect(this._seekableChangedId);
+      this._seekableChangedId = 0;
     }
   }
 

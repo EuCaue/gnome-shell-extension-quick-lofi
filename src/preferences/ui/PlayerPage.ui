@@ -1,55 +1,125 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<interface domain="quick-lofi@eucaue"> <template class="PlayerPage" parent="AdwPreferencesPage">
-  <property name="name">player-page</property>
-  <property name="title" translatable="yes">Player</property>
-  <property name="icon-name">player-page-symbolic</property>
+<interface domain="quick-lofi@eucaue">
+  <template class="PlayerPage" parent="AdwPreferencesPage">
+    <property name="name">player-page</property>
+    <property name="title" translatable="yes">Player</property>
+    <property name="icon-name">player-page-symbolic</property>
 
-  <child>
-    <object class="AdwPreferencesGroup" id="playerGroup">
-      <property name="title" translatable="yes">Player Settings</property>
-      <property name="description" translatable="yes">Adjust how the player behaves</property>
+    <child>
+      <object class="AdwPreferencesGroup" id="playerGroup">
+        <property name="title" translatable="yes">Player Settings</property>
+        <property name="description" translatable="yes">Adjust how the player behaves</property>
 
-      <child>
-        <object class="AdwSpinRow" id="volumeLevel">
-          <property name="title" translatable="yes">Volume</property>
-          <property name="subtitle" translatable="yes">Default volume when starting playback</property>
+        <child>
+          <object class="AdwSpinRow" id="volumeLevel">
+            <property name="title" translatable="yes">Volume</property>
+            <property name="subtitle" translatable="yes">Default volume when starting playback</property>
 
-          <property name="cursor">
-            <object class="GdkCursor">
-              <property name="name">pointer</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+
+            <property name="adjustment">
+              <object class="GtkAdjustment">
+                <property name="value" bind-source="volumeLevel" bind-property="value"
+                  bind-flags="sync-create" />
+                <property name="lower">0</property>
+                <property name="upper">100</property>
+                <property name="step-increment">1</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="mpvArguments">
+            <property name="title" translatable="yes">MPV Arguments</property>
+            <property name="show-apply-button">true</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="enableMpris">
+            <property name="title" translatable="yes">Enable MRPIS Integration</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="enableMiniPlayer">
+            <property name="title" translatable="yes">Enable Mini Player</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwComboRow" id="cookiesFromBrowser">
+            <property name="title" translatable="yes">Cookies From Browser:</property>
+            <property name="model">
+              <object class="GtkStringList" id="browsers">
+              </object>
+            </property>
+            <child type="suffix">
+              <object class="GtkButton" id="cookiesFromBrowserInfo">
+                <property name="visible">false</property>
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">To use the cookies from browser feature, you &lt;b&gt;must have Node.js or Deno installed&lt;/b&gt; on your system.</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
             </object>
-          </property>
+        </child>
+        <child>
+          <object class="AdwEntryRow" id="customCookiesFromBrowser">
+            <property name="title" translatable="yes">Custom Browser for Cookies: </property>
+            <property name="show-apply-button">true</property>
+            <property name="visible">false</property>
+            <child type="suffix">
+              <object class="GtkButton" id="customCookiesFromBrowserHelp">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">&lt;b&gt;Custom cookies-from-browser&lt;/b&gt;
+        Manually specify the browser and profile path to extract cookies from.
+        Format: &lt;tt&gt;browser:path/to/profile&lt;/tt&gt;
 
-          <property name="adjustment">
-            <object class="GtkAdjustment">
-              <property name="value" bind-source="volumeLevel" bind-property="value" bind-flags="sync-create" />
-              <property name="lower">0</property>
-              <property name="upper">100</property>
-              <property name="step-increment">1</property>
-            </object>
-          </property>
+        &lt;b&gt;Examples:&lt;/b&gt;
+        &lt;tt&gt;firefox&lt;/tt&gt; — use default Firefox profile
+        &lt;tt&gt;firefox:~/.waterfox/profiles/default&lt;/tt&gt; — custom Firefox-based profile
+        &lt;tt&gt;chrome:~/.config/google-chrome&lt;/tt&gt; — custom Chrome profile
+
+        &lt;span foreground="orange"&gt;&lt;b&gt;⚠ The path must point to the folder containing the browser profiles, not the profile itself.&lt;/b&gt;&lt;/span&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
         </object>
-      </child>
-
-      <child>
-        <object class="AdwEntryRow" id="mpvArguments">
-          <property name="title" translatable="yes">MPV Arguments</property>
-          <property name="show-apply-button">true</property>
-        </object>
-      </child>
-
-      <child>
-        <object class="AdwSwitchRow" id="enableMpris">
-          <property name="title" translatable="yes">Enable MRPIS Integration</property>
-          <property name="cursor">
-            <object class="GdkCursor">
-              <property name="name">pointer</property>
-            </object>
-          </property>
-        </object>
-      </child>
-
-    </object>
-  </child>
-</template>
+    </child>
+  </template>
 </interface>

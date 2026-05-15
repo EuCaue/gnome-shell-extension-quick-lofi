@@ -54,6 +54,30 @@
       <description>Decrease Volume by system volume step.</description>
     </key>
 
+    <key name="next" type="as">
+      <default>[]</default>
+      <summary>Next</summary>
+      <description>Go to the next playlist item or radio, following the playback flow.</description>
+    </key>
+
+    <key name="previous" type="as">
+      <default>[]</default>
+      <summary>Previous</summary>
+      <description>Go to the previous playlist item or radio, following the playback flow.</description>
+    </key>
+
+    <key name="next-radio" type="as">
+      <default>[]</default>
+      <summary>Next Radio</summary>
+      <description>Skip to the next radio, ignoring the current playlist.</description>
+    </key>
+
+    <key name="previous-radio" type="as">
+      <default>[]</default>
+      <summary>Previous Radio</summary>
+      <description>Go to the previous radio, ignoring the current playlist.</description>
+    </key>
+
     <key name="indicator-actions" type="as">
       <default>['showPopupMenu', 'playPause', 'openPrefs']</default>
       <summary>Configure the behavior of indicator clicks.</summary>
@@ -69,10 +93,21 @@
       <summary>Enable MPRIS Integration.</summary>
       <description>Expose playback controls and metadata to the system via MPRIS.</description>
     </key>
+    <key name="enable-mini-player" type="b">
+      <default>true</default>
+      <summary>Enable Mini Player</summary>
+      <description>Show a compact player with playback controls and progress in the menu.</description>
+    </key>
     <key name="mpv-arguments" type="as">
-      <default>['--audio-buffer=0.5','--cache=yes','--cache-secs=30','--demuxer-lavf-o=extension_picky=0','--demuxer-max-bytes=50MiB','--gapless-audio=yes','--loop-playlist=force','--msg-level=all=warn','--no-video','--replaygain=track','--ytdl-format=bestaudio/best','--ytdl-raw-options-add=force-ipv4=']</default>
+      <default>
+        ['--audio-buffer=0.5','--cache=yes','--cache-secs=30','--demuxer-lavf-o=extension_picky=0','--demuxer-max-bytes=50MiB','--gapless-audio=yes','--loop-playlist=force','--msg-level=all=warn','--no-video','--replaygain=track','--ytdl-format=bestaudio/best','--ytdl-raw-options-add=force-ipv4=']</default>
       <summary>Default MPV arguments</summary>
-      <description>Expose playback controls and metadata to the system via MPRIS.</description>
+      <description>List of command-line arguments used when launching MPV.</description>
+    </key>
+    <key name="cookies-from-browser" type="s">
+      <default>""</default>
+      <summary>Which Browser should mpv use for cookiej</summary>
+      <description>List of command-line arguments used when launching MPV.</description>
     </key>
   </schema>
 </schemalist>

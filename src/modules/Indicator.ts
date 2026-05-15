@@ -13,6 +13,7 @@ import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
 import { debug } from '@utils/debug';
 import { IndicatorActions } from './IndicatorActions';
 import { MprisController } from './Mpris';
+import MiniPLayer from './MiniPlayer';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -25,14 +26,17 @@ export default class Indicator extends PanelMenu.Button {
   private _extension: QuickLofiExtension;
   private _isUpdatingCurrentRadio: boolean = false;
   private mpvPlayer: Player;
+  private _miniPlayer: MiniPLayer;
   public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
+  private _popupSection: PopupMenu.PopupMenuSection;
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
     writeLog({ message: '[Indicator] Initializing indicator', type: 'INFO' });
     this._extension = ext;
     this.mpvPlayer = Player.getInstance();
+    this._miniPlayer = MiniPLayer.getInstance();
     this._icon = new St.Icon({
       gicon: Gio.icon_new_for_string(this._extension.path + ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
@@ -127,12 +131,13 @@ export default class Indicator extends PanelMenu.Button {
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
-        // stop player if current radio was removed
+        //  NOTE: stop player if current radio was removed
         if (
           this.mpvPlayer.isPlaying() &&
           this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
         ) {
           this.mpvPlayer.stopPlayer();
+          return;
         }
       }),
     });
@@ -146,6 +151,19 @@ export default class Indicator extends PanelMenu.Button {
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
         this._handlePopupMaxHeight();
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('playback-started', (_sender: Player, radioID: string) => {
+        const pos = this._radios.findIndex((radio) => radio.id === radioID);
+        const child = this._popupSection._getMenuItems()[pos] as PopupMenu.PopupImageMenuItem;
+        this._updateIndicatorIcon({ playing: 'playing' });
+        child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
+        child.set_style('font-weight: bold');
+        this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
+        this._activeRadioPopupItem = child;
+        this._miniPlayer.createMiniPlayer(this._popupSection);
       }),
     });
     this.signalsHandlers.push({
@@ -165,9 +183,22 @@ export default class Indicator extends PanelMenu.Button {
         }
         this._updateIndicatorIcon({ playing: 'default' });
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
+        this._miniPlayer.dispose();
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
         this._activeRadioPopupItem.set_style('font-weight: normal');
         this._activeRadioPopupItem = null;
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MINI_PLAYER}`, () => {
+        // check if a radio is playing
+        const enabled = this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER);
+        if (enabled && this.mpvPlayer.isPlaying()) {
+          this._miniPlayer.createMiniPlayer(this._popupSection);
+        } else {
+          this._miniPlayer.dispose();
+        }
       }),
     });
   }
@@ -212,11 +243,6 @@ export default class Indicator extends PanelMenu.Button {
     }
     writeLog({ message: `[Indicator] Starting new radio: ${currentRadio?.radioName}`, type: 'INFO' });
     await this.mpvPlayer.startPlayer(currentRadio);
-    this._updateIndicatorIcon({ playing: 'playing' });
-    child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
-    child.set_style('font-weight: bold');
-    this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
-    this._activeRadioPopupItem = child;
   }
 
   private _handleButtonClick(): void {
@@ -242,6 +268,7 @@ export default class Indicator extends PanelMenu.Button {
       } catch (e) {}
     });
     this.menuSignals = [];
+    this._miniPlayer.dispose();
     // @ts-expect-error nothing
     this.menu.box.destroy_all_children();
     this._radios = [];
@@ -283,8 +310,8 @@ export default class Indicator extends PanelMenu.Button {
 
   private _createMenuItems(): void {
     const scrollView = new St.ScrollView();
-    const popupSection = new PopupMenu.PopupMenuSection();
-    scrollView.add_child(popupSection.actor);
+    this._popupSection = new PopupMenu.PopupMenuSection();
+    scrollView.add_child(this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
     this._radios.forEach((radio) => {
       const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
@@ -308,9 +335,12 @@ export default class Indicator extends PanelMenu.Button {
           this._togglePlayingStatus(item as PopupMenu.PopupImageMenuItem, radio.id, mouseButton);
         }),
       });
-      popupSection.addMenuItem(menuItem);
+      this._popupSection.addMenuItem(menuItem);
     });
-    this._createVolumeSlider(popupSection);
+    this._createVolumeSlider(this._popupSection);
+    if (this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER) && this.mpvPlayer.isPlaying()) {
+      this._miniPlayer.createMiniPlayer(this._popupSection);
+    }
     // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
     this._handlePopupMaxHeight();
@@ -321,6 +351,7 @@ export default class Indicator extends PanelMenu.Button {
     debug('extension disabled');
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.destroy();
+    this._miniPlayer.dispose();
     this.signalsHandlers.forEach(({ emitter, signalID }) => {
       emitter.disconnect(signalID);
     });
