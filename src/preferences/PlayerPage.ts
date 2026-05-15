@@ -436,10 +436,15 @@ These are passed directly to the player on startup.
           const browserKey = browser.toLocaleLowerCase();
           if (!BROWSER_YTDLP.includes(browserKey)) {
             // TODO: Improve the way that the error message displays.
-            handleErrorRow(
-              row,
-              `"${browser}" is not a supported engine. Supported engines are: ${BROWSER_YTDLP.join(', ')}.`,
-            );
+            const label = new Gtk.Label({
+              label: `"${browser}" is not a supported engine. Supported engines are: ${BROWSER_YTDLP.join(', ')}.`,
+              wrap: true,
+              max_width_chars: 40,
+              justify: Gtk.Justification.CENTER,
+            });
+            const toast = new Adw.Toast();
+            toast.set_custom_title(label);
+            this._window.add_toast(toast);
             return;
           }
 
@@ -453,7 +458,10 @@ These are passed directly to the player on startup.
     });
   }
 
-  constructor(private _settings: Gio.Settings) {
+  constructor(
+    private _settings: Gio.Settings,
+    private _window: Adw.PreferencesWindow,
+  ) {
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);

@@ -28,7 +28,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     });
 
     window.add(new RadiosPage(this._settings, window));
-    window.add(new PlayerPage(this._settings));
+    window.add(new PlayerPage(this._settings, window));
     window.add(new InterfacePage(this._settings));
   }
 }
