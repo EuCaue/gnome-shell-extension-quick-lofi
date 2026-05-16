@@ -1,9 +1,9 @@
+import type Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
-import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
+import type { Radio } from '@/types';
 import { debug } from './debug';
-import { Radio } from '@/types';
 
 Gio._promisify(Gio.File.prototype, 'append_to_async');
 Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
@@ -92,7 +92,7 @@ export function inspectItem(item: object): Record<string, TypeOf> {
     try {
       const type: TypeOf = typeof item[prop];
       inspected[prop] = type;
-    } catch (e) {
+    } catch (_e) {
       inspected[prop] = 'error';
     }
   }

@@ -1,13 +1,13 @@
 import Adw from 'gi://Adw';
+import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import Gdk from 'gi://Gdk';
 import GObject from 'gi://GObject';
-import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
-import { Shortcut } from '@/types';
-import { ShortcutButton } from '@/preferences/ShortcutButton';
-import { handleErrorRow, writeLog } from '@utils/helpers';
 import Gtk from '@girs/gtk-4.0';
+import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
+import { handleErrorRow, writeLog } from '@utils/helpers';
+import { ShortcutButton } from '@/preferences/ShortcutButton';
+import type { Shortcut } from '@/types';
 import { debug } from '@/utils/debug';
 
 const BROWSER_YTDLP: Array<string> = [
@@ -232,15 +232,15 @@ export class PlayerPage extends Adw.PreferencesPage {
       this,
     );
   }
-  declare private _playerGroup: Adw.PreferencesGroup;
-  declare private _volumeLevel: Adw.SpinRow;
-  declare private _enableMpris: Adw.SwitchRow;
-  declare private _enableMiniPlayer: Adw.SwitchRow;
-  declare private _mpvArguments: Adw.EntryRow;
-  declare private _cookiesFromBrowser: Adw.ComboRow;
-  declare private _browsers: Gtk.StringList;
-  declare private _customCookiesFromBrowser: Adw.EntryRow;
-  declare private _cookiesFromBrowserInfo: Gtk.Button;
+  private declare _playerGroup: Adw.PreferencesGroup;
+  private declare _volumeLevel: Adw.SpinRow;
+  private declare _enableMpris: Adw.SwitchRow;
+  private declare _enableMiniPlayer: Adw.SwitchRow;
+  private declare _mpvArguments: Adw.EntryRow;
+  private declare _cookiesFromBrowser: Adw.ComboRow;
+  private declare _browsers: Gtk.StringList;
+  private declare _customCookiesFromBrowser: Adw.EntryRow;
+  private declare _cookiesFromBrowserInfo: Gtk.Button;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -409,7 +409,7 @@ These are passed directly to the player on startup.
       for (const index in availableBrowsers) {
         const browser = availableBrowsers[index];
         if (currentBrowser === browser.name) {
-          this._cookiesFromBrowser.set_selected(parseInt(index));
+          this._cookiesFromBrowser.set_selected(parseInt(index, 10));
           if (browser.name === 'Other') {
             this._customCookiesFromBrowser.set_visible(true);
             this._customCookiesFromBrowser.set_text(

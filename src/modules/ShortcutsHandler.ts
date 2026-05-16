@@ -1,10 +1,10 @@
-import * as Main from '@girs/gnome-shell/ui/main';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
-import Player from './Player';
+import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 import { getExtSettings, writeLog } from '@/utils/helpers';
+import Player from './Player';
 
 export default class ShortcutsHandler {
   private _player: Player;

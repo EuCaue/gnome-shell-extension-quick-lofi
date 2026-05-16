@@ -1,7 +1,7 @@
-import { QuickLofiExtension } from '@/types';
+import type { PopupDummyMenu, PopupMenu } from '@girs/gnome-shell/ui/popupMenu';
 import Player from '@/modules/Player';
-import { IndicatorActionKey, SETTINGS_KEYS } from '@/utils/constants';
-import { type PopupDummyMenu, type PopupMenu } from '@girs/gnome-shell/ui/popupMenu';
+import type { QuickLofiExtension } from '@/types';
+import { type IndicatorActionKey, SETTINGS_KEYS } from '@/utils/constants';
 import { writeLog } from '@/utils/helpers';
 export class IndicatorActions {
   private _mpv: Player;

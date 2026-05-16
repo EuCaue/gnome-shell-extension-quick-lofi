@@ -1,11 +1,15 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
-import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { handleErrorRow, writeLog } from '@utils/helpers';
-import { INDICATOR_ACTIONS_NAMES, IndicatorActionKey, IndicatorActionValue, SETTINGS_KEYS } from '@utils/constants';
-import Gtk from '@girs/gtk-4.0';
 import GLib from '@girs/glib-2.0';
+import type Gtk from '@girs/gtk-4.0';
+import {
+  INDICATOR_ACTIONS_NAMES,
+  type IndicatorActionKey,
+  type IndicatorActionValue,
+  SETTINGS_KEYS,
+} from '@utils/constants';
+import { handleErrorRow, writeLog } from '@utils/helpers';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {
@@ -29,19 +33,19 @@ export class InterfacePage extends Adw.PreferencesPage {
     );
   }
 
-  declare private _setPopupMaxHeightRow: Adw.SwitchRow;
-  declare private _popupMaxHeightRow: Adw.EntryRow;
-  declare private _leftClickActionList: Gtk.StringList;
-  declare private _middleClickActionList: Gtk.StringList;
-  declare private _rightClickActionList: Gtk.StringList;
-  declare private _leftClickRow: Adw.ComboRow;
-  declare private _middleClickRow: Adw.ComboRow;
-  declare private _rightClickRow: Adw.ComboRow;
-  declare private _enableDebug: Adw.SwitchRow;
+  private declare _setPopupMaxHeightRow: Adw.SwitchRow;
+  private declare _popupMaxHeightRow: Adw.EntryRow;
+  private declare _leftClickActionList: Gtk.StringList;
+  private declare _middleClickActionList: Gtk.StringList;
+  private declare _rightClickActionList: Gtk.StringList;
+  private declare _leftClickRow: Adw.ComboRow;
+  private declare _middleClickRow: Adw.ComboRow;
+  private declare _rightClickRow: Adw.ComboRow;
+  private declare _enableDebug: Adw.SwitchRow;
   private _indicatorActionsNames: Map<IndicatorActionKey, IndicatorActionValue>;
   private _indicatorActionsSettings: IndicatorActionKey[];
 
-  private _handleApplyPopup(w: Adw.EntryRow): void {
+  _handleApplyPopup(w: Adw.EntryRow): void {
     const VALID_CSS_TYPES: Array<string> = ['px', 'pt', 'em', 'ex', 'rem', 'pc', 'in', 'cm', 'mm'];
     const regex = new RegExp(`^\\d+(\\.\\d+)?(${VALID_CSS_TYPES.join('|')})$`);
     writeLog({ message: `[InterfacePage] Validating popup height: ${w.text}`, type: 'INFO' });
@@ -57,6 +61,7 @@ export class InterfacePage extends Adw.PreferencesPage {
       this._settings.set_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT, defaultValue);
       return;
     }
+
     writeLog({ message: `[InterfacePage] Setting popup max height to: ${w.text}`, type: 'INFO' });
     this._settings.set_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT, w.text);
   }

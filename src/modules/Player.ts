@@ -1,12 +1,12 @@
-import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import * as Main from '@girs/gnome-shell/ui/main';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import { type Radio } from '@/types';
+import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS } from '@utils/constants';
+import type { Radio } from '@/types';
+import { debug } from '@/utils/debug';
 import { findRadio, getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
-import { debug } from '@/utils/debug';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
@@ -216,7 +216,7 @@ export default class Player extends GObject.Object {
     if (this._stdoutStream) {
       try {
         this._stdoutStream.close(null);
-      } catch (e) {}
+      } catch (_e) {}
       this._stdoutStream = null;
     }
 
@@ -281,7 +281,7 @@ export default class Player extends GObject.Object {
       }
 
       return result;
-    } catch (e) {
+    } catch (_e) {
       debug(`Invalid MPV response for property "${prop}":`, output);
       return null;
     }
@@ -292,7 +292,7 @@ export default class Player extends GObject.Object {
     onLine,
   }: {
     stream: Gio.DataInputStream;
-    onLine: (line: string) => Promise<boolean | void>;
+    onLine: (line: string) => Promise<boolean | undefined>;
   }) {
     this._cancellable = new Gio.Cancellable();
 
@@ -435,7 +435,7 @@ export default class Player extends GObject.Object {
     });
   }
   private createCommand(command: PlayerCommand): PlayerCommandString {
-    return JSON.stringify(command) + '\n';
+    return `${JSON.stringify(command)}\n`;
   }
 
   private sendCommandToMpvSocket(mpvCommand: string): string | null {

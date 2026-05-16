@@ -1,9 +1,9 @@
 import Adw from 'gi://Adw';
-import Gio from 'gi://Gio';
-import Gtk4 from 'gi://Gtk';
 import Gdk from 'gi://Gdk';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Gtk4 from 'gi://Gtk';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { ffmpegFormats, SETTINGS_KEYS } from '@utils/constants';
 import { generateNanoIdWithSymbols, handleErrorRow, isUri, writeLog } from '@utils/helpers';
@@ -20,9 +20,9 @@ export class RadiosPage extends Adw.PreferencesPage {
       this,
     );
   }
-  declare private _radiosGroup: Adw.PreferencesGroup;
-  declare private _nameRadioRow: Adw.EntryRow;
-  declare private _urlRadioRow: Adw.EntryRow;
+  private declare _radiosGroup: Adw.PreferencesGroup;
+  private declare _nameRadioRow: Adw.EntryRow;
+  private declare _urlRadioRow: Adw.EntryRow;
 
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
     if (index !== -1) {
@@ -50,9 +50,9 @@ export class RadiosPage extends Adw.PreferencesPage {
 
     if (radioID === this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING)) {
       writeLog({ message: `[RadiosPage] Stopped playback of removed radio: ${radioID}`, type: 'INFO' });
-      this._settings!.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
+      this._settings?.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     }
-    this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
+    this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
   }
 
   private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
@@ -263,7 +263,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       targetRow.set_state_flags(Gtk4.StateFlags.NORMAL, true);
       listBox.remove(dragedExpanderRow as unknown as Gtk4.Widget);
       listBox.insert(dragedExpanderRow as unknown as Gtk4.Widget, targetIndex);
-      this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
+      this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
       return true;
     });
   }
@@ -286,7 +286,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     const radioID = generateNanoIdWithSymbols(10);
     writeLog({ message: `[RadiosPage] Generated radio ID: ${radioID} for ${radioName}`, type: 'INFO' });
     this._radios.push(`${radioName} - ${radioUrl} - ${radioID}`);
-    this._settings!.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
+    this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
   }
   private _isPlayable({ uri }: { uri: string }): boolean {
     if (uri.trim() === '') return false;
@@ -319,7 +319,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       ) {
         return true;
       }
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
     return false;

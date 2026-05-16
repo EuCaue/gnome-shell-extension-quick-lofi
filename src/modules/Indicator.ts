@@ -1,23 +1,23 @@
-import * as Slider from '@girs/gnome-shell/ui/slider';
+import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
-import * as Main from '@girs/gnome-shell/ui/main';
-import Gio from 'gi://Gio';
-import Player from './Player';
-import St from 'gi://St';
-import Clutter from 'gi://Clutter';
-import GObject from 'gi://GObject';
-import { ICONS, IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
-import { type Radio, type QuickLofiExtension } from '@/types';
-import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
+import * as Slider from '@girs/gnome-shell/ui/slider';
+import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
 import { debug } from '@utils/debug';
+import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
+import type { QuickLofiExtension, Radio } from '@/types';
 import { IndicatorActions } from './IndicatorActions';
-import { MprisController } from './Mpris';
 import MiniPLayer from './MiniPlayer';
+import { MprisController } from './Mpris';
+import Player from './Player';
 
 export default class Indicator extends PanelMenu.Button {
   static {
-    GObject.registerClass(this);
+    GObject.registerClass(Indicator);
   }
   private _indicatorActions: IndicatorActions;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
@@ -168,7 +168,7 @@ export default class Indicator extends PanelMenu.Button {
     });
     this.signalsHandlers.push({
       emitter: this.mpvPlayer,
-      signalID: this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
+      signalID: this.mpvPlayer.connect('play-state-changed', (_sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
       }),
@@ -265,7 +265,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) {}
+      } catch (_e) {}
     });
     this.menuSignals = [];
     this._miniPlayer.dispose();
@@ -358,7 +358,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) {}
+      } catch (_e) {}
     });
     this.signalsHandlers = [];
     this.menuSignals = [];

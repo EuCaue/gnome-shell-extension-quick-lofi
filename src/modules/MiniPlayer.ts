@@ -1,12 +1,12 @@
-import { type PopupMenuSection, type PopupBaseMenuItem } from '@girs/gnome-shell/ui/popupMenu';
-import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
-import St from 'gi://St';
 import Clutter from 'gi://Clutter';
-import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
+import St from 'gi://St';
+import type Gio from '@girs/gio-2.0';
+import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
+import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import Player from './Player';
-import Gio from '@girs/gio-2.0';
+import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
 import { getExtSettings } from '@/utils/helpers';
+import Player from './Player';
 
 export default class MiniPlayer {
   private static _instance: MiniPlayer | null = null;
@@ -289,9 +289,9 @@ export default class MiniPlayer {
   }
 
   private _parseTime(time: string | number | undefined): string {
-    const parsed = parseInt(String(time));
+    const parsed = parseInt(String(time), 10);
 
-    if (isNaN(parsed)) return '00:00';
+    if (Number.isNaN(parsed)) return '00:00';
 
     const hours = Math.floor(parsed / 3600);
     const minutes = String(Math.floor((parsed % 3600) / 60)).padStart(2, '0');
