@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import * as Main from '@girs/gnome-shell/ui/main';
@@ -253,7 +254,7 @@ export default class Indicator extends PanelMenu.Button {
       const mouseBtn = event.get_button() - 1;
       const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
       const action = actions[mouseBtn] as IndicatorActionKey;
-      writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}, type: 'INFO'` });
+      writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}`, type: 'INFO' });
       this._indicatorActions.actions.get(action)?.();
       return Clutter.EVENT_STOP;
     });
@@ -281,9 +282,50 @@ export default class Indicator extends PanelMenu.Button {
     writeLog({ message: '[Indicator] Creating volume slider', type: 'INFO' });
     const separator = new PopupMenu.PopupSeparatorMenuItem();
     const volumeLevel = this._extension._settings.get_int(SETTINGS_KEYS.VOLUME);
-    const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
+    const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: true, can_focus: true });
     const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
+    volumeSlider.add_style_class_name('volume-slider');
+    volumeSlider.can_focus = true;
+    volumeSlider.accessible_name = 'Volume';
+
+    volumePopupItem.connect('key-focus-in', () => {
+      GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        volumeSlider.grab_key_focus();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('key-focus-in', () => {
+        volumePopupItem.add_style_pseudo_class('selected');
+      }),
+    });
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('key-focus-out', () => {
+        volumePopupItem.remove_style_pseudo_class('selected');
+      }),
+    });
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('key-press-event', (_actor, event) => {
+        const symbol = event.get_key_symbol();
+
+        if (symbol === Clutter.KEY_Up) {
+          (this.menu.actor as St.Widget).navigate_focus(volumeSlider, St.DirectionType.UP, false);
+          return Clutter.EVENT_STOP;
+        }
+
+        if (symbol === Clutter.KEY_Down) {
+          (this.menu.actor as St.Widget).navigate_focus(volumeSlider, St.DirectionType.DOWN, false);
+          return Clutter.EVENT_STOP;
+        }
+
+        return Clutter.EVENT_PROPAGATE;
+      }),
+    });
+
     const volumeLabel = new St.Label({ text: `Volume: ${Math.floor(volumeSlider.value * 100)}` });
     this.menuSignals.push({
       emitter: volumeSlider,

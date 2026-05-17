@@ -1,11 +1,13 @@
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 import type Gio from '@girs/gio-2.0';
 import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
-import { getExtSettings } from '@/utils/helpers';
+import { debug } from '@/utils/debug';
+import { getExtSettings, writeLog } from '@/utils/helpers';
 import Player from './Player';
 
 export default class MiniPlayer {
@@ -44,6 +46,7 @@ export default class MiniPlayer {
   private constructor() {
     this.mpvPlayer = Player.getInstance();
     this._settings = getExtSettings();
+    writeLog({ message: '[MiniPlayer] Initialized', type: 'INFO' });
   }
 
   public createMiniPlayer(popup: PopupMenuSection) {
@@ -53,6 +56,13 @@ export default class MiniPlayer {
 
     this._shouldStop = false;
 
+    const MINI_PLAYER_ITEM_STYLE = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
+    const CURRENT_RADIO_STYLE = 'font-weight: bold; margin-bottom: 10px;';
+    const TIME_BOX_BASE_STYLE = 'padding: 8px; border-radius: 10px;';
+    const TIME_BOX_FOCUSED_STYLE = `${TIME_BOX_BASE_STYLE} background-color: rgba(255, 255, 255, 0.1);`;
+    const TIME_SLIDER_MARGIN = 'margin-left: 4px; margin-right: 4px;';
+    const TRACKING_TIME_STYLE = 'font-size: 0.9em;';
+
     this._miniPlayerItem = new PopupMenu.PopupBaseMenuItem({
       activate: true,
       hover: true,
@@ -60,7 +70,7 @@ export default class MiniPlayer {
       reactive: true,
     });
 
-    this._miniPlayerItem.style = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
+    this._miniPlayerItem.style = MINI_PLAYER_ITEM_STYLE;
 
     const miniPlayerBoxLayout = new St.BoxLayout({
       vertical: true,
@@ -71,34 +81,80 @@ export default class MiniPlayer {
     this.currentRadio = new St.Label({
       text: this._getCurrentRadioName(),
       xAlign: Clutter.ActorAlign.CENTER,
-      style: 'font-weight: bold; margin-bottom: 10px',
+      style: CURRENT_RADIO_STYLE,
     });
+
+    const timeTrackingBoxWrapper = new St.BoxLayout({
+      x_expand: true,
+    });
+    timeTrackingBoxWrapper.add_style_class_name('time-slider-row');
 
     const timeTrackingBox = new St.BoxLayout({
       vertical: false,
-      x_expand: false,
+      x_expand: true,
     });
 
     this.timeTrackingSlider = new Slider.Slider(0);
+    this.timeTrackingSlider.add_style_class_name('time-slider');
     this.timeTrackingSlider.x_expand = true;
-    this.timeTrackingSlider.style = 'margin-left: 4px; margin-right: 4px;';
+    this.timeTrackingSlider.style = TIME_SLIDER_MARGIN;
     this.timeTrackingSlider.set_reactive(false);
+    this.timeTrackingSlider.can_focus = true;
+    this.timeTrackingSlider.accessible_name = 'Time Tracking';
 
-    const trackingTimeStyles = 'font-size: 0.9em;';
-
-    this.currentTime = new St.Label({
-      text: '00:00',
-      style: trackingTimeStyles,
+    this._miniPlayerItem.connect('key-focus-in', () => {
+      timeTrackingBoxWrapper.style = TIME_BOX_BASE_STYLE;
+      GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        if (this.timeTrackingSlider.get_reactive()) {
+          timeTrackingBoxWrapper.style = TIME_BOX_FOCUSED_STYLE;
+          this.timeTrackingSlider.grab_key_focus();
+        }
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+    this._miniPlayerItem.connect('key-focus-out', () => {
+      timeTrackingBoxWrapper.style = TIME_BOX_BASE_STYLE;
+    });
+    this.timeTrackingSlider.connect('key-focus-in', () => {
+      timeTrackingBoxWrapper.style = TIME_BOX_FOCUSED_STYLE;
+    });
+    this.timeTrackingSlider.connect('key-focus-out', () => {
+      timeTrackingBoxWrapper.style = TIME_BOX_BASE_STYLE;
     });
 
-    this.endTime = new St.Label({
-      text: '00:00',
-      style: trackingTimeStyles,
+    this.timeTrackingSlider.connect('key-press-event', (_actor, event) => {
+      if (!this._isSeekable || this._duration <= 0) {
+        return Clutter.EVENT_PROPAGATE;
+      }
+
+      const symbol = event.get_key_symbol();
+      // NOTE: 5 seconds for arrows, 30 seconds for PageUp/Down
+      let step = 5;
+      if (symbol === Clutter.KEY_Page_Up || symbol === Clutter.KEY_Page_Down) {
+        step = 30;
+      }
+
+      const delta = step / this._duration;
+
+      if (symbol === Clutter.KEY_Left || symbol === Clutter.KEY_Page_Down) {
+        this.timeTrackingSlider.value = Math.max(0, this.timeTrackingSlider.value - delta);
+        this.mpvPlayer.seekTo(this.timeTrackingSlider.value * this._duration);
+        return Clutter.EVENT_STOP;
+      } else if (symbol === Clutter.KEY_Right || symbol === Clutter.KEY_Page_Up) {
+        this.timeTrackingSlider.value = Math.min(1, this.timeTrackingSlider.value + delta);
+        this.mpvPlayer.seekTo(this.timeTrackingSlider.value * this._duration);
+        return Clutter.EVENT_STOP;
+      }
+      return Clutter.EVENT_PROPAGATE;
     });
+
+    this.currentTime = new St.Label({ text: '00:00', style: TRACKING_TIME_STYLE });
+    this.endTime = new St.Label({ text: '00:00', style: TRACKING_TIME_STYLE });
 
     timeTrackingBox.add_child(this.currentTime);
     timeTrackingBox.add_child(this.timeTrackingSlider);
     timeTrackingBox.add_child(this.endTime);
+    timeTrackingBoxWrapper.add_child(timeTrackingBox);
 
     const controlsBox = new St.BoxLayout({
       vertical: false,
@@ -184,7 +240,7 @@ export default class MiniPlayer {
 
     miniPlayerBoxLayout.add_child(this.currentRadio);
     miniPlayerBoxLayout.add_child(controlsBox);
-    miniPlayerBoxLayout.add_child(timeTrackingBox);
+    miniPlayerBoxLayout.add_child(timeTrackingBoxWrapper);
 
     this._miniPlayerItem.add_child(miniPlayerBoxLayout);
 
@@ -333,6 +389,7 @@ export default class MiniPlayer {
   }
 
   public dispose() {
+    writeLog({ message: '[MiniPlayer] Disposing mini player', type: 'INFO' });
     this._shouldStop = true;
 
     this._disconnectPlayerSignals();

@@ -2,3 +2,23 @@
   border-color: red;
   color: red;
 }
+
+.volume-slider,
+.time-slider {
+  padding: 8px;
+  border-radius: 8px;
+  transition-duration: 100ms;
+}
+
+.time-slider-row {
+  padding: 8px;
+  border-radius: 10px;
+  transition-duration: 100ms;
+}
+
+.volume-slider:focus,
+.volume-slider:hover,
+.time-slider:focus,
+.time-slider:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
