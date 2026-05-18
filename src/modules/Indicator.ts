@@ -30,6 +30,7 @@ export default class Indicator extends PanelMenu.Button {
   private _miniPlayer: MiniPLayer;
   public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
+  private _volumeFocusId: number;
   private _popupSection: PopupMenu.PopupMenuSection;
 
   constructor(ext: QuickLofiExtension) {
@@ -289,11 +290,14 @@ export default class Indicator extends PanelMenu.Button {
     volumeSlider.can_focus = true;
     volumeSlider.accessible_name = 'Volume';
 
-    volumePopupItem.connect('key-focus-in', () => {
-      GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-        volumeSlider.grab_key_focus();
-        return GLib.SOURCE_REMOVE;
-      });
+    this.menuSignals.push({
+      emitter: volumePopupItem,
+      signalID: volumePopupItem.connect('key-focus-in', () => {
+        this._volumeFocusId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+          volumeSlider.grab_key_focus();
+          return GLib.SOURCE_REMOVE;
+        });
+      }),
     });
     this.menuSignals.push({
       emitter: volumeSlider,
@@ -394,6 +398,10 @@ export default class Indicator extends PanelMenu.Button {
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.destroy();
     this._miniPlayer.dispose();
+    if (this._volumeFocusId) {
+      GLib.source_remove(this._volumeFocusId);
+      this._volumeFocusId = null;
+    }
     this.signalsHandlers.forEach(({ emitter, signalID }) => {
       emitter.disconnect(signalID);
     });
