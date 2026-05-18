@@ -340,8 +340,6 @@ export default class Player extends GObject.Object {
     if (radio.radioUrl.startsWith('~')) {
       radio.radioUrl = GLib.get_home_dir() + radio.radioUrl.slice(1);
     }
-    //  TODO: make something in the UI for this
-    //  --ytdl-raw-options-add=cookies-from-browser
     const DEFAULT: Array<string> = [
       '--no-video',
       `--input-ipc-server=${this._mpvSocket}`,
@@ -377,7 +375,6 @@ export default class Player extends GObject.Object {
 
     try {
       this._keepReading = true;
-      // const [_, argv] = GLib.shell_parse_argv(`mpv ${MPV_OPTIONS.join(' ')}`);
       const argv = ['mpv', ...MPV_OPTIONS.filter(Boolean)];
       this._proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
       await writeLog({ message: `Starting playing: ${radio.radioName} with the ${radio.radioUrl}` }).catch(log);

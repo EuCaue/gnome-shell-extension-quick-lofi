@@ -6,7 +6,6 @@ import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/p
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
-import { debug } from '@/utils/debug';
 import { getExtSettings, writeLog } from '@/utils/helpers';
 import Player from './Player';
 
@@ -18,7 +17,6 @@ export default class MiniPlayer {
   public endTime!: St.Label;
   public playIcon!: St.Icon;
   public timeTrackingSlider!: Slider.Slider;
-  private _shouldStop = false;
   public mpvPlayer: Player;
 
   private _miniPlayerItem: PopupBaseMenuItem | null = null;
@@ -26,7 +24,6 @@ export default class MiniPlayer {
 
   private _duration = 0;
   private _isSeekable = false;
-  private _isUpdatingSlider = false;
 
   private _positionSignalId: number | null = null;
   private _durationSignalId: number | null = null;
@@ -53,8 +50,6 @@ export default class MiniPlayer {
     if (this._miniPlayerItem) {
       return;
     }
-
-    this._shouldStop = false;
 
     const MINI_PLAYER_ITEM_STYLE = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
     const CURRENT_RADIO_STYLE = 'font-weight: bold; margin-bottom: 10px;';
@@ -263,9 +258,7 @@ export default class MiniPlayer {
       this.currentTime.set_text(this._parseTime(position));
 
       if (this._duration > 0 && this._isSeekable) {
-        this._isUpdatingSlider = true;
         this.timeTrackingSlider.value = position / this._duration;
-        this._isUpdatingSlider = false;
       }
     });
 
@@ -390,7 +383,6 @@ export default class MiniPlayer {
 
   public dispose() {
     writeLog({ message: '[MiniPlayer] Disposing mini player', type: 'INFO' });
-    this._shouldStop = true;
 
     this._disconnectPlayerSignals();
 
@@ -398,5 +390,6 @@ export default class MiniPlayer {
       this._miniPlayerItem.destroy();
       this._miniPlayerItem = null;
     }
+    MiniPlayer._instance = null;
   }
 }
