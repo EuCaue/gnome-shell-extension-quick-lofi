@@ -90,8 +90,9 @@ export class InterfacePage extends Adw.PreferencesPage {
       for (const action of actions) {
         list.append(action);
       }
-      const rowAction = actions[mouseBtn];
-      const rowPosition = actions.indexOf(rowAction);
+      const savedActionKey = this._indicatorActionsSettings[mouseBtn];
+      const savedActionValue = this._indicatorActionsNames.get(savedActionKey);
+      const rowPosition = actions.indexOf(savedActionValue);
       row.set_selected(rowPosition);
       row.connect('notify::selected', () => {
         const newActionIndex: number = row.get_selected();

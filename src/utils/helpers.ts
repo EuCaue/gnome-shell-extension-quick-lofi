@@ -102,6 +102,7 @@ export function inspectItem(item: object): Record<string, TypeOf> {
 export function parseRadios(radios?: Array<string>): Array<Radio> {
   const settings = getExtSettings();
   const radiosRaw: string[] = radios ?? settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
+  if (!radiosRaw.length) return [];
   const radiosParsed: Array<Radio> = radiosRaw.map((entry: string) => {
     const parts = entry.split(' - ');
     const radioName = (parts[0] || '').trim();
@@ -111,6 +112,7 @@ export function parseRadios(radios?: Array<string>): Array<Radio> {
   });
   return radiosParsed;
 }
+
 export function findRadio(
   cb: (radio: Radio, index: number, radios: Array<Radio>, currentRadioPlayingID: string) => Radio | undefined,
 ): Radio | undefined {

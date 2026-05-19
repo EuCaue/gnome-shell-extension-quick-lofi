@@ -7,8 +7,8 @@
 
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="title" translatable="yes">Interface Settings</property>
-        <property name="description" translatable="yes">Adjust how the interface responds to your actions.</property>
+        <property name="title" translatable="yes">Indicator Click Actions</property>
+        <property name="description" translatable="yes">Configure what happens when you click the indicator icon.</property>
 
         <child>
           <object class="AdwComboRow" id="leftClickRow">
@@ -36,7 +36,12 @@
             </property>
           </object>
         </child>
+      </object>
+    </child>
 
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Appearance</property>
         <child>
           <object class="AdwSwitchRow" id="setPopupMaxHeightRow">
             <property name="title" translatable="yes">Limit popup height</property>
@@ -58,7 +63,12 @@
             <property name="show-apply-button">true</property>
           </object>
         </child>
+      </object>
+    </child>
 
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">General</property>
         <child>
           <object class="AdwSwitchRow" id="enableDebug">
             <property name="title" translatable="yes">Debug logging</property>
@@ -69,7 +79,6 @@
             </property>
           </object>
         </child>
-
       </object>
     </child>
 

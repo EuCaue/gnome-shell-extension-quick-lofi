@@ -9,7 +9,7 @@ import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
 import { debug } from '@utils/debug';
-import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
+import { isCurrentRadioPlaying, parseRadios, writeLog } from '@utils/helpers';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { IndicatorActions } from './IndicatorActions';
 import MiniPLayer from './MiniPlayer';
@@ -56,13 +56,7 @@ export default class Indicator extends PanelMenu.Button {
     const radios: string[] = this._extension._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
     writeLog({ message: `[Indicator] Creating radios from ${radios.length} entries`, type: 'INFO' });
 
-    this._radios = radios.map((entry: string) => {
-      const parts = entry.split(' - ');
-      const radioName = (parts[0] || '').trim();
-      const radioUrl = (parts[1] || '').trim();
-      const id = (parts[2] || '').trim();
-      return { radioName, radioUrl, id };
-    });
+    this._radios = parseRadios(radios);
     writeLog({ message: `[Indicator] Created ${this._radios.length} radio objects`, type: 'INFO' });
   }
 

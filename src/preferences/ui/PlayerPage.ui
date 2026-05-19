@@ -7,8 +7,8 @@
 
     <child>
       <object class="AdwPreferencesGroup" id="playerGroup">
-        <property name="title" translatable="yes">Player Settings</property>
-        <property name="description" translatable="yes">Adjust how the player behaves</property>
+        <property name="title" translatable="yes">Player</property>
+        <property name="description" translatable="yes">General player behavior</property>
 
         <child>
           <object class="AdwSpinRow" id="volumeLevel">
@@ -34,13 +34,6 @@
         </child>
 
         <child>
-          <object class="AdwEntryRow" id="mpvArguments">
-            <property name="title" translatable="yes">MPV Arguments</property>
-            <property name="show-apply-button">true</property>
-          </object>
-        </child>
-
-        <child>
           <object class="AdwSwitchRow" id="enableMpris">
             <property name="title" translatable="yes">Enable MRPIS Integration</property>
             <property name="cursor">
@@ -59,6 +52,27 @@
                 <property name="name">pointer</property>
               </object>
             </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup" id="shortcutsGroup">
+        <property name="title" translatable="yes">Keyboard Shortcuts</property>
+        <property name="description" translatable="yes">Configure global hotkeys for player control</property>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup" id="advancedGroup">
+        <property name="title" translatable="yes">Advanced</property>
+        <property name="description" translatable="yes">MPV and cookies configuration</property>
+
+        <child>
+          <object class="AdwEntryRow" id="mpvArguments">
+            <property name="title" translatable="yes">MPV Arguments</property>
+            <property name="show-apply-button">true</property>
           </object>
         </child>
 
@@ -118,8 +132,7 @@
             </child>
           </object>
         </child>
-
-        </object>
+      </object>
     </child>
   </template>
 </interface>

@@ -220,6 +220,8 @@ export class PlayerPage extends Adw.PreferencesPage {
         InternalChildren: [
           'volumeLevel',
           'playerGroup',
+          'advancedGroup',
+          'shortcutsGroup',
           'enableMpris',
           'mpvArguments',
           'enableMiniPlayer',
@@ -233,6 +235,8 @@ export class PlayerPage extends Adw.PreferencesPage {
     );
   }
   private declare _playerGroup: Adw.PreferencesGroup;
+  private declare _advancedGroup: Adw.PreferencesGroup;
+  private declare _shortcutsGroup: Adw.PreferencesGroup;
   private declare _volumeLevel: Adw.SpinRow;
   private declare _enableMpris: Adw.SwitchRow;
   private declare _enableMiniPlayer: Adw.SwitchRow;
@@ -291,7 +295,7 @@ export class PlayerPage extends Adw.PreferencesPage {
       writeLog({ message: `[PlayerPage] Creating shortcut button for: ${shortcut.title}`, type: 'INFO' });
       const shortcutButton = new ShortcutButton(this._settings, shortcut.settingsKey);
       const shortcutRow = shortcutButton.createRow(shortcut.title, shortcut.subtitle);
-      this._playerGroup.add(shortcutRow);
+      this._shortcutsGroup.add(shortcutRow);
     });
 
     writeLog({ message: `[PlayerPage] Created ${shortcuts.length} shortcut rows`, type: 'INFO' });
