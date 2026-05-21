@@ -1,9 +1,9 @@
-import Adw from 'gi://Adw';
-import Gio from 'gi://Gio';
-import Gtk from 'gi://Gtk';
+import type Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import { ExtensionPreferences, gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import Gtk from 'gi://Gtk';
+import { ExtensionPreferences } from '@girs/gnome-shell/extensions/prefs';
 import { getExtSettings } from './utils/helpers';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
@@ -28,7 +28,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
     });
 
     window.add(new RadiosPage(this._settings, window));
-    window.add(new PlayerPage(this._settings));
+    window.add(new PlayerPage(this._settings, window));
     window.add(new InterfacePage(this._settings));
   }
 }

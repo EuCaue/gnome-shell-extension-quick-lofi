@@ -1,10 +1,10 @@
-import * as Main from '@girs/gnome-shell/ui/main';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
-import Player from './Player';
+import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
 import { getExtSettings, writeLog } from '@/utils/helpers';
+import Player from './Player';
 
 export default class ShortcutsHandler {
   private _player: Player;
@@ -85,6 +85,42 @@ export default class ShortcutsHandler {
           type: 'INFO',
         });
         this._settings.set_int(SETTINGS_KEYS.VOLUME, newVolume);
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.NEXT_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.next();
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.PREVIOUS_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.prev();
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.NEXT_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.next('radio');
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.PREVIOUS_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.NONE,
+      Shell.ActionMode.NORMAL,
+      () => {
+        this._player.prev('radio');
       },
     );
   }

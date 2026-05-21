@@ -5,6 +5,8 @@ export const ICONS = {
   POPUP_PLAY: 'media-playback-start-symbolic',
   POPUP_STOP: 'media-playback-stop-symbolic',
   POPUP_PAUSE: 'media-playback-pause-symbolic',
+  MINI_PLAYER_SKIP_BACKWARD: 'media-skip-backward-symbolic',
+  MINI_PLAYER_SKIP_FORWARD: 'media-skip-forward-symbolic',
 };
 
 export const SHORTCUTS = {
@@ -12,6 +14,10 @@ export const SHORTCUTS = {
   STOP_SHORTCUT: 'stop-quick-lofi',
   INCREASE_VOLUME_SHORTCUT: 'increase-volume',
   DECREASE_VOLUME_SHORTCUT: 'decrease-volume',
+  NEXT_SHORTCUT: 'next',
+  PREVIOUS_SHORTCUT: 'previous',
+  NEXT_RADIO_SHORTCUT: 'next-radio',
+  PREVIOUS_RADIO_SHORTCUT: 'previous-radio',
 };
 
 export const SETTINGS_KEYS = {
@@ -24,6 +30,10 @@ export const SETTINGS_KEYS = {
   VOLUME: 'volume',
   ENABLE_DEBUG: 'enable-debug',
   ENABLE_MPRIS: 'enable-mpris',
+  MPV_ARGUMENTS: 'mpv-arguments',
+  ENABLE_MINI_PLAYER: 'enable-mini-player',
+  SHOW_MINI_PLAYER_TITLE: 'show-mini-player-title',
+  COOKIES_FROM_BROWSER: 'cookies-from-browser',
 };
 
 // used across modules, keep in sync
@@ -350,4 +360,12 @@ export const ffmpegFormats = new Set([
   'xwma',
   'yop',
   'yuv4mpegpipe',
+]);
+
+export type MOUSE_BUTTONS_KEYS = 'LEFT' | 'MIDDLE' | 'RIGHT';
+export type MOUSE_BUTTONS_VALUES = 1 | 2 | 3;
+export const MOUSE_BUTTONS = new Map<MOUSE_BUTTONS_KEYS, MOUSE_BUTTONS_VALUES>([
+  ['LEFT', 1],
+  ['MIDDLE', 2],
+  ['RIGHT', 3],
 ]);

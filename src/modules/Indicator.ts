@@ -1,21 +1,24 @@
-import * as Slider from '@girs/gnome-shell/ui/slider';
+import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
-import Gio from 'gi://Gio';
-import Player from './Player';
-import St from 'gi://St';
-import Clutter from 'gi://Clutter';
-import GObject from 'gi://GObject';
-import { ICONS, IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
-import { type Radio, type QuickLofiExtension } from '@/types';
-import { isCurrentRadioPlaying, writeLog } from '@utils/helpers';
+import * as Slider from '@girs/gnome-shell/ui/slider';
+import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
 import { debug } from '@utils/debug';
+import { isCurrentRadioPlaying, parseRadios, writeLog } from '@utils/helpers';
+import type { QuickLofiExtension, Radio } from '@/types';
 import { IndicatorActions } from './IndicatorActions';
+import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
+import Player from './Player';
 
 export default class Indicator extends PanelMenu.Button {
   static {
-    GObject.registerClass(this);
+    GObject.registerClass(Indicator);
   }
   private _indicatorActions: IndicatorActions;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
@@ -24,14 +27,18 @@ export default class Indicator extends PanelMenu.Button {
   private _extension: QuickLofiExtension;
   private _isUpdatingCurrentRadio: boolean = false;
   private mpvPlayer: Player;
+  private _miniPlayer: MiniPLayer;
   public signalsHandlers: Array<{ emitter: any; signalID: number }> = [];
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
+  private _volumeFocusId: number;
+  private _popupSection: PopupMenu.PopupMenuSection;
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
     writeLog({ message: '[Indicator] Initializing indicator', type: 'INFO' });
     this._extension = ext;
     this.mpvPlayer = Player.getInstance();
+    this._miniPlayer = MiniPLayer.getInstance();
     this._icon = new St.Icon({
       gicon: Gio.icon_new_for_string(this._extension.path + ICONS.INDICATOR_DEFAULT),
       iconSize: 20,
@@ -49,13 +56,7 @@ export default class Indicator extends PanelMenu.Button {
     const radios: string[] = this._extension._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
     writeLog({ message: `[Indicator] Creating radios from ${radios.length} entries`, type: 'INFO' });
 
-    this._radios = radios.map((entry: string) => {
-      const parts = entry.split(' - ');
-      const radioName = (parts[0] || '').trim();
-      const radioUrl = (parts[1] || '').trim();
-      const id = (parts[2] || '').trim();
-      return { radioName, radioUrl, id };
-    });
+    this._radios = parseRadios(radios);
     writeLog({ message: `[Indicator] Created ${this._radios.length} radio objects`, type: 'INFO' });
   }
 
@@ -70,6 +71,14 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _bindSettingsChangeEvents(): void {
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.MPV_ARGUMENTS}`, () => {
+        if (this.mpvPlayer.isPlaying()) {
+          Main.notify('QUICK LOFI', 'Settings updated. Restart the radio to apply the new playback arguments.');
+        }
+      }),
+    });
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MPRIS}`, () => {
@@ -118,12 +127,13 @@ export default class Indicator extends PanelMenu.Button {
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.CURRENT_RADIO_PLAYING}`, () => {
-        // stop player if current radio was removed
+        //  NOTE: stop player if current radio was removed
         if (
           this.mpvPlayer.isPlaying() &&
           this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING).length <= 0
         ) {
           this.mpvPlayer.stopPlayer();
+          return;
         }
       }),
     });
@@ -141,7 +151,20 @@ export default class Indicator extends PanelMenu.Button {
     });
     this.signalsHandlers.push({
       emitter: this.mpvPlayer,
-      signalID: this.mpvPlayer.connect('play-state-changed', (sender: Player, isPaused: boolean) => {
+      signalID: this.mpvPlayer.connect('playback-started', (_sender: Player, radioID: string) => {
+        const pos = this._radios.findIndex((radio) => radio.id === radioID);
+        const child = this._popupSection._getMenuItems()[pos] as PopupMenu.PopupImageMenuItem;
+        this._updateIndicatorIcon({ playing: 'playing' });
+        child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
+        child.set_style('font-weight: bold');
+        this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
+        this._activeRadioPopupItem = child;
+        this._miniPlayer.createMiniPlayer(this._popupSection);
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('play-state-changed', (_sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
       }),
@@ -156,9 +179,22 @@ export default class Indicator extends PanelMenu.Button {
         }
         this._updateIndicatorIcon({ playing: 'default' });
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_PLAY));
+        this._miniPlayer.dispose();
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
         this._activeRadioPopupItem.set_style('font-weight: normal');
         this._activeRadioPopupItem = null;
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MINI_PLAYER}`, () => {
+        // check if a radio is playing
+        const enabled = this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER);
+        if (enabled && this.mpvPlayer.isPlaying()) {
+          this._miniPlayer.createMiniPlayer(this._popupSection);
+        } else {
+          this._miniPlayer.dispose();
+        }
       }),
     });
   }
@@ -203,11 +239,6 @@ export default class Indicator extends PanelMenu.Button {
     }
     writeLog({ message: `[Indicator] Starting new radio: ${currentRadio?.radioName}`, type: 'INFO' });
     await this.mpvPlayer.startPlayer(currentRadio);
-    this._updateIndicatorIcon({ playing: 'playing' });
-    child.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
-    child.set_style('font-weight: bold');
-    this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
-    this._activeRadioPopupItem = child;
   }
 
   private _handleButtonClick(): void {
@@ -218,7 +249,7 @@ export default class Indicator extends PanelMenu.Button {
       const mouseBtn = event.get_button() - 1;
       const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
       const action = actions[mouseBtn] as IndicatorActionKey;
-      writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}, type: 'INFO'` });
+      writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}`, type: 'INFO' });
       this._indicatorActions.actions.get(action)?.();
       return Clutter.EVENT_STOP;
     });
@@ -230,9 +261,10 @@ export default class Indicator extends PanelMenu.Button {
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) {}
+      } catch (_e) {}
     });
     this.menuSignals = [];
+    this._miniPlayer.dispose();
     // @ts-expect-error nothing
     this.menu.box.destroy_all_children();
     this._radios = [];
@@ -245,9 +277,53 @@ export default class Indicator extends PanelMenu.Button {
     writeLog({ message: '[Indicator] Creating volume slider', type: 'INFO' });
     const separator = new PopupMenu.PopupSeparatorMenuItem();
     const volumeLevel = this._extension._settings.get_int(SETTINGS_KEYS.VOLUME);
-    const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: false });
+    const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: true, can_focus: true });
     const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
+    volumeSlider.add_style_class_name('volume-slider');
+    volumeSlider.can_focus = true;
+    volumeSlider.accessible_name = 'Volume';
+
+    this.menuSignals.push({
+      emitter: volumePopupItem,
+      signalID: volumePopupItem.connect('key-focus-in', () => {
+        this._volumeFocusId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+          volumeSlider.grab_key_focus();
+          return GLib.SOURCE_REMOVE;
+        });
+      }),
+    });
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('key-focus-in', () => {
+        volumePopupItem.add_style_pseudo_class('selected');
+      }),
+    });
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('key-focus-out', () => {
+        volumePopupItem.remove_style_pseudo_class('selected');
+      }),
+    });
+    this.menuSignals.push({
+      emitter: volumeSlider,
+      signalID: volumeSlider.connect('key-press-event', (_actor, event) => {
+        const symbol = event.get_key_symbol();
+
+        if (symbol === Clutter.KEY_Up) {
+          (this.menu.actor as St.Widget).navigate_focus(volumeSlider, St.DirectionType.UP, false);
+          return Clutter.EVENT_STOP;
+        }
+
+        if (symbol === Clutter.KEY_Down) {
+          (this.menu.actor as St.Widget).navigate_focus(volumeSlider, St.DirectionType.DOWN, false);
+          return Clutter.EVENT_STOP;
+        }
+
+        return Clutter.EVENT_PROPAGATE;
+      }),
+    });
+
     const volumeLabel = new St.Label({ text: `Volume: ${Math.floor(volumeSlider.value * 100)}` });
     this.menuSignals.push({
       emitter: volumeSlider,
@@ -274,8 +350,8 @@ export default class Indicator extends PanelMenu.Button {
 
   private _createMenuItems(): void {
     const scrollView = new St.ScrollView();
-    const popupSection = new PopupMenu.PopupMenuSection();
-    scrollView.add_child(popupSection.actor);
+    this._popupSection = new PopupMenu.PopupMenuSection();
+    scrollView.add_child(this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
     this._radios.forEach((radio) => {
       const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
@@ -299,9 +375,12 @@ export default class Indicator extends PanelMenu.Button {
           this._togglePlayingStatus(item as PopupMenu.PopupImageMenuItem, radio.id, mouseButton);
         }),
       });
-      popupSection.addMenuItem(menuItem);
+      this._popupSection.addMenuItem(menuItem);
     });
-    this._createVolumeSlider(popupSection);
+    this._createVolumeSlider(this._popupSection);
+    if (this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER) && this.mpvPlayer.isPlaying()) {
+      this._miniPlayer.createMiniPlayer(this._popupSection);
+    }
     // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
     this._handlePopupMaxHeight();
@@ -312,13 +391,18 @@ export default class Indicator extends PanelMenu.Button {
     debug('extension disabled');
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.destroy();
+    this._miniPlayer.dispose();
+    if (this._volumeFocusId) {
+      GLib.source_remove(this._volumeFocusId);
+      this._volumeFocusId = null;
+    }
     this.signalsHandlers.forEach(({ emitter, signalID }) => {
       emitter.disconnect(signalID);
     });
     this.menuSignals.forEach(({ emitter, signalID }) => {
       try {
         emitter.disconnect(signalID);
-      } catch (e) {}
+      } catch (_e) {}
     });
     this.signalsHandlers = [];
     this.menuSignals = [];

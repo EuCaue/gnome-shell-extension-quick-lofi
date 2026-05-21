@@ -1,9 +1,9 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import { type Radio } from '@/types';
-import { writeLog } from '@/utils/helpers';
-import type Player from './Player';
+import type { Radio } from '@/types';
 import { ffmpegFormats } from '@/utils/constants';
+import { getExtSettings, writeLog } from '@/utils/helpers';
+import type Player from './Player';
 
 // MPRIS D-Bus interface specification
 const MPRIS_IFACE_XML = `
@@ -19,7 +19,7 @@ const MPRIS_IFACE_XML = `
     <method name="Raise"/>
     <method name="Quit"/>
   </interface>
-  
+
   <interface name="org.mpris.MediaPlayer2.Player">
     <method name="Next"/>
     <method name="Previous"/>
@@ -27,7 +27,15 @@ const MPRIS_IFACE_XML = `
     <method name="PlayPause"/>
     <method name="Stop"/>
     <method name="Play"/>
-    
+    <method name="Seek">
+      <arg direction="in" name="Offset" type="x"/>
+    </method>
+
+    <method name="SetPosition">
+      <arg direction="in" name="TrackId" type="o"/>
+      <arg direction="in" name="Position" type="x"/>
+    </method>
+
     <property name="PlaybackStatus" type="s" access="read"/>
     <property name="Metadata" type="a{sv}" access="read"/>
     <property name="Volume" type="d" access="readwrite"/>
@@ -45,6 +53,7 @@ const MPRIS_IFACE_XML = `
 let _instance: MprisController | null = null;
 export class MprisController {
   private _player: Player;
+  private _settings: Gio.Settings;
   private _ownerId: number = 0;
   private _mprisImplId: number = 0;
   private _playerImplId: number = 0;
@@ -56,6 +65,10 @@ export class MprisController {
   private _enabled: boolean = false;
   private _playStateChangedId: number = 0;
   private _playbackStoppedId: number = 0;
+  private _positionChangedId: number = 0;
+  private _positionSeconds: number = 0;
+  private _seekableChangedId: number = 0;
+  private _canSeek: boolean = false;
 
   static getInstance(player?: Player): MprisController {
     if (!_instance) {
@@ -66,6 +79,7 @@ export class MprisController {
 
   constructor(player?: Player) {
     this._player = player;
+    this._settings = getExtSettings();
     this._nodeInfo = Gio.DBusNodeInfo.new_for_xml(MPRIS_IFACE_XML);
   }
 
@@ -132,23 +146,29 @@ export class MprisController {
         this._handlePlayerSetProperty.bind(this),
       );
 
-      writeLog({ message: 'MPRIS: Interfaces registered successfully', type: 'INFO' });
+      writeLog({
+        message: 'MPRIS: Interfaces registered successfully',
+        type: 'INFO',
+      });
     } catch (e) {
-      writeLog({ message: `MPRIS: Error registering interfaces - ${e}`, type: 'ERROR' });
+      writeLog({
+        message: `MPRIS: Error registering interfaces - ${e}`,
+        type: 'ERROR',
+      });
     }
   }
 
-  private _onNameLost(connection: Gio.DBusConnection, name: string): void {
+  private _onNameLost(_connection: Gio.DBusConnection, name: string): void {
     writeLog({ message: `MPRIS: Name lost - ${name}`, type: 'ERROR' });
   }
 
   private _handleMediaPlayer2MethodCall(
-    connection: Gio.DBusConnection,
-    sender: string,
-    objectPath: string,
-    interfaceName: string,
+    _connection: Gio.DBusConnection,
+    _sender: string,
+    _objectPath: string,
+    _interfaceName: string,
     methodName: string,
-    parameters: GLib.Variant,
+    _parameters: GLib.Variant,
     invocation: Gio.DBusMethodInvocation,
   ): void {
     writeLog({ message: `MPRIS: Method called - ${methodName}`, type: 'INFO' });
@@ -161,10 +181,10 @@ export class MprisController {
   }
 
   private _handleMediaPlayer2GetProperty(
-    connection: Gio.DBusConnection,
-    sender: string,
-    objectPath: string,
-    interfaceName: string,
+    _connection: Gio.DBusConnection,
+    _sender: string,
+    _objectPath: string,
+    _interfaceName: string,
     propertyName: string,
   ): GLib.Variant | null {
     switch (propertyName) {
@@ -180,23 +200,27 @@ export class MprisController {
         return new GLib.Variant('s', '');
       case 'SupportedUriSchemes':
         return new GLib.Variant('as', ['http', 'https', 'file']);
-      case 'SupportedMimeTypes':
+      case 'SupportedMimeTypes': {
         const mimeTypes = Array.from(ffmpegFormats).map((format) => `audio/${format}`);
         return new GLib.Variant('as', mimeTypes);
+      }
     }
     return null;
   }
 
   private _handlePlayerMethodCall(
-    connection: Gio.DBusConnection,
-    sender: string,
-    objectPath: string,
-    interfaceName: string,
+    _connection: Gio.DBusConnection,
+    _sender: string,
+    _objectPath: string,
+    _interfaceName: string,
     methodName: string,
     parameters: GLib.Variant,
     invocation: Gio.DBusMethodInvocation,
   ): void {
-    writeLog({ message: `MPRIS: Player method called - ${methodName}`, type: 'INFO' });
+    writeLog({
+      message: `MPRIS: Player method called - ${methodName}`,
+      type: 'INFO',
+    });
 
     switch (methodName) {
       case 'PlayPause':
@@ -226,21 +250,53 @@ export class MprisController {
         break;
 
       case 'Next':
-      case 'Previous':
-        // Not implemented - would need playlist
+        this._player.next();
         invocation.return_value(null);
         break;
+      case 'Previous':
+        this._player.prev();
+        invocation.return_value(null);
+        break;
+      case 'Seek': {
+        const [offset] = parameters.deep_unpack() as [number];
 
+        if (!this._canSeek) {
+          invocation.return_value(null);
+          break;
+        }
+
+        const offsetSeconds = offset / 1_000_000;
+        const targetPosition = Math.max(0, this._positionSeconds + offsetSeconds);
+
+        this._player.seekTo(targetPosition);
+        invocation.return_value(null);
+        break;
+      }
+
+      case 'SetPosition': {
+        const [_trackId, position] = parameters.deep_unpack() as [string, number];
+
+        if (!this._canSeek) {
+          invocation.return_value(null);
+          break;
+        }
+
+        const seconds = Math.max(0, position / 1_000_000);
+
+        this._player.seekTo(seconds);
+        invocation.return_value(null);
+        break;
+      }
       default:
         invocation.return_error_literal(22, Gio.DBusError.UNKNOWN_METHOD, `Method ${methodName} not implemented`);
     }
   }
 
   private _handlePlayerGetProperty(
-    connection: Gio.DBusConnection,
-    sender: string,
-    objectPath: string,
-    interfaceName: string,
+    _connection: Gio.DBusConnection,
+    _sender: string,
+    _objectPath: string,
+    _interfaceName: string,
     propertyName: string,
   ): GLib.Variant | null {
     switch (propertyName) {
@@ -253,19 +309,19 @@ export class MprisController {
       case 'Metadata':
         return this._buildMetadata();
 
-      case 'Volume':
-        const volume = this._player._settings.get_int('volume') / 100.0;
+      case 'Volume': {
+        const volume = this._settings.get_int('volume') / 100.0;
         return new GLib.Variant('d', volume);
+      }
 
       case 'Position':
-        //  TODO: check if the current radio can do this (it will mostly applies for files)
-        return new GLib.Variant('x', 0); // Radio streams have no position
+        return new GLib.Variant('x', Math.floor(this._positionSeconds * 1_000_000));
 
       case 'CanGoNext':
-        return new GLib.Variant('b', false);
+        return new GLib.Variant('b', true);
 
       case 'CanGoPrevious':
-        return new GLib.Variant('b', false);
+        return new GLib.Variant('b', true);
 
       case 'CanPlay':
         return new GLib.Variant('b', this._currentRadio !== null);
@@ -274,8 +330,7 @@ export class MprisController {
         return new GLib.Variant('b', this._currentRadio !== null);
 
       case 'CanSeek':
-        //  TODO: check if the current radio can do this (it will mostly applies for files)
-        return new GLib.Variant('b', false);
+        return new GLib.Variant('b', this._canSeek);
 
       case 'CanControl':
         return new GLib.Variant('b', true);
@@ -284,18 +339,19 @@ export class MprisController {
   }
 
   private _handlePlayerSetProperty(
-    connection: Gio.DBusConnection,
-    sender: string,
-    objectPath: string,
-    interfaceName: string,
+    _connection: Gio.DBusConnection,
+    _sender: string,
+    _objectPath: string,
+    _interfaceName: string,
     propertyName: string,
     value: GLib.Variant,
   ): boolean {
     switch (propertyName) {
-      case 'Volume':
+      case 'Volume': {
         const volume = Math.round(value.get_double() * 100);
-        this._player._settings.set_int('volume', volume);
+        this._settings.set_int('volume', volume);
         return true;
+      }
     }
     return false;
   }
@@ -399,7 +455,10 @@ export class MprisController {
 
   private _emitPropertiesChanged(properties: string[]): void {
     if (!this._connection) {
-      writeLog({ message: 'MPRIS: Cannot emit - no connection', type: 'ERROR' });
+      writeLog({
+        message: 'MPRIS: Cannot emit - no connection',
+        type: 'ERROR',
+      });
       return;
     }
 
@@ -444,7 +503,10 @@ export class MprisController {
         type: 'INFO',
       });
     } catch (e) {
-      writeLog({ message: `MPRIS: Error emitting signal - ${e}`, type: 'ERROR' });
+      writeLog({
+        message: `MPRIS: Error emitting signal - ${e}`,
+        type: 'ERROR',
+      });
       if (e instanceof Error) {
         logError(e, 'MPRIS Emission Stack');
       }
@@ -470,7 +532,12 @@ export class MprisController {
     if (!this._player) {
       return;
     }
-    if (this._playStateChangedId > 0 || this._playbackStoppedId > 0) {
+    if (
+      this._playStateChangedId > 0 ||
+      this._playbackStoppedId > 0 ||
+      this._positionChangedId > 0 ||
+      this._seekableChangedId > 0
+    ) {
       return;
     }
 
@@ -481,7 +548,17 @@ export class MprisController {
     this._playbackStoppedId = this._player.connect('playback-stopped', () => {
       this._isPaused = false;
       this._currentRadio = null;
-      this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause']);
+      this._positionSeconds = 0;
+      this._canSeek = false;
+      this._emitPropertiesChanged(['Metadata', 'PlaybackStatus', 'CanPlay', 'CanPause', 'CanSeek', 'Position']);
+    });
+    this._positionChangedId = this._player.connect('position-changed', (_player, position: number) => {
+      this._positionSeconds = position;
+      this._emitPropertiesChanged(['Position']);
+    });
+    this._seekableChangedId = this._player.connect('seekable-changed', (_player: any, canSeek: boolean) => {
+      this._canSeek = canSeek;
+      this._emitPropertiesChanged(['CanSeek']);
     });
   }
 
@@ -498,6 +575,15 @@ export class MprisController {
     if (this._playbackStoppedId > 0) {
       this._player.disconnect(this._playbackStoppedId);
       this._playbackStoppedId = 0;
+    }
+
+    if (this._positionChangedId > 0) {
+      this._player.disconnect(this._positionChangedId);
+      this._positionChangedId = 0;
+    }
+    if (this._seekableChangedId > 0) {
+      this._player.disconnect(this._seekableChangedId);
+      this._seekableChangedId = 0;
     }
   }
 

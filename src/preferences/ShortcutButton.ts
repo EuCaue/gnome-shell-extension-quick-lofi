@@ -1,8 +1,8 @@
-import Gtk4 from 'gi://Gtk';
 import Adw from 'gi://Adw';
-import Gio from 'gi://Gio';
 import Gdk from 'gi://Gdk';
+import type Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
+import Gtk4 from 'gi://Gtk';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { writeLog } from '@utils/helpers';
 

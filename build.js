@@ -1,8 +1,9 @@
-import { execSync } from 'child_process';
-import { cpSync, readFileSync, rmSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { execSync } from 'node:child_process';
+import { cpSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import AdmZip from 'adm-zip';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const metadata = JSON.parse(readFileSync('./src/metadata.json', 'utf-8'));
 

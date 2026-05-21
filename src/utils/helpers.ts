@@ -1,7 +1,8 @@
+import type Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
-import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import { SETTINGS_KEYS } from '@utils/constants';
+import type { Radio } from '@/types';
 import { debug } from './debug';
 
 Gio._promisify(Gio.File.prototype, 'append_to_async');
@@ -91,9 +92,37 @@ export function inspectItem(item: object): Record<string, TypeOf> {
     try {
       const type: TypeOf = typeof item[prop];
       inspected[prop] = type;
-    } catch (e) {
+    } catch (_e) {
       inspected[prop] = 'error';
     }
   }
   return inspected;
+}
+
+export function parseRadios(radios?: Array<string>): Array<Radio> {
+  const settings = getExtSettings();
+  const radiosRaw: string[] = radios ?? settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
+  if (!radiosRaw.length) return [];
+  const radiosParsed: Array<Radio> = radiosRaw.map((entry: string) => {
+    const parts = entry.split(' - ');
+    const radioName = (parts[0] || '').trim();
+    const radioUrl = (parts[1] || '').trim();
+    const id = (parts[2] || '').trim();
+    return { radioName, radioUrl, id };
+  });
+  return radiosParsed;
+}
+
+export function findRadio(
+  cb: (radio: Radio, index: number, radios: Array<Radio>, currentRadioPlayingID: string) => Radio | undefined,
+): Radio | undefined {
+  const settings = getExtSettings();
+  const currentRadioPlayingID = settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+  const radios = parseRadios();
+  for (let i = 0; i < radios.length; i++) {
+    const radio = radios[i];
+    const result = cb(radio, i, radios, currentRadioPlayingID);
+    if (result) return result;
+  }
+  return undefined;
 }

@@ -1,6 +1,6 @@
 {
   "name": "quick-lofi",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Relax to lo-fi tunes with just a click.",
   "type": "module",
   "private": true,
@@ -18,9 +18,10 @@
     "run:dev": "npm run install:dev && npm run run:session",
     "run:prod": "npm run install:prod",
     "clean": "rm -rf dist",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write .",
-    "check": "npm run lint || true && npm run typecheck",
+    "lint": "biome lint src build.js",
+    "format": "biome format --write src build.js",
+    "check": "biome check --write src build.js && npm run typecheck",
+    "check:unsafe": "biome check --write --unsafe src build.js && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "release": "npm run check && npm run build:prod && npm run install:prod",
     "radios": "bash ./test-radios.sh"
@@ -37,14 +38,9 @@
   "homepage": "https://github.com/eucaue/gnome-shell-extension-quick-lofi#readme",
   "sideEffects": false,
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
+    "@biomejs/biome": "2.4.15",
     "adm-zip": "^0.5.16",
     "esbuild": "^0.19.12",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.6",
-    "prettier": "^3.5.3",
     "typescript": "^5.8.3"
   },
   "dependencies": {
