@@ -1,11 +1,14 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type Gio from '@girs/gio-2.0';
 import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
+import { debug } from '@/utils/debug';
 import { getExtSettings, writeLog } from '@/utils/helpers';
 import Player from './Player';
 
@@ -13,6 +16,8 @@ export default class MiniPlayer {
   private static _instance: MiniPlayer | null = null;
 
   public currentRadio!: St.Label;
+  public currentPlaylistItem!: St.Label;
+  private _playlistItemTooltip!: St.Label;
   public currentTime!: St.Label;
   public endTime!: St.Label;
   public playIcon!: St.Icon;
@@ -31,6 +36,7 @@ export default class MiniPlayer {
   private _playStateSignalId: number | null = null;
   private _playbackStoppedSignalId: number | null = null;
   private _radioChangedSignalId: number | null = null;
+  private _mediaTitleChangedSignalId: number | null = null;
 
   public static getInstance(): MiniPlayer {
     if (!MiniPlayer._instance) {
@@ -52,7 +58,6 @@ export default class MiniPlayer {
     }
 
     const MINI_PLAYER_ITEM_STYLE = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
-    const CURRENT_RADIO_STYLE = 'font-weight: bold; margin-bottom: 10px;';
     const TIME_BOX_BASE_STYLE = 'padding: 8px; border-radius: 10px;';
     const TIME_BOX_FOCUSED_STYLE = `${TIME_BOX_BASE_STYLE} background-color: rgba(255, 255, 255, 0.1);`;
     const TIME_SLIDER_MARGIN = 'margin-left: 4px; margin-right: 4px;';
@@ -72,12 +77,43 @@ export default class MiniPlayer {
       x_expand: true,
     });
 
-    //  TODO: in playlist mode, show the current playing item name
+    const radioBox = new St.BoxLayout({
+      vertical: true,
+      x_align: Clutter.ActorAlign.CENTER,
+      x_expand: true,
+      style: 'margin-bottom: 6px;',
+    });
+
     this.currentRadio = new St.Label({
       text: this._getCurrentRadioName(),
-      xAlign: Clutter.ActorAlign.CENTER,
-      style: CURRENT_RADIO_STYLE,
+      x_align: Clutter.ActorAlign.CENTER,
+      style: 'font-weight: bold;',
     });
+
+    this.currentPlaylistItem = new St.Label({
+      text: '',
+      x_align: Clutter.ActorAlign.CENTER,
+      x_expand: true,
+      style: 'font-size: 0.75em; opacity: 0.7; max-width: 200px;',
+      hover: true,
+      reactive: true,
+      visible: false,
+    });
+    this.currentPlaylistItem.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+    this.currentPlaylistItem.clutter_text.line_wrap = false;
+
+    this._playlistItemTooltip = this._createTooltip(this.currentPlaylistItem, '');
+
+    this._settings.connect(`changed::${SETTINGS_KEYS.SHOW_MINI_PLAYER_TITLE}`, () => {
+      this._updateTitleVisibility();
+    });
+
+    this._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MINI_PLAYER}`, () => {
+      this._updateTitleVisibility();
+    });
+
+    radioBox.add_child(this.currentRadio);
+    radioBox.add_child(this.currentPlaylistItem);
 
     const timeTrackingBoxWrapper = new St.BoxLayout({
       x_expand: true,
@@ -153,10 +189,10 @@ export default class MiniPlayer {
 
     const controlsBox = new St.BoxLayout({
       vertical: false,
-      marginBottom: 10,
+      marginBottom: 5,
       xAlign: Clutter.ActorAlign.CENTER,
       x_expand: true,
-      style: 'margin-bottom: 20px;',
+      style: 'margin-bottom: 5px;',
     });
 
     const controlsStyle = 'color: inherit; background: transparent; padding: 4px;';
@@ -233,7 +269,7 @@ export default class MiniPlayer {
     controlsBox.add_child(pause);
     controlsBox.add_child(next);
 
-    miniPlayerBoxLayout.add_child(this.currentRadio);
+    miniPlayerBoxLayout.add_child(radioBox);
     miniPlayerBoxLayout.add_child(controlsBox);
     miniPlayerBoxLayout.add_child(timeTrackingBoxWrapper);
 
@@ -314,13 +350,34 @@ export default class MiniPlayer {
       this.endTime.set_text('00:00');
       this.timeTrackingSlider.value = 0;
       this.timeTrackingSlider.set_reactive(false);
+      this._updateTitleVisibility();
     });
 
     this._radioChangedSignalId = this.mpvPlayer.connect('playback-started', (_player, radioName: string) => {
       if (!this._miniPlayerItem) return;
 
       this.currentRadio.set_text(radioName);
+      this._updateTitleVisibility();
     });
+    this._mediaTitleChangedSignalId = this.mpvPlayer.connect('media-title-changed', () => {
+      this._updateTitleVisibility();
+    });
+  }
+
+  private _updateTitleVisibility(): void {
+    if (!this._miniPlayerItem) return;
+
+    const showTitle = this._settings.get_boolean(SETTINGS_KEYS.SHOW_MINI_PLAYER_TITLE);
+    const isMiniPlayerEnabled = this._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER);
+    const mediaTitle = this.mpvPlayer.getProperty<string>('media-title')?.data;
+
+    if (showTitle && isMiniPlayerEnabled && mediaTitle && mediaTitle !== this.currentRadio.get_text()) {
+      this.currentPlaylistItem.set_text(mediaTitle);
+      this._playlistItemTooltip.set_text(mediaTitle);
+      this.currentPlaylistItem.show();
+    } else {
+      this.currentPlaylistItem.hide();
+    }
   }
 
   private _getCurrentRadioName(): string {
@@ -379,6 +436,95 @@ export default class MiniPlayer {
       this.mpvPlayer.disconnect(this._radioChangedSignalId);
       this._radioChangedSignalId = null;
     }
+
+    if (this._mediaTitleChangedSignalId !== null) {
+      this.mpvPlayer.disconnect(this._mediaTitleChangedSignalId);
+      this._mediaTitleChangedSignalId = null;
+    }
+  }
+
+  private _createTooltip(targetWidget: St.Widget, tooltipText: string) {
+    // Usando BoxLayout que renderiza background de forma mais confiável em St
+    const tooltip = new St.BoxLayout({
+      style: [
+        'background-color: #1e1e1e;',
+        'border-width: 1px;',
+        'border-style: solid;',
+        'border-color: rgba(255, 255, 255, 0.2);',
+        'border-radius: 8px;',
+        'padding-top: 6px;',
+        'padding-bottom: 6px;',
+        'padding-left: 12px;',
+        'padding-right: 12px;',
+        'max-width: 210px;',
+      ].join(' '),
+      opacity: 0,
+      visible: false,
+      vertical: true,
+      reactive: false,
+    });
+
+    const label = new St.Label({
+      text: tooltipText,
+      style: 'color: #ffffff; font-size: 10pt;',
+    });
+
+    label.clutter_text.line_wrap = true;
+    label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+    label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+
+    tooltip.add_child(label);
+
+    // Adiciona ao uiGroup que é a camada de overlay global
+    Main.layoutManager.uiGroup.add_child(tooltip);
+
+    targetWidget.reactive = true;
+    targetWidget.track_hover = true;
+
+    const showTooltip = () => {
+      if (!label.text) return;
+
+      const [, _tw] = tooltip.get_preferred_size(); // ← pega o natural width (índice 1)
+      const [, th] = tooltip.get_preferred_height(-1); // ← altura natural
+
+      const [x, y] = targetWidget.get_transformed_position();
+      const [_w] = targetWidget.get_size();
+
+      const posX = Math.round(x);
+      const posY = Math.round(y - th - 6);
+
+      tooltip.set_position(posX, posY);
+
+      // Eleva o tooltip para garantir que fique sobre tudo
+      tooltip.get_parent()?.set_child_above_sibling(tooltip, null);
+
+      tooltip.visible = true;
+      tooltip.ease({
+        opacity: 255,
+        duration: 150,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+      });
+    };
+
+    const hideTooltip = () => {
+      tooltip.ease({
+        opacity: 0,
+        duration: 150,
+        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        onComplete: () => {
+          tooltip.visible = false;
+        },
+      });
+    };
+
+    targetWidget.connect('enter-event', showTooltip);
+    targetWidget.connect('leave-event', hideTooltip);
+    targetWidget.connect('destroy', () => {
+      debug('targetWidget destroyed');
+      tooltip.destroy();
+    });
+
+    return label;
   }
 
   public dispose() {

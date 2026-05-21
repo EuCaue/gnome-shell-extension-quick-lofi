@@ -54,6 +54,17 @@
             </property>
           </object>
         </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="showMiniPlayerTitle">
+            <property name="title" translatable="yes">Show Track Title in Mini Player</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
       </object>
     </child>
 

@@ -98,6 +98,11 @@
       <summary>Enable Mini Player</summary>
       <description>Show a compact player with playback controls and progress in the menu.</description>
     </key>
+    <key name="show-mini-player-title" type="b">
+      <default>true</default>
+      <summary>Show Track Title in Mini Player</summary>
+      <description>Show the currently playing track title in the mini player for playlists.</description>
+    </key>
     <key name="mpv-arguments" type="as">
       <default>
         ['--audio-buffer=0.5','--cache=yes','--cache-secs=30','--demuxer-lavf-o=extension_picky=0','--demuxer-max-bytes=50MiB','--gapless-audio=yes','--loop-playlist=force','--msg-level=all=warn','--no-video','--replaygain=track','--ytdl-format=bestaudio/best','--ytdl-raw-options-add=force-ipv4=']</default>

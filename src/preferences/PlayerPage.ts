@@ -225,6 +225,7 @@ export class PlayerPage extends Adw.PreferencesPage {
           'enableMpris',
           'mpvArguments',
           'enableMiniPlayer',
+          'showMiniPlayerTitle',
           'cookiesFromBrowser',
           'browsers',
           'customCookiesFromBrowser',
@@ -240,6 +241,7 @@ export class PlayerPage extends Adw.PreferencesPage {
   private declare _volumeLevel: Adw.SpinRow;
   private declare _enableMpris: Adw.SwitchRow;
   private declare _enableMiniPlayer: Adw.SwitchRow;
+  private declare _showMiniPlayerTitle: Adw.SwitchRow;
   private declare _mpvArguments: Adw.EntryRow;
   private declare _cookiesFromBrowser: Adw.ComboRow;
   private declare _browsers: Gtk.StringList;
@@ -473,6 +475,20 @@ These are passed directly to the player on startup.
       SETTINGS_KEYS.ENABLE_MINI_PLAYER,
       this._enableMiniPlayer,
       'active',
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+
+    this._settings.bind(
+      SETTINGS_KEYS.SHOW_MINI_PLAYER_TITLE,
+      this._showMiniPlayerTitle,
+      'active',
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+
+    this._settings.bind(
+      SETTINGS_KEYS.ENABLE_MINI_PLAYER,
+      this._showMiniPlayerTitle,
+      'visible',
       Gio.SettingsBindFlags.DEFAULT,
     );
 

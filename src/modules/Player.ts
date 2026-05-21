@@ -31,6 +31,7 @@ export default class Player extends GObject.Object {
           'position-changed': { param_types: [GObject.TYPE_DOUBLE] },
           'duration-changed': { param_types: [GObject.TYPE_DOUBLE] },
           'seekable-changed': { param_types: [GObject.TYPE_BOOLEAN] },
+          'media-title-changed': { param_types: [GObject.TYPE_STRING] },
         },
       },
       this,
@@ -45,6 +46,7 @@ export default class Player extends GObject.Object {
   private _settings: Gio.Settings;
   private _mpris: MprisController | null = null;
   private _positionTimerId: number | null = null;
+  private _lastMediaTitle: string | null = null;
 
   private _canNotifySocketError: boolean = false;
   private _socketNotifyTimerId: number | null = null;
@@ -417,16 +419,23 @@ export default class Player extends GObject.Object {
     this._positionTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
       if (!this._proc) {
         this._positionTimerId = null;
+        this._lastMediaTitle = null;
         return GLib.SOURCE_REMOVE;
       }
 
       const position = this.getProperty<number>('playback-time')?.data ?? 0;
       const duration = this.getProperty<number>('duration')?.data ?? 0;
       const seekable = this.getProperty<boolean>('seekable')?.data ?? false;
+      const mediaTitle = this.getProperty<string>('media-title')?.data ?? null;
 
       this.emit('position-changed', position);
       this.emit('duration-changed', duration);
       this.emit('seekable-changed', seekable);
+
+      if (mediaTitle !== null && mediaTitle !== this._lastMediaTitle) {
+        this._lastMediaTitle = mediaTitle;
+        this.emit('media-title-changed', mediaTitle);
+      }
 
       return GLib.SOURCE_CONTINUE;
     });
