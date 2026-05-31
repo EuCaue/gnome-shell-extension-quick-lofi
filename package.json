@@ -16,7 +16,7 @@
     "install:prod": "npm run build:prod && npm run install",
     "run:session": "env MUTTER_DEBUG_DUMMY_MODE_SPECS=1600x900 dbus-run-session -- gnome-shell --devkit --wayland",
     "run:dev": "npm run install:dev && npm run run:session",
-    "run:prod": "npm run install:prod",
+    "run:prod": "npm run install:prod && npm run run:session",
     "clean": "rm -rf dist",
     "lint": "biome lint src build.js",
     "format": "biome format --write src build.js",
