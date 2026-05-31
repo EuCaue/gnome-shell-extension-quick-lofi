@@ -4,3 +4,4 @@ package-lock.json
 *.zip
 bun.lock
 bun.lockb
+schemas/gschemas.compiled

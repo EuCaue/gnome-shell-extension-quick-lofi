@@ -1,8 +1,8 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import GLib from '@girs/glib-2.0';
-import type Gtk from '@girs/gtk-4.0';
+import type Gtk from 'gi://Gtk';
 import {
   INDICATOR_ACTIONS_NAMES,
   type IndicatorActionKey,
