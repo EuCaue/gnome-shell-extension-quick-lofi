@@ -133,7 +133,7 @@ export class InterfacePage extends Adw.PreferencesPage {
       type: 'INFO',
     });
 
-    this._settings.bind(SETTINGS_KEYS.POPUP_MAX_HEIGHT, this._popupMaxHeightRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.POPUP_MAX_HEIGHT, this._popupMaxHeightRow, 'text', Gio.SettingsBindFlags.GET);
     this._settings.bind(
       SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT,
       this._popupMaxHeightRow,
@@ -147,7 +147,7 @@ export class InterfacePage extends Adw.PreferencesPage {
       Gio.SettingsBindFlags.DEFAULT,
     );
 
-    this._settings.bind(SETTINGS_KEYS.POPUP_MAX_WIDTH, this._popupMaxWidthRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.POPUP_MAX_WIDTH, this._popupMaxWidthRow, 'text', Gio.SettingsBindFlags.GET);
     this._settings.bind(
       SETTINGS_KEYS.SET_POPUP_MAX_WIDTH,
       this._popupMaxWidthRow,
@@ -161,11 +161,11 @@ export class InterfacePage extends Adw.PreferencesPage {
       Gio.SettingsBindFlags.DEFAULT,
     );
 
-    this._settings.bind(SETTINGS_KEYS.POPUP_WIDTH, this._popupWidthRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.POPUP_WIDTH, this._popupWidthRow, 'text', Gio.SettingsBindFlags.GET);
     this._settings.bind(SETTINGS_KEYS.SET_POPUP_WIDTH, this._popupWidthRow, 'visible', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(SETTINGS_KEYS.SET_POPUP_WIDTH, this._setPopupWidthRow, 'active', Gio.SettingsBindFlags.DEFAULT);
 
-    this._settings.bind(SETTINGS_KEYS.POPUP_HEIGHT, this._popupHeightRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.POPUP_HEIGHT, this._popupHeightRow, 'text', Gio.SettingsBindFlags.GET);
     this._settings.bind(SETTINGS_KEYS.SET_POPUP_HEIGHT, this._popupHeightRow, 'visible', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(
       SETTINGS_KEYS.SET_POPUP_HEIGHT,
