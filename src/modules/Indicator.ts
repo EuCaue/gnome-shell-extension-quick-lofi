@@ -11,6 +11,7 @@ import * as Slider from '@girs/gnome-shell/ui/slider';
 import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
 import { debug } from '@utils/debug';
 import { isCurrentRadioPlaying, parseRadios, writeLog } from '@utils/helpers';
+import { buildPopupStyles } from '@utils/popupStyle';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { IndicatorActions } from './IndicatorActions';
 import MiniPLayer from './MiniPlayer';
@@ -66,33 +67,22 @@ export default class Indicator extends PanelMenu.Button {
 
   private _handlePopupSize(): void {
     const settings = this._extension._settings;
-    const maxHeight = settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT)
-      ? settings.get_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT)
-      : 'auto';
-    const maxWidth = settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_WIDTH)
-      ? settings.get_string(SETTINGS_KEYS.POPUP_MAX_WIDTH)
-      : 'auto';
+    const valueIf = (enabledKey: string, valueKey: string): string | null =>
+      settings.get_boolean(enabledKey) ? settings.get_string(valueKey) : null;
 
-    // one write: `style` is a single property, so two assignments would drop the first
+    const styles = buildPopupStyles(
+      {
+        maxWidth: valueIf(SETTINGS_KEYS.SET_POPUP_MAX_WIDTH, SETTINGS_KEYS.POPUP_MAX_WIDTH),
+        maxHeight: valueIf(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT, SETTINGS_KEYS.POPUP_MAX_HEIGHT),
+      },
+      // @ts-expect-error nothing
+      this.menu.actor.style ?? '',
+    );
+    // one write per widget: `style` is a single property, so two assignments would drop the first
     // @ts-expect-error nothing
-    this.menu.box.style = `
-        max-height: ${maxHeight};
-        max-width: ${maxWidth};
-      `;
-
-    // `max-width` only caps the natural width, never the minimum one, so the shell
-    // theme's `min-width: 15em` on `.popup-menu` has to be cleared for the popup to
-    // shrink below it. PanelMenu.Button rewrites this same property with its own
-    // max-height on every open, so that declaration is carried over instead of lost.
+    this.menu.box.style = styles.box;
     // @ts-expect-error nothing
-    const panelMenuStyle: string = this.menu.actor.style ?? '';
-    const maxHeightDeclaration = panelMenuStyle.match(/max-height:[^;]+;/)?.[0] ?? '';
-    // @ts-expect-error nothing
-    this.menu.actor.style = `
-        ${maxHeightDeclaration}
-        min-width: 0;
-        max-width: ${maxWidth};
-      `;
+    this.menu.actor.style = styles.actor;
   }
 
   private _bindSettingsChangeEvents(): void {

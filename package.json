@@ -9,6 +9,7 @@
     "doctor": "bash ./scripts/doctor.sh",
     "setup": "npm run doctor && npm install && npm run build:dev",
     "test:setup": "bash ./scripts/test-setup.sh",
+    "test": "node --test \"tests/**/*.test.ts\"",
     "build": "npm run clean && npm run build:schemas && npm run build:source",
     "build:source": "node build.js",
     "build:schemas": "glib-compile-schemas schemas/",
