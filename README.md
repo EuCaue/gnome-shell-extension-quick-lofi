@@ -74,7 +74,7 @@ sudo zypper install mpv
 ### Manual installation (stable)
 
 > You're installing the latest release, which may not work on older GNOME versions, check the release notes.
-> Requires `Node` and `NPM`.
+> Requires `Node`, `npm`, GLib dev tools and `mpv`. Run `npm run doctor` to see what is missing.
 
 1. Clone the repository:
 
@@ -99,7 +99,7 @@ sudo zypper install mpv
 ### From the `develop` branch (latest, may be unstable)
 
 > Use this if you want the newest features before they hit a release.
-> Requires `Node` and `NPM`.
+> Requires `Node`, `npm`, GLib dev tools and `mpv`. Run `npm run doctor` to see what is missing.
 >
 > ⚠️ The `develop` branch targets the latest GNOME version and **your current version may not be supported**.
 
@@ -129,7 +129,7 @@ sudo zypper install mpv
 
 ## Development
 
-> Requires `Node` and `NPM`.
+> Requires `Node`, `npm`, GLib dev tools and `mpv`. Run `npm run doctor` to see what is missing.
 >
 > Pull requests should be opened against the **`develop`** branch.
 
@@ -148,17 +148,21 @@ Set up a local environment to work on the extension:
    git checkout develop
    ```
 
-3. Install dependencies:
+3. Check system tools, install dependencies and build:
 
    ```bash
-   npm install
+   npm run setup
    ```
 
-4. Build and run the extension in a nested GNOME Wayland session:
+   If something is missing, `doctor` prints the install command for Fedora, Debian/Ubuntu and Arch.
+
+4. Run the extension in a nested GNOME Wayland session:
 
    ```bash
    npm run run:dev
    ```
+
+   On GNOME 49 and newer this uses `gnome-shell --devkit`, which needs `mutter-devkit` (Fedora: `sudo dnf install mutter-devkit`). On GNOME 48 and older it uses `gnome-shell --nested`.
 
 ---
 
