@@ -34,6 +34,7 @@ export default class Indicator extends PanelMenu.Button {
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
   private _volumeFocusId: number;
   private _popupSection: PopupMenu.PopupMenuSection;
+  private _scrollView: St.ScrollView;
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
@@ -74,6 +75,8 @@ export default class Indicator extends PanelMenu.Button {
       {
         maxWidth: valueIf(SETTINGS_KEYS.SET_POPUP_MAX_WIDTH, SETTINGS_KEYS.POPUP_MAX_WIDTH),
         maxHeight: valueIf(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT, SETTINGS_KEYS.POPUP_MAX_HEIGHT),
+        width: valueIf(SETTINGS_KEYS.SET_POPUP_WIDTH, SETTINGS_KEYS.POPUP_WIDTH),
+        height: valueIf(SETTINGS_KEYS.SET_POPUP_HEIGHT, SETTINGS_KEYS.POPUP_HEIGHT),
       },
       // @ts-expect-error nothing
       this.menu.actor.style ?? '',
@@ -83,6 +86,7 @@ export default class Indicator extends PanelMenu.Button {
     this.menu.box.style = styles.box;
     // @ts-expect-error nothing
     this.menu.actor.style = styles.actor;
+    this._scrollView.style = styles.scrollView || null;
   }
 
   private _bindSettingsChangeEvents(): void {
@@ -152,31 +156,21 @@ export default class Indicator extends PanelMenu.Button {
         }
       }),
     });
-    this.signalsHandlers.push({
-      emitter: this._extension._settings,
-      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
-        this._handlePopupSize();
-      }),
-    });
-    this.signalsHandlers.push({
-      emitter: this._extension._settings,
-      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
-        this._handlePopupSize();
-      }),
-    });
-
-    this.signalsHandlers.push({
-      emitter: this._extension._settings,
-      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_WIDTH}`, () => {
-        this._handlePopupSize();
-      }),
-    });
-    this.signalsHandlers.push({
-      emitter: this._extension._settings,
-      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_WIDTH}`, () => {
-        this._handlePopupSize();
-      }),
-    });
+    for (const key of [
+      SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT,
+      SETTINGS_KEYS.POPUP_MAX_HEIGHT,
+      SETTINGS_KEYS.SET_POPUP_MAX_WIDTH,
+      SETTINGS_KEYS.POPUP_MAX_WIDTH,
+      SETTINGS_KEYS.SET_POPUP_WIDTH,
+      SETTINGS_KEYS.POPUP_WIDTH,
+      SETTINGS_KEYS.SET_POPUP_HEIGHT,
+      SETTINGS_KEYS.POPUP_HEIGHT,
+    ]) {
+      this.signalsHandlers.push({
+        emitter: this._extension._settings,
+        signalID: this._extension._settings.connect(`changed::${key}`, () => this._handlePopupSize()),
+      });
+    }
     this.signalsHandlers.push({
       emitter: this.mpvPlayer,
       signalID: this.mpvPlayer.connect('playback-started', (_sender: Player, radioID: string) => {
@@ -377,9 +371,9 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _createMenuItems(): void {
-    const scrollView = new St.ScrollView();
+    this._scrollView = new St.ScrollView();
     this._popupSection = new PopupMenu.PopupMenuSection();
-    scrollView.add_child(this._popupSection.actor);
+    this._scrollView.add_child(this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
     this._radios.forEach((radio) => {
       const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
@@ -413,7 +407,7 @@ export default class Indicator extends PanelMenu.Button {
       this._miniPlayer.createMiniPlayer(this._popupSection);
     }
     // @ts-expect-error nothing
-    this.menu.box.add_child(scrollView);
+    this.menu.box.add_child(this._scrollView);
     this._handlePopupSize();
   }
 

@@ -42,6 +42,30 @@
       <description>This will set the height for the popup</description>
     </key>
 
+    <key name="set-popup-width" type="b">
+      <default>false</default>
+      <summary>Fixed popup width</summary>
+      <description>If enabled, the popup opens at popup-width, still capped by popup-max-width</description>
+    </key>
+
+    <key name="popup-width" type="s">
+      <default>"20em"</default>
+      <summary>Fixed width for Quick Lofi popup</summary>
+      <description>CSS length used when set-popup-width is enabled</description>
+    </key>
+
+    <key name="set-popup-height" type="b">
+      <default>false</default>
+      <summary>Fixed popup height</summary>
+      <description>If enabled, the popup opens at popup-height, still capped by popup-max-height and the screen</description>
+    </key>
+
+    <key name="popup-height" type="s">
+      <default>"13em"</default>
+      <summary>Fixed height for Quick Lofi popup</summary>
+      <description>CSS length used when set-popup-height is enabled</description>
+    </key>
+
     <key name="play-pause-quick-lofi" type="as">
       <default>[]</default>
       <summary>Toggle play/pause for Quick Lofi.</summary>
