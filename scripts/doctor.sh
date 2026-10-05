@@ -49,30 +49,50 @@ for id in $os_ids; do
 done
 
 missing=()
-for c in node npm glib-compile-schemas glib-compile-resources gnome-extensions gnome-shell dbus-run-session mpv; do
-  command -v "$c" >/dev/null || { echo "missing: $c"; missing+=("$c"); }
+row_missing() {
+  row "$SYM_NO" "$1" "${RED}not found${RESET}"
+  missing+=("$1")
+}
+
+for c in node npm glib-compile-schemas glib-compile-resources gnome-extensions dbus-run-session mpv; do
+  command -v "$c" >/dev/null && row "$SYM_OK" "$c" || row_missing "$c"
 done
 
 # GNOME 49 replaced `gnome-shell --nested` with `--devkit`, used by npm run run:dev.
 major=$(gnome_major)
-if [[ -n "$major" ]] && ((major >= 49)) && ! has_devkit; then
-  echo "missing: mutter-devkit (needed by npm run run:dev on GNOME $major)"
-  missing+=(mutter-devkit)
+if command -v gnome-shell >/dev/null; then
+  if [[ -n "$major" ]]; then
+    row "$SYM_OK" gnome-shell "${DIM}gnome $major${RESET}"
+  else
+    row "$SYM_NO" gnome-shell "${RED}could not read version${RESET}"
+    missing+=(gnome-shell)
+  fi
+else
+  row_missing gnome-shell
+fi
+if [[ -n "$major" ]] && ((major >= 49)); then
+  if has_devkit; then
+    row "$SYM_OK" mutter-devkit
+  else
+    row "$SYM_NO" mutter-devkit "${RED}required on gnome ≥ 49${RESET}"
+    missing+=(mutter-devkit)
+  fi
 fi
 
 for c in jq gsettings; do
-  command -v "$c" >/dev/null || echo "optional: $c (only for npm run radios)"
+  command -v "$c" >/dev/null || row "$SYM_OPT" "$c" "${DIM}optional — only for bun run radios${RESET}"
 done
 
 if ((${#missing[@]} == 0)); then
-  echo "All required tools found"
+  printf '\n  %b everything ready — run it with %b\n' "$SYM_OK" "${BOLD}bun run run:dev${RESET}"
   exit 0
 fi
 
+printf '\n  %b %d missing — install with:\n' "$SYM_NO" "${#missing[@]}"
 if [[ -n "$pm" ]]; then
-  to_install=$(for c in "${missing[@]}"; do echo "${pkgs[$c]}"; done | sort -u | tr '\n' ' ')
-  echo "Run: $pm ${to_install% }"
+  to_install=$(for c in "${missing[@]}"; do echo "${pkgs[$c]}"; done | sort -u)
+  printf '    %s\n' "${pm} ${to_install// / }"
 else
-  echo "Install the missing tools with your package manager."
+  printf '    install them with your package manager.\n'
 fi
 exit 1

@@ -5,9 +5,9 @@ set -euo pipefail
 dir="$(dirname "${BASH_SOURCE[0]}")"
 source "$dir/lib.sh"
 
-# Prints the reason, then doctor's install command for this distro.
+# Prints the reason on one line, then doctor's checklist with the install command.
 fail() {
-  echo "$1" >&2
+  printf '\n  %b %s\n' "$SYM_NO" "$1" >&2
   "$BASH" "$dir/doctor.sh" >&2 || true
   exit 1
 }
@@ -15,12 +15,12 @@ fail() {
 command -v gnome-shell >/dev/null || fail "gnome-shell not found."
 
 version=$(gnome-shell --version 2>&1) || {
-  echo "gnome-shell --version failed: $version" >&2
+  printf '  %b gnome-shell --version failed:\n    %s\n' "$SYM_NO" "$version" >&2
   exit 1
 }
 major=$(gnome_major)
 if [[ -z "$major" ]]; then
-  echo "Could not detect GNOME Shell version from: $version" >&2
+  printf '  %b could not detect gnome version from "%s"\n' "$SYM_NO" "$version" >&2
   exit 1
 fi
 
@@ -38,5 +38,6 @@ cmd=(env MUTTER_DEBUG_DUMMY_MODE_SPECS=1600x900 dbus-run-session -- gnome-shell 
 if [[ "${QL_DRY_RUN:-}" == 1 ]]; then
   echo "${cmd[@]}"
 else
+  printf '  %b starting nested session on gnome %s (%s)…\n' "$SYM_OPT" "$major" "$mode"
   exec "${cmd[@]}"
 fi

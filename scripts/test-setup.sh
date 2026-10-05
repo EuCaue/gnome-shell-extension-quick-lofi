@@ -85,7 +85,7 @@ fake_bin dbus-run-session 'echo dbus-run-session "$@"'
 fake_bin gnome-shell 'echo "garbage"'
 out=$(QL_DRY_RUN=1 run_with_fakes "$ROOT/scripts/run-session.sh")
 code=$?
-assert_contains "$out" "Could not detect GNOME Shell version"
+assert_contains "$out" "could not detect gnome version"
 assert_code $code 1 "bad version should exit 1"
 
 fake_bin gnome-shell 'echo "broken lib" >&2; exit 1'
@@ -108,27 +108,27 @@ fake_bin gnome-shell 'echo "GNOME Shell 48.2"'
 
 out=$(QL_OS_ID=fedora run_with_fakes "$ROOT/scripts/doctor.sh")
 code=$?
-assert_contains "$out" "All required tools found"
+assert_contains "$out" "everything ready"
 assert_code $code 0 "doctor should pass when all present on GNOME 48"
 
 rm "$FAKE/glib-compile-resources"
 out=$(QL_OS_ID=fedora run_with_fakes "$ROOT/scripts/doctor.sh")
 code=$?
-assert_contains "$out" "missing: glib-compile-resources"
-assert_contains "$out" "Run: sudo dnf install glib2-devel"
+assert_contains "$out" "✗ glib-compile-resources"
+assert_contains "$out" "sudo dnf install glib2-devel"
 assert_code $code 1 "doctor should fail when tool missing"
 
 out=$(QL_OS_ID=ubuntu run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "Run: sudo apt install libglib2.0-dev-bin"
+assert_contains "$out" "sudo apt install libglib2.0-dev-bin"
 
 out=$(QL_OS_ID=arch run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "Run: sudo pacman -S glib2"
+assert_contains "$out" "sudo pacman -S glib2"
 
 out=$(QL_OS_ID=opensuse-tumbleweed run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "Run: sudo zypper install glib2-devel"
+assert_contains "$out" "sudo zypper install glib2-devel"
 
 out=$(QL_OS_ID=somethingelse run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "Install the missing tools with your package manager"
+assert_contains "$out" "install them with your package manager"
 
 # Derivatives resolve through ID_LIKE.
 fake_os_release 'ID=linuxmint' 'ID_LIKE="ubuntu debian"'
@@ -150,15 +150,15 @@ assert_contains "$out" "sudo zypper install"
 # Atomic Fedora (Silverblue, Kinoite) can't use dnf on the host.
 touch "$FAKE/ostree-booted"
 out=$(QL_OS_ID=fedora QL_OSTREE_BOOTED="$FAKE/ostree-booted" run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "Run: rpm-ostree install glib2-devel"
+assert_contains "$out" "rpm-ostree install glib2-devel"
 
 # SLES says ID_LIKE=suse, but openSUSE package names don't apply there.
 out=$(QL_OS_ID="sles suse" run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "Install the missing tools with your package manager"
+assert_contains "$out" "install them with your package manager"
 
 out=$(QL_OS_RELEASE="$FAKE/no-os-release" run_with_fakes "$ROOT/scripts/doctor.sh")
-assert_contains "$out" "missing: glib-compile-resources"
-assert_contains "$out" "Install the missing tools with your package manager"
+assert_contains "$out" "✗ glib-compile-resources"
+assert_contains "$out" "install them with your package manager"
 fake_bin glib-compile-resources 'true'
 
 # mutter-devkit is required from GNOME 49.
@@ -166,9 +166,15 @@ fake_bin gnome-shell 'echo "GNOME Shell 50.5"'
 for os in fedora:mutter-devkit debian:mutter-dev-bin arch:mutter-devkit opensuse-tumbleweed:mutter; do
   out=$(QL_OS_ID="${os%%:*}" run_with_fakes "$ROOT/scripts/doctor.sh")
   code=$?
-  assert_contains "$out" "missing: mutter-devkit"
-  run_line=$(grep '^Run:' <<<"$out" || true)
-  [[ "$run_line" == *" ${os#*:}" ]] || { echo "FAIL: expected Run line ending in '${os#*:}', got: $run_line"; FAILS=$((FAILS + 1)); }
+  assert_contains "$out" "✗ mutter-devkit"
+  pm="${os%%:*}"
+  case "$pm" in
+  fedora) want="sudo dnf install ${os#*:}" ;;
+  debian) want="sudo apt install ${os#*:}" ;;
+  arch) want="sudo pacman -S ${os#*:}" ;;
+  *) want="sudo zypper install ${os#*:}" ;;
+  esac
+  assert_contains "$out" "$want"
   assert_code $code 1 "doctor should fail without devkit on GNOME 50 (${os%%:*})"
 done
 
@@ -183,7 +189,7 @@ rm "$FAKE/jq"
 fake_bin gnome-shell 'echo "GNOME Shell 48.2"'
 out=$(QL_OS_ID=fedora run_with_fakes "$ROOT/scripts/doctor.sh")
 code=$?
-assert_contains "$out" "optional: jq"
+assert_contains "$out" "– jq"
 assert_code $code 0 "optional missing should not fail"
 
 if [[ $FAILS -eq 0 ]]; then echo "All setup tests passed"; else echo "$FAILS failure(s)"; exit 1; fi
