@@ -8,17 +8,19 @@ Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_
 const MPV_TIMEOUT_SECONDS = 10;
 const YTDLP_TIMEOUT_SECONDS = 15;
 
-async function run(argv: string[], timeoutSeconds: number): Promise<string> {
+async function run(argv: string[], timeoutSeconds: number): Promise<{ stdout: string; timedOut: boolean }> {
   const proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE);
+  let timedOut = false;
   const timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, timeoutSeconds, () => {
+    timedOut = true;
     proc.force_exit();
     return GLib.SOURCE_REMOVE;
   });
   try {
     const [stdout] = await proc.communicate_utf8_async(null, null);
-    return stdout ?? '';
+    return { stdout: stdout ?? '', timedOut };
   } finally {
-    GLib.Source.remove(timer);
+    if (!timedOut) GLib.Source.remove(timer);
   }
 }
 
@@ -31,10 +33,11 @@ export async function detectRadioName(source: string, cookiesFromBrowser: string
   let icyName = '';
   let mediaTitle = '';
   let ytTitle = '';
+  let unreachable = false;
 
   try {
     // --ytdl=no keeps this fast: ICY and file tags come from ffmpeg directly.
-    const mpvOut = await run(
+    const mpv = await run(
       [
         'mpv',
         '--no-config',
@@ -47,7 +50,9 @@ export async function detectRadioName(source: string, cookiesFromBrowser: string
       ],
       MPV_TIMEOUT_SECONDS,
     );
-    const probe = parseMpvProbe(mpvOut);
+    // A source that didn't answer mpv won't answer yt-dlp either; don't wait twice.
+    unreachable = mpv.timedOut;
+    const probe = parseMpvProbe(mpv.stdout);
     icyName = probe?.icyName ?? '';
     mediaTitle = probe?.mediaTitle ?? '';
   } catch (e) {
@@ -55,7 +60,7 @@ export async function detectRadioName(source: string, cookiesFromBrowser: string
   }
 
   const ytdlp = GLib.find_program_in_path('yt-dlp');
-  if (!icyName && ytdlp && /^https?:\/\//i.test(path)) {
+  if (!icyName && !unreachable && ytdlp && /^https?:\/\//i.test(path)) {
     const [browser, cookiesValue] = cookiesFromBrowser.split(' - ');
     const cookiesArgs = browser !== 'None' && cookiesValue ? ['--cookies-from-browser', cookiesValue] : [];
     try {
@@ -73,7 +78,7 @@ export async function detectRadioName(source: string, cookiesFromBrowser: string
         ],
         YTDLP_TIMEOUT_SECONDS,
       );
-      ytTitle = out.split('\n')[0]?.trim() ?? '';
+      ytTitle = out.stdout.split('\n')[0]?.trim() ?? '';
       if (ytTitle === 'NA') ytTitle = '';
     } catch (e) {
       writeLog({ message: `[probeRadioName] yt-dlp probe failed: ${e}`, type: 'WARN' });
