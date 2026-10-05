@@ -3,7 +3,7 @@ SCHEMA_DIR="$HOME/.local/share/gnome-shell/extensions/quick-lofi@eucaue/schemas"
 SCHEMA="org.gnome.shell.extensions.quick-lofi"
 RADIO_KEY="radios"
 ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-RADIOS_JSON="./radios-test.json"
+RADIOS_JSON="$(dirname "$0")/../radios-test.json"
 TEST_ID_PREFIX="TEST"
 
 BOLD="\e[1m"

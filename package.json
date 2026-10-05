@@ -27,7 +27,7 @@
     "check:unsafe": "biome check --write --unsafe src build.js && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "release": "npm run check && npm run build:prod && npm run install:prod",
-    "radios": "bash ./test-radios.sh"
+    "radios": "bash ./scripts/test-radios.sh"
   },
   "repository": {
     "type": "git",
