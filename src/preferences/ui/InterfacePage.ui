@@ -63,6 +63,28 @@
             <property name="show-apply-button">true</property>
           </object>
         </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="setPopupMaxWidthRow">
+            <property name="title" translatable="yes">Limit popup Width</property>
+            <property name="subtitle" translatable="yes">Enable to set a maximum width for the popup.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="popupMaxWidthRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title" translatable="yes">Popup maximum width</property>
+            <property name="text">26em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+          </object>
+        </child>
       </object>
     </child>
 

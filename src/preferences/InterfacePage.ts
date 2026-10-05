@@ -20,6 +20,8 @@ export class InterfacePage extends Adw.PreferencesPage {
         InternalChildren: [
           'setPopupMaxHeightRow',
           'popupMaxHeightRow',
+          'setPopupMaxWidthRow',
+          'popupMaxWidthRow',
           'leftClickActionList',
           'middleClickActionList',
           'rightClickActionList',
@@ -35,6 +37,8 @@ export class InterfacePage extends Adw.PreferencesPage {
 
   private declare _setPopupMaxHeightRow: Adw.SwitchRow;
   private declare _popupMaxHeightRow: Adw.EntryRow;
+  private declare _setPopupMaxWidthRow: Adw.SwitchRow;
+  private declare _popupMaxWidthRow: Adw.EntryRow;
   private declare _leftClickActionList: Gtk.StringList;
   private declare _middleClickActionList: Gtk.StringList;
   private declare _rightClickActionList: Gtk.StringList;
@@ -46,24 +50,29 @@ export class InterfacePage extends Adw.PreferencesPage {
   private _indicatorActionsSettings: IndicatorActionKey[];
 
   _handleApplyPopup(w: Adw.EntryRow): void {
+    // row id maps to its settings key: popupMaxHeightRow -> popup-max-height
+    const key = w
+      .get_buildable_id()
+      .replace(/Row$/, '')
+      .replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
     const VALID_CSS_TYPES: Array<string> = ['px', 'pt', 'em', 'ex', 'rem', 'pc', 'in', 'cm', 'mm'];
     const regex = new RegExp(`^\\d+(\\.\\d+)?(${VALID_CSS_TYPES.join('|')})$`);
-    writeLog({ message: `[InterfacePage] Validating popup height: ${w.text}`, type: 'INFO' });
+    writeLog({ message: `[InterfacePage] Validating ${key}: ${w.text}`, type: 'INFO' });
 
     if (!regex.test(w.text)) {
-      const defaultValue = this._settings.get_default_value(SETTINGS_KEYS.POPUP_MAX_HEIGHT).get_string()[0];
+      const defaultValue = this._settings.get_default_value(key).get_string()[0];
       writeLog({
         message: `[InterfacePage] Invalid CSS value "${w.text}", reverting to default: ${defaultValue}`,
         type: 'WARN',
       });
       handleErrorRow(w, 'Invalid CSS value');
       w.set_text(defaultValue);
-      this._settings.set_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT, defaultValue);
+      this._settings.set_string(key, defaultValue);
       return;
     }
 
-    writeLog({ message: `[InterfacePage] Setting popup max height to: ${w.text}`, type: 'INFO' });
-    this._settings.set_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT, w.text);
+    writeLog({ message: `[InterfacePage] Setting ${key} to: ${w.text}`, type: 'INFO' });
+    this._settings.set_string(key, w.text);
   }
 
   private _handleIndicatorActions() {
@@ -129,6 +138,21 @@ export class InterfacePage extends Adw.PreferencesPage {
       'active',
       Gio.SettingsBindFlags.DEFAULT,
     );
+
+    this._settings.bind(SETTINGS_KEYS.POPUP_MAX_WIDTH, this._popupMaxWidthRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(
+      SETTINGS_KEYS.SET_POPUP_MAX_WIDTH,
+      this._popupMaxWidthRow,
+      'visible',
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+    this._settings.bind(
+      SETTINGS_KEYS.SET_POPUP_MAX_WIDTH,
+      this._setPopupMaxWidthRow,
+      'active',
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+
     this._settings.bind(SETTINGS_KEYS.ENABLE_DEBUG, this._enableDebug, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._enableDebug.set_subtitle(
       `When enabled, app activity is logged to /tmp/quick-lofi-${GLib.get_user_name()}.log.`,

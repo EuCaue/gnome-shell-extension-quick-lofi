@@ -24,6 +24,18 @@
       <description>If enabled, it will make the popup have a max height</description>
     </key>
 
+    <key name="popup-max-width" type="s">
+      <default>"26em"</default>
+      <summary>Width for Quick Lofi popup</summary>
+      <description>This will set the width for the popup</description>
+    </key>
+
+    <key name="set-popup-max-width" type="b">
+      <default>true</default>
+      <summary>Overflow quick lofi popup</summary>
+      <description>If enabled, it will make the popup have a max width</description>
+    </key>
+
     <key name="popup-max-height" type="s">
       <default>"13em"</default>
       <summary>Height for Quick Lofi popup</summary>

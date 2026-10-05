@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
@@ -47,6 +48,9 @@ export default class Indicator extends PanelMenu.Button {
     this.add_child(this._icon);
     this._createMenu();
     this._bindSettingsChangeEvents();
+    // runs after PanelMenu.Button's own handler, which resets `menu.actor.style`
+    // @ts-expect-error nothing
+    this.menu.connect('open-state-changed', () => this._handlePopupSize());
     this._indicatorActions = new IndicatorActions(this.menu, this._extension);
     this._handleButtonClick();
     writeLog({ message: '[Indicator] Indicator initialized successfully', type: 'INFO' });
@@ -60,13 +64,34 @@ export default class Indicator extends PanelMenu.Button {
     writeLog({ message: `[Indicator] Created ${this._radios.length} radio objects`, type: 'INFO' });
   }
 
-  private _handlePopupMaxHeight(): void {
-    const isPopupMaxHeightSet = this._extension._settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT);
-    const popupMaxHeight = this._extension._settings.get_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT);
-    const styleString = isPopupMaxHeightSet ? popupMaxHeight : 'auto';
+  private _handlePopupSize(): void {
+    const settings = this._extension._settings;
+    const maxHeight = settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT)
+      ? settings.get_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT)
+      : 'auto';
+    const maxWidth = settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_WIDTH)
+      ? settings.get_string(SETTINGS_KEYS.POPUP_MAX_WIDTH)
+      : 'auto';
+
+    // one write: `style` is a single property, so two assignments would drop the first
     // @ts-expect-error nothing
     this.menu.box.style = `
-        max-height: ${styleString};
+        max-height: ${maxHeight};
+        max-width: ${maxWidth};
+      `;
+
+    // `max-width` only caps the natural width, never the minimum one, so the shell
+    // theme's `min-width: 15em` on `.popup-menu` has to be cleared for the popup to
+    // shrink below it. PanelMenu.Button rewrites this same property with its own
+    // max-height on every open, so that declaration is carried over instead of lost.
+    // @ts-expect-error nothing
+    const panelMenuStyle: string = this.menu.actor.style ?? '';
+    const maxHeightDeclaration = panelMenuStyle.match(/max-height:[^;]+;/)?.[0] ?? '';
+    // @ts-expect-error nothing
+    this.menu.actor.style = `
+        ${maxHeightDeclaration}
+        min-width: 0;
+        max-width: ${maxWidth};
       `;
   }
 
@@ -140,13 +165,26 @@ export default class Indicator extends PanelMenu.Button {
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
-        this._handlePopupMaxHeight();
+        this._handlePopupSize();
       }),
     });
     this.signalsHandlers.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
-        this._handlePopupMaxHeight();
+        this._handlePopupSize();
+      }),
+    });
+
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_WIDTH}`, () => {
+        this._handlePopupSize();
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this._extension._settings,
+      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_WIDTH}`, () => {
+        this._handlePopupSize();
       }),
     });
     this.signalsHandlers.push({
@@ -361,6 +399,9 @@ export default class Indicator extends PanelMenu.Button {
           isRadioPlaying && isPaused.data ? ICONS.POPUP_PAUSE : isRadioPlaying ? ICONS.POPUP_STOP : ICONS.POPUP_PLAY,
         ),
       );
+      // without ellipsizing, the label's minimum width is the full radio name, and a
+      // minimum width is never capped by `max-width`
+      menuItem.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
       if (isRadioPlaying) {
         menuItem.set_style('font-weight: bold');
         this._activeRadioPopupItem = menuItem;
@@ -383,7 +424,7 @@ export default class Indicator extends PanelMenu.Button {
     }
     // @ts-expect-error nothing
     this.menu.box.add_child(scrollView);
-    this._handlePopupMaxHeight();
+    this._handlePopupSize();
   }
 
   public dispose(): void {
