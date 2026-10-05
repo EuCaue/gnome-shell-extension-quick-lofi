@@ -8,7 +8,10 @@ if ! command -v gnome-shell >/dev/null; then
   exit 1
 fi
 
-version=$(gnome-shell --version)
+version=$(gnome-shell --version 2>&1) || {
+  echo "gnome-shell --version failed: $version" >&2
+  exit 1
+}
 major=$(echo "$version" | grep -oE '[0-9]+' | head -n1 || true)
 if [[ -z "$major" ]]; then
   echo "Could not detect GNOME Shell version from: $version" >&2
@@ -16,8 +19,13 @@ if [[ -z "$major" ]]; then
 fi
 
 if ((major >= 49)); then
-  devkit="${QL_DEVKIT_PATH:-/usr/libexec/mutter-devkit}"
-  if [[ ! -x "$devkit" ]] && ! command -v mutter-devkit >/dev/null; then
+  # Arch installs libexec binaries under /usr/lib.
+  devkit_found=false
+  for d in ${QL_DEVKIT_PATH:-/usr/libexec/mutter-devkit /usr/lib/mutter-devkit}; do
+    [[ -x "$d" ]] && devkit_found=true
+  done
+  command -v mutter-devkit >/dev/null && devkit_found=true
+  if [[ "$devkit_found" == false ]]; then
     echo "GNOME $major needs mutter-devkit for the nested session." >&2
     echo "Fedora: sudo dnf install mutter-devkit" >&2
     echo "Other distros: install the package that ships mutter-devkit, or run: npm run doctor" >&2

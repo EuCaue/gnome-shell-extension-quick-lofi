@@ -54,6 +54,12 @@ code=$?
 assert_contains "$out" "Could not detect GNOME Shell version"
 [[ $code -ne 0 ]] || { echo "FAIL: bad version should exit non-zero"; FAILS=$((FAILS + 1)); }
 
+fake_bin gnome-shell 'echo "broken lib" >&2; exit 1'
+out=$(QL_DRY_RUN=1 run_with_fakes "$ROOT/scripts/run-session.sh")
+code=$?
+assert_contains "$out" "gnome-shell --version failed"
+[[ $code -ne 0 ]] || { echo "FAIL: failing --version should exit non-zero"; FAILS=$((FAILS + 1)); }
+
 rm "$FAKE/gnome-shell"
 out=$(QL_DRY_RUN=1 run_with_fakes "$ROOT/scripts/run-session.sh")
 code=$?
@@ -83,6 +89,10 @@ assert_contains "$out" "sudo apt install"
 assert_contains "$out" "libglib2.0-dev-bin"
 
 out=$(QL_OS_ID=somethingelse run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "Install the missing tools with your package manager"
+
+out=$(QL_OS_RELEASE="$FAKE/no-os-release" run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "missing: glib-compile-resources"
 assert_contains "$out" "Install the missing tools with your package manager"
 
 rm "$FAKE/jq"

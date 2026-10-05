@@ -2,7 +2,7 @@
 # Checks the system tools needed to build and run the extension.
 set -euo pipefail
 
-os_id="${QL_OS_ID:-$(. /etc/os-release 2>/dev/null && echo "${ID:-}")}"
+os_id="${QL_OS_ID:-$(. "${QL_OS_RELEASE:-/etc/os-release}" 2>/dev/null && echo "${ID:-}" || true)}"
 
 declare -A fedora=(
   [node]=nodejs [npm]=npm [glib-compile-schemas]=glib2-devel [glib-compile-resources]=glib2-devel
