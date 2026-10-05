@@ -1,7 +1,6 @@
 node_modules
 dist
 package-lock.json
-*.zip
-bun.lock
 bun.lockb
+*.zip
 schemas/gschemas.compiled

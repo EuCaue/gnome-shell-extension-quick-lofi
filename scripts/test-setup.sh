@@ -60,4 +60,36 @@ code=$?
 assert_contains "$out" "gnome-shell not found"
 [[ $code -ne 0 ]] || { echo "FAIL: missing gnome-shell should exit non-zero"; FAILS=$((FAILS + 1)); }
 
+# --- doctor.sh ---
+for c in node npm glib-compile-schemas glib-compile-resources gnome-extensions gnome-shell dbus-run-session mpv jq gsettings; do
+  fake_bin "$c" 'true'
+done
+
+out=$(QL_OS_ID=fedora run_with_fakes "$ROOT/scripts/doctor.sh")
+code=$?
+assert_contains "$out" "All required tools found"
+[[ $code -eq 0 ]] || { echo "FAIL: doctor should pass when all present"; FAILS=$((FAILS + 1)); }
+
+rm "$FAKE/glib-compile-resources"
+out=$(QL_OS_ID=fedora run_with_fakes "$ROOT/scripts/doctor.sh")
+code=$?
+assert_contains "$out" "missing: glib-compile-resources"
+assert_contains "$out" "sudo dnf install"
+assert_contains "$out" "glib2-devel"
+[[ $code -ne 0 ]] || { echo "FAIL: doctor should fail when tool missing"; FAILS=$((FAILS + 1)); }
+
+out=$(QL_OS_ID=ubuntu run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "sudo apt install"
+assert_contains "$out" "libglib2.0-dev-bin"
+
+out=$(QL_OS_ID=somethingelse run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "Install the missing tools with your package manager"
+
+rm "$FAKE/jq"
+fake_bin glib-compile-resources 'true'
+out=$(QL_OS_ID=fedora run_with_fakes "$ROOT/scripts/doctor.sh")
+code=$?
+assert_contains "$out" "optional: jq"
+[[ $code -eq 0 ]] || { echo "FAIL: optional missing should not fail"; FAILS=$((FAILS + 1)); }
+
 if [[ $FAILS -eq 0 ]]; then echo "All setup tests passed"; else echo "$FAILS failure(s)"; exit 1; fi
