@@ -45,7 +45,7 @@ assert_code() {
 
 # Never touches the host's /usr/libexec or /usr/lib unless a test says so.
 run_with_fakes() {
-  PATH="$FAKE:$FAKE/sys" QL_DEVKIT_PATH="${QL_DEVKIT_PATH:-$FAKE/no-devkit}" "$BASH_BIN" "$@" 2>&1
+  PATH="$FAKE:$FAKE/sys" QL_OSTREE_BOOTED="${QL_OSTREE_BOOTED:-$FAKE/no-ostree}" QL_DEVKIT_PATH="${QL_DEVKIT_PATH:-$FAKE/no-devkit}" "$BASH_BIN" "$@" 2>&1
 }
 
 # --- run-session.sh ---
@@ -142,6 +142,19 @@ assert_contains "$out" "sudo pacman -S"
 fake_os_release 'ID="opensuse-leap"' 'ID_LIKE="suse opensuse"'
 out=$(QL_OS_RELEASE="$FAKE/os-release" run_with_fakes "$ROOT/scripts/doctor.sh")
 assert_contains "$out" "sudo zypper install"
+
+# Falls back to the next os-release file when the first is missing.
+out=$(QL_OS_RELEASE="$FAKE/no-os-release $FAKE/os-release" run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "sudo zypper install"
+
+# Atomic Fedora (Silverblue, Kinoite) can't use dnf on the host.
+touch "$FAKE/ostree-booted"
+out=$(QL_OS_ID=fedora QL_OSTREE_BOOTED="$FAKE/ostree-booted" run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "Run: rpm-ostree install glib2-devel"
+
+# SLES says ID_LIKE=suse, but openSUSE package names don't apply there.
+out=$(QL_OS_ID="sles suse" run_with_fakes "$ROOT/scripts/doctor.sh")
+assert_contains "$out" "Install the missing tools with your package manager"
 
 out=$(QL_OS_RELEASE="$FAKE/no-os-release" run_with_fakes "$ROOT/scripts/doctor.sh")
 assert_contains "$out" "missing: glib-compile-resources"

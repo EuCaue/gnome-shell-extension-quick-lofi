@@ -4,7 +4,12 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 # ID first, then ID_LIKE, so derivatives (Mint, Manjaro, Leap) resolve to their base.
-os_ids="${QL_OS_ID:-$(. "${QL_OS_RELEASE:-/etc/os-release}" 2>/dev/null && echo "${ID:-} ${ID_LIKE:-}" || true)}"
+# /usr/lib/os-release is the fallback some containers ship instead of /etc.
+os_release=""
+for f in ${QL_OS_RELEASE:-/etc/os-release /usr/lib/os-release}; do
+  [[ -r "$f" ]] && { os_release="$f"; break; }
+done
+os_ids="${QL_OS_ID:-$([[ -n "$os_release" ]] && . "$os_release" 2>/dev/null && echo "${ID:-} ${ID_LIKE:-}" || true)}"
 
 declare -A fedora=(
   [node]=nodejs [npm]=npm [glib-compile-schemas]=glib2-devel [glib-compile-resources]=glib2-devel
@@ -30,10 +35,14 @@ declare -A opensuse=(
 pm=""
 for id in $os_ids; do
   case "$id" in
-    fedora) pm="sudo dnf install"; declare -n pkgs=fedora ;;
+    fedora)
+      # Atomic variants (Silverblue, Kinoite) layer packages with rpm-ostree.
+      if [[ -e "${QL_OSTREE_BOOTED:-/run/ostree-booted}" ]]; then pm="rpm-ostree install"; else pm="sudo dnf install"; fi
+      declare -n pkgs=fedora
+      ;;
     debian | ubuntu) pm="sudo apt install"; declare -n pkgs=debian ;;
     arch) pm="sudo pacman -S"; declare -n pkgs=arch ;;
-    opensuse* | suse) pm="sudo zypper install"; declare -n pkgs=opensuse ;;
+    opensuse*) pm="sudo zypper install"; declare -n pkgs=opensuse ;;
     *) continue ;;
   esac
   break
