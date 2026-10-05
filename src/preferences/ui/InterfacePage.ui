@@ -61,6 +61,22 @@
             <property name="text">10em</property>
             <property name="visible">true</property>
             <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
 
@@ -83,13 +99,29 @@
             <property name="text">26em</property>
             <property name="visible">true</property>
             <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
 
         <child>
           <object class="AdwSwitchRow" id="setPopupWidthRow">
             <property name="title" translatable="yes">Fixed popup width</property>
-            <property name="subtitle" translatable="yes">Open the popup at this width. The width limit still applies.</property>
+            <property name="subtitle" translatable="yes">Open the popup at this width.</property>
             <property name="cursor">
               <object class="GdkCursor">
                 <property name="name">pointer</property>
@@ -105,13 +137,29 @@
             <property name="text">20em</property>
             <property name="visible">true</property>
             <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
 
         <child>
           <object class="AdwSwitchRow" id="setPopupHeightRow">
             <property name="title" translatable="yes">Fixed popup height</property>
-            <property name="subtitle" translatable="yes">Open the popup at this height. Content scrolls inside it. The height limit still applies.</property>
+            <property name="subtitle" translatable="yes">Open the popup at this height.</property>
             <property name="cursor">
               <object class="GdkCursor">
                 <property name="name">pointer</property>
@@ -127,6 +175,22 @@
             <property name="text">13em</property>
             <property name="visible">true</property>
             <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
       </object>
