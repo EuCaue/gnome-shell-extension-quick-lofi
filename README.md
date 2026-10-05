@@ -162,8 +162,6 @@ Set up a local environment to work on the extension:
    npm run run:dev
    ```
 
-   On GNOME 49 and newer this uses `gnome-shell --devkit`, which needs `mutter-devkit` (package `mutter-devkit` on Fedora and Arch, `mutter-dev-bin` on Debian/Ubuntu, included in `mutter` on openSUSE). `npm run doctor` checks for it. On GNOME 48 and older it uses `gnome-shell --nested`.
-
 ---
 
 ## Troubleshooting
