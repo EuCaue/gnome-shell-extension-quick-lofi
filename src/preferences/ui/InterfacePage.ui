@@ -85,6 +85,50 @@
             <property name="show-apply-button">true</property>
           </object>
         </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="setPopupWidthRow">
+            <property name="title" translatable="yes">Fixed popup width</property>
+            <property name="subtitle" translatable="yes">Open the popup at this width. The width limit still applies.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="popupWidthRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title" translatable="yes">Popup width</property>
+            <property name="text">20em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="setPopupHeightRow">
+            <property name="title" translatable="yes">Fixed popup height</property>
+            <property name="subtitle" translatable="yes">Open the popup at this height. Content scrolls inside it. The height limit still applies.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="popupHeightRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title" translatable="yes">Popup height</property>
+            <property name="text">13em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+          </object>
+        </child>
       </object>
     </child>
 

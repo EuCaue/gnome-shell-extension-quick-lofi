@@ -22,6 +22,10 @@ export class InterfacePage extends Adw.PreferencesPage {
           'popupMaxHeightRow',
           'setPopupMaxWidthRow',
           'popupMaxWidthRow',
+          'setPopupWidthRow',
+          'popupWidthRow',
+          'setPopupHeightRow',
+          'popupHeightRow',
           'leftClickActionList',
           'middleClickActionList',
           'rightClickActionList',
@@ -39,6 +43,10 @@ export class InterfacePage extends Adw.PreferencesPage {
   private declare _popupMaxHeightRow: Adw.EntryRow;
   private declare _setPopupMaxWidthRow: Adw.SwitchRow;
   private declare _popupMaxWidthRow: Adw.EntryRow;
+  private declare _setPopupWidthRow: Adw.SwitchRow;
+  private declare _popupWidthRow: Adw.EntryRow;
+  private declare _setPopupHeightRow: Adw.SwitchRow;
+  private declare _popupHeightRow: Adw.EntryRow;
   private declare _leftClickActionList: Gtk.StringList;
   private declare _middleClickActionList: Gtk.StringList;
   private declare _rightClickActionList: Gtk.StringList;
@@ -59,7 +67,7 @@ export class InterfacePage extends Adw.PreferencesPage {
     const regex = new RegExp(`^\\d+(\\.\\d+)?(${VALID_CSS_TYPES.join('|')})$`);
     writeLog({ message: `[InterfacePage] Validating ${key}: ${w.text}`, type: 'INFO' });
 
-    if (!regex.test(w.text)) {
+    if (!regex.test(w.text) || Number.parseFloat(w.text) <= 0) {
       const defaultValue = this._settings.get_default_value(key).get_string()[0];
       writeLog({
         message: `[InterfacePage] Invalid CSS value "${w.text}", reverting to default: ${defaultValue}`,
@@ -149,6 +157,19 @@ export class InterfacePage extends Adw.PreferencesPage {
     this._settings.bind(
       SETTINGS_KEYS.SET_POPUP_MAX_WIDTH,
       this._setPopupMaxWidthRow,
+      'active',
+      Gio.SettingsBindFlags.DEFAULT,
+    );
+
+    this._settings.bind(SETTINGS_KEYS.POPUP_WIDTH, this._popupWidthRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.SET_POPUP_WIDTH, this._popupWidthRow, 'visible', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.SET_POPUP_WIDTH, this._setPopupWidthRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+    this._settings.bind(SETTINGS_KEYS.POPUP_HEIGHT, this._popupHeightRow, 'text', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(SETTINGS_KEYS.SET_POPUP_HEIGHT, this._popupHeightRow, 'visible', Gio.SettingsBindFlags.DEFAULT);
+    this._settings.bind(
+      SETTINGS_KEYS.SET_POPUP_HEIGHT,
+      this._setPopupHeightRow,
       'active',
       Gio.SettingsBindFlags.DEFAULT,
     );
