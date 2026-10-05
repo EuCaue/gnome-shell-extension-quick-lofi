@@ -68,3 +68,10 @@ test('result is always at least 2 characters', () => {
   assert.equal(pickRadioName({ source: 'https://x.io/', icyName: ' ' }), 'x.io');
   assert.equal(pickRadioName({ source: '/m/a.mp3' }), 'Radio');
 });
+
+test('sanitize leaves no " - " behind, even overlapping or trailing', () => {
+  for (const raw of ['a - - b', 'Chill - - Radio', 'Lofi -', 'Lofi\t-', ' - Lofi']) {
+    const stored = `${sanitizeRadioName(raw)} - http://u - ID`;
+    assert.equal(stored.split(' - ').length, 3, `${JSON.stringify(raw)} -> ${JSON.stringify(stored)}`);
+  }
+});

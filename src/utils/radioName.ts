@@ -43,7 +43,10 @@ export function fallbackRadioName(source: string): string {
 
 // " - " separates name, url and id in the `radios` setting.
 export function sanitizeRadioName(name: string): string {
-  return name.replace(/\s+/g, ' ').trim().replaceAll(' - ', ' – ');
+  return name
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/ -(?= |$)/g, ' –');
 }
 
 export function pickRadioName(input: {
