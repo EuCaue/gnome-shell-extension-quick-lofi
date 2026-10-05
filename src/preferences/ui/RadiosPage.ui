@@ -16,7 +16,7 @@
         <property name="title" translatable="yes">Add a New Radio</property>
         <child>
           <object class="AdwEntryRow" id="nameRadioRow">
-            <property name="title" translatable="yes">Name</property>
+            <property name="title" translatable="yes">Name (optional)</property>
           </object>
         </child>
 

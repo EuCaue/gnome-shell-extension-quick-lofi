@@ -7,9 +7,12 @@ import Gtk4 from 'gi://Gtk';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { ffmpegFormats, SETTINGS_KEYS } from '@utils/constants';
 import { generateNanoIdWithSymbols, handleErrorRow, isUri, writeLog } from '@utils/helpers';
+import { sanitizeRadioName } from '@utils/radioName';
+import { detectRadioName } from './probeRadioName';
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
+  private _isDetectingName = false;
   static {
     GObject.registerClass(
       {
@@ -164,15 +167,17 @@ export class RadiosPage extends Adw.PreferencesPage {
 
       nameRadioRow.connect('apply', (w) => {
         const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
-        if (w.text.length < 2) {
+        const newName = sanitizeRadioName(w.text);
+        if (newName.length < 2) {
           writeLog({ message: '[RadiosPage] Radio name too short (min 2 characters)', type: 'WARN' });
           handleErrorRow(w, 'Name must be at least 2 characters');
           const originalRadioName: string = this._radios[index].split(' - ')[0].trim();
           w.set_text(originalRadioName);
           return;
         }
-        this._updateRadio(index, 'radioName', w.text);
-        radiosExpander.set_title(w.text);
+        this._updateRadio(index, 'radioName', newName);
+        w.set_text(newName);
+        radiosExpander.set_title(newName);
       });
       urlRadioRow.connect('apply', (w) => {
         const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
@@ -324,10 +329,12 @@ export class RadiosPage extends Adw.PreferencesPage {
     }
     return false;
   }
-  private _handleAddRadio(): void {
+  private async _handleAddRadio(): Promise<void> {
+    if (this._isDetectingName) return;
     writeLog({ message: `[RadiosPage] Attempting to add radio: ${this._nameRadioRow.text}`, type: 'INFO' });
 
-    if (this._nameRadioRow.text.length < 2) {
+    const typedName = sanitizeRadioName(this._nameRadioRow.text);
+    if (typedName.length === 1) {
       writeLog({ message: '[RadiosPage] Radio name too short (min 2 characters)', type: 'WARN' });
       handleErrorRow(this._nameRadioRow, 'Name must be at least 2 characters');
       return;
@@ -343,8 +350,27 @@ export class RadiosPage extends Adw.PreferencesPage {
       return;
     }
 
-    this._addRadio(this._nameRadioRow.text, this._urlRadioRow.text);
-    writeLog({ message: `[RadiosPage] Successfully added radio: ${this._nameRadioRow.text}`, type: 'INFO' });
+    let name = typedName;
+    if (!name) {
+      this._isDetectingName = true;
+      this._nameRadioRow.set_sensitive(false);
+      this._urlRadioRow.set_sensitive(false);
+      this._nameRadioRow.set_title(_('Detecting name…'));
+      try {
+        name = await detectRadioName(
+          this._urlRadioRow.text,
+          this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+        );
+      } finally {
+        this._nameRadioRow.set_title(_('Name (optional)'));
+        this._nameRadioRow.set_sensitive(true);
+        this._urlRadioRow.set_sensitive(true);
+        this._isDetectingName = false;
+      }
+    }
+
+    this._addRadio(name, this._urlRadioRow.text);
+    writeLog({ message: `[RadiosPage] Successfully added radio: ${name}`, type: 'INFO' });
     this._nameRadioRow.set_text('');
     this._urlRadioRow.set_text('');
     this._reloadRadios(this._radiosGroup);
