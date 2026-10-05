@@ -330,6 +330,15 @@ export class RadiosPage extends Adw.PreferencesPage {
     return false;
   }
   private async _handleAddRadio(): Promise<void> {
+    // Called from a GtkBuilder signal and a key controller, which both drop the promise.
+    try {
+      await this._addRadioFromForm();
+    } catch (e) {
+      logError(e, '[RadiosPage] Failed to add radio');
+    }
+  }
+
+  private async _addRadioFromForm(): Promise<void> {
     if (this._isDetectingName) return;
     writeLog({ message: `[RadiosPage] Attempting to add radio: ${this._nameRadioRow.text}`, type: 'INFO' });
 
