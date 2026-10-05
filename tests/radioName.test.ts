@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fallbackRadioName, parseMpvProbe, pickRadioName, sanitizeRadioName } from '../src/utils/radioName.ts';
+
+// GJS has no global URL, so the module must work without it.
+delete (globalThis as { URL?: unknown }).URL;
+const { fallbackRadioName, parseMpvProbe, pickRadioName, sanitizeRadioName } = await import(
+  '../src/utils/radioName.ts'
+);
 
 test('parseMpvProbe reads the playing message', () => {
   const out = 'AO: [null] 44100Hz\nQLNAME\x1fHunter.FM - O Canal Lo-Fi\x1flofi_high\nExiting...\n';
