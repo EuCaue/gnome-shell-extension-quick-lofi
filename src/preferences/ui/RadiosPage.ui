@@ -23,6 +23,22 @@
         <child>
           <object class="AdwEntryRow" id="urlRadioRow">
             <property name="title" translatable="yes">Source</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <signal name="clicked" handler="_handleSelectFile" swapped="no" />
+                <property name="icon-name">folder-open-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Choose a file</property>
+                <property name="valign">center</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
 

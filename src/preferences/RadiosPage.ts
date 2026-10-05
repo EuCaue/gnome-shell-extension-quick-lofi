@@ -10,6 +10,8 @@ import { generateNanoIdWithSymbols, handleErrorRow, isUri, writeLog } from '@uti
 import { sanitizeRadioName } from '@utils/radioName';
 import { detectRadioName } from './probeRadioName';
 
+Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
+
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<string> = [];
   private _isDetectingName = false;
@@ -383,6 +385,30 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._nameRadioRow.set_text('');
     this._urlRadioRow.set_text('');
     this._reloadRadios(this._radiosGroup);
+  }
+
+  // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.
+  async _handleSelectFile(): Promise<void> {
+    const mediaFilter = new Gtk4.FileFilter({ name: _('Audio and video') });
+    mediaFilter.add_mime_type('audio/*');
+    mediaFilter.add_mime_type('video/*');
+    const allFilter = new Gtk4.FileFilter({ name: _('All files') });
+    allFilter.add_pattern('*');
+    const filters = new Gio.ListStore({ item_type: Gtk4.FileFilter.$gtype });
+    filters.append(mediaFilter);
+    filters.append(allFilter);
+
+    const dialog = new Gtk4.FileDialog({ title: _('Choose a file'), filters, default_filter: mediaFilter });
+    try {
+      // The cast works around duplicate @girs Gtk types; at runtime this is a Gtk.Window.
+      const file = await dialog.open(this._window as unknown as Gtk4.Window, null);
+      const path = file?.get_path();
+      if (path) this._urlRadioRow.set_text(path);
+    } catch (e) {
+      if (!(e instanceof GLib.Error && e.matches(Gtk4.DialogError, Gtk4.DialogError.DISMISSED))) {
+        logError(e, '[RadiosPage] Failed to choose a file');
+      }
+    }
   }
 
   private _enableAddRadioOnEnter(): void {
