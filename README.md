@@ -154,7 +154,7 @@ Set up a local environment to work on the extension:
    npm run setup
    ```
 
-   If something is missing, `doctor` prints the install command for Fedora, Debian/Ubuntu and Arch.
+   If something is missing, `doctor` prints the install command for Fedora, Debian/Ubuntu, Arch, openSUSE and distros based on them.
 
 4. Run the extension in a nested GNOME Wayland session:
 
@@ -162,7 +162,7 @@ Set up a local environment to work on the extension:
    npm run run:dev
    ```
 
-   On GNOME 49 and newer this uses `gnome-shell --devkit`, which needs `mutter-devkit` (Fedora: `sudo dnf install mutter-devkit`). On GNOME 48 and older it uses `gnome-shell --nested`.
+   On GNOME 49 and newer this uses `gnome-shell --devkit`, which needs `mutter-devkit` (package `mutter-devkit` on Fedora and Arch, `mutter-dev-bin` on Debian/Ubuntu, included in `mutter` on openSUSE). `npm run doctor` checks for it. On GNOME 48 and older it uses `gnome-shell --nested`.
 
 ---
 

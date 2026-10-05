@@ -2,35 +2,32 @@
 # Opens a nested GNOME Shell session for testing the extension.
 # GNOME 49 replaced `--nested` with `--devkit`, which needs the mutter-devkit binary.
 set -euo pipefail
+dir="$(dirname "${BASH_SOURCE[0]}")"
+source "$dir/lib.sh"
 
-if ! command -v gnome-shell >/dev/null; then
-  echo "gnome-shell not found. Run: npm run doctor" >&2
+# Prints the reason, then doctor's install command for this distro.
+fail() {
+  echo "$1" >&2
+  "$BASH" "$dir/doctor.sh" >&2 || true
   exit 1
-fi
+}
+
+command -v gnome-shell >/dev/null || fail "gnome-shell not found."
 
 version=$(gnome-shell --version 2>&1) || {
   echo "gnome-shell --version failed: $version" >&2
   exit 1
 }
-major=$(echo "$version" | grep -oE '[0-9]+' | head -n1 || true)
+major=$(gnome_major)
 if [[ -z "$major" ]]; then
   echo "Could not detect GNOME Shell version from: $version" >&2
   exit 1
 fi
 
+command -v dbus-run-session >/dev/null || fail "dbus-run-session not found."
+
 if ((major >= 49)); then
-  # Arch installs libexec binaries under /usr/lib.
-  devkit_found=false
-  for d in ${QL_DEVKIT_PATH:-/usr/libexec/mutter-devkit /usr/lib/mutter-devkit}; do
-    [[ -x "$d" ]] && devkit_found=true
-  done
-  command -v mutter-devkit >/dev/null && devkit_found=true
-  if [[ "$devkit_found" == false ]]; then
-    echo "GNOME $major needs mutter-devkit for the nested session." >&2
-    echo "Fedora: sudo dnf install mutter-devkit" >&2
-    echo "Other distros: install the package that ships mutter-devkit, or run: npm run doctor" >&2
-    exit 1
-  fi
+  has_devkit || fail "GNOME $major needs mutter-devkit for the nested session."
   mode="--devkit"
 else
   mode="--nested"
