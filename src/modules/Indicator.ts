@@ -13,10 +13,12 @@ import { debug, writeLog } from '@/shared/log';
 import { findRadioById, parseRadios } from '@/shared/radios';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { IndicatorActions } from './IndicatorActions';
+import { buildIndicatorStatus } from './IndicatorStatus';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
 import { buildPopupStyles } from './PopupStyle';
+import { createTooltip } from './Tooltip';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -35,6 +37,8 @@ export default class Indicator extends PanelMenu.Button {
   private _volumeFocusId: number;
   private _popupSection: PopupMenu.PopupMenuSection;
   private _scrollView: St.ScrollView;
+  private _statusLabel: St.Label;
+  private _playback = { paused: false, position: 0, duration: 0 };
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
@@ -48,11 +52,21 @@ export default class Indicator extends PanelMenu.Button {
       styleClass: 'system-status-icon indicator-icon',
     });
     this.add_child(this._icon);
+    const statusTooltip = createTooltip(this, {
+      placement: 'below',
+      // the menu opens right below the icon, where the tooltip would cover it
+      // @ts-expect-error nothing
+      shouldShow: () => !this.menu.isOpen,
+    });
+    this._statusLabel = statusTooltip.label;
     this._createMenu();
     this._bindSettingsChangeEvents();
     // runs after PanelMenu.Button's own handler, which resets `menu.actor.style`
     // @ts-expect-error nothing
-    this.menu.connect('open-state-changed', () => this._handlePopupSize());
+    this.menu.connect('open-state-changed', (_menu, open: boolean) => {
+      this._handlePopupSize();
+      if (open) statusTooltip.hide();
+    });
     this._indicatorActions = new IndicatorActions(this.menu, this._extension);
     this._handleButtonClick();
     writeLog({ message: '[Indicator] Indicator initialized successfully', type: 'INFO' });
@@ -176,6 +190,8 @@ export default class Indicator extends PanelMenu.Button {
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
         this._activeRadioPopupItem = child;
         this._miniPlayer.createMiniPlayer(this._popupSection);
+        this._playback = { paused: false, position: 0, duration: 0 };
+        this._updateStatus();
       }),
     });
     this.signalsHandlers.push({
@@ -183,6 +199,21 @@ export default class Indicator extends PanelMenu.Button {
       signalID: this.mpvPlayer.connect('play-state-changed', (_sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
+        this._playback.paused = isPaused;
+        this._updateStatus();
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('position-changed', (_sender: Player, position: number) => {
+        this._playback.position = position;
+        this._updateStatus();
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('duration-changed', (_sender: Player, duration: number) => {
+        this._playback.duration = duration;
       }),
     });
     this.signalsHandlers.push({
@@ -199,6 +230,7 @@ export default class Indicator extends PanelMenu.Button {
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
         this._activeRadioPopupItem.set_style('font-weight: normal');
         this._activeRadioPopupItem = null;
+        this._updateStatus();
       }),
     });
     this.signalsHandlers.push({
@@ -213,6 +245,12 @@ export default class Indicator extends PanelMenu.Button {
         }
       }),
     });
+  }
+
+  private _updateStatus(): void {
+    const radioID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+    const radioName = this.mpvPlayer.isPlaying() ? (findRadioById(this._radios, radioID)?.radioName ?? null) : null;
+    this._statusLabel.set_text(buildIndicatorStatus({ radioName, ...this._playback }));
   }
 
   private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
@@ -286,6 +324,7 @@ export default class Indicator extends PanelMenu.Button {
     this._radios = [];
     this._createRadios();
     this._createMenuItems();
+    this._updateStatus();
     writeLog({ message: '[Indicator] Menu created successfully', type: 'INFO' });
   }
 
