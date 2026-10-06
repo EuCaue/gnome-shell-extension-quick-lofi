@@ -5,15 +5,18 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk4 from 'gi://Gtk';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { ffmpegFormats, SETTINGS_KEYS } from '@utils/constants';
-import { generateNanoIdWithSymbols, handleErrorRow, isUri, writeLog } from '@utils/helpers';
-import { sanitizeRadioName } from '@utils/radioName';
-import { detectRadioName } from './probeRadioName';
+import { detectRadioName } from '@/preferences/RadioNameProbe';
+import { isPlayable, isUri } from '@/preferences/RadioSource';
+import { handleErrorRow } from '@/preferences/RowError';
+import { SETTINGS_KEYS } from '@/shared/constants';
+import { writeLog } from '@/shared/log';
+import { createRadio, formatRadios, parseRadios, sanitizeRadioName } from '@/shared/radios';
+import type { Radio } from '@/types';
 
 Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
 
 export class RadiosPage extends Adw.PreferencesPage {
-  private _radios: Array<string> = [];
+  private _radios: Array<Radio> = [];
   private _isDetectingName = false;
   static {
     GObject.registerClass(
@@ -32,16 +35,9 @@ export class RadiosPage extends Adw.PreferencesPage {
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
     if (index !== -1) {
       const radio = this._radios[index];
-      const [radioName, radioUrl, radioID] = radio.split(' - ');
-      writeLog({ message: `[RadiosPage] Updating radio ${field}: ${radioName} -> ${content}`, type: 'INFO' });
-
-      if (field === 'radioUrl') {
-        this._radios[index] = `${radioName} - ${content} - ${radioID}`;
-      }
-      if (field === 'radioName') {
-        this._radios[index] = `${content} - ${radioUrl} - ${radioID}`;
-      }
-      this._settings.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
+      writeLog({ message: `[RadiosPage] Updating radio ${field}: ${radio.radioName} -> ${content}`, type: 'INFO' });
+      this._radios[index] = { ...radio, [field]: content };
+      this._saveRadios();
       return true;
     }
 
@@ -49,15 +45,18 @@ export class RadiosPage extends Adw.PreferencesPage {
     return false;
   }
   private _removeRadio(index: number, radioID: string) {
-    const removedRadio = this._radios[index];
-    this._radios.splice(index, 1);
-    writeLog({ message: `[RadiosPage] Removed radio at index ${index}: ${removedRadio}`, type: 'INFO' });
+    const [removedRadio] = this._radios.splice(index, 1);
+    writeLog({ message: `[RadiosPage] Removed radio at index ${index}: ${removedRadio?.radioName}`, type: 'INFO' });
 
     if (radioID === this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING)) {
       writeLog({ message: `[RadiosPage] Stopped playback of removed radio: ${radioID}`, type: 'INFO' });
       this._settings?.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     }
-    this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
+    this._saveRadios();
+  }
+
+  private _saveRadios(): void {
+    this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, formatRadios(this._radios));
   }
 
   private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
@@ -67,7 +66,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     let dragIndex: number = -1;
     listBox.add_controller(dropTarget);
     for (let i = 0; i < this._radios.length; i++) {
-      const [radioName, radioUrl, radioID] = this._radios[i].split(' - ');
+      const { radioName, radioUrl, id: radioID } = this._radios[i];
       const radiosExpander = new Adw.ExpanderRow({
         title: _(radioName),
         use_markup: false,
@@ -168,13 +167,12 @@ export class RadiosPage extends Adw.PreferencesPage {
       });
 
       nameRadioRow.connect('apply', (w) => {
-        const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
+        const index: number = this._radios.findIndex((radio) => radio.id === radioID);
         const newName = sanitizeRadioName(w.text);
         if (newName.length < 2) {
           writeLog({ message: '[RadiosPage] Radio name too short (min 2 characters)', type: 'WARN' });
           handleErrorRow(w, 'Name must be at least 2 characters');
-          const originalRadioName: string = this._radios[index].split(' - ')[0].trim();
-          w.set_text(originalRadioName);
+          w.set_text(this._radios[index].radioName);
           return;
         }
         this._updateRadio(index, 'radioName', newName);
@@ -182,12 +180,11 @@ export class RadiosPage extends Adw.PreferencesPage {
         radiosExpander.set_title(newName);
       });
       urlRadioRow.connect('apply', (w) => {
-        const index: number = this._radios.findIndex((entry) => entry.endsWith(radioID));
-        if (this._isPlayable({ uri: w.text }) === false) {
+        const index: number = this._radios.findIndex((radio) => radio.id === radioID);
+        if (!isPlayable(w.text)) {
           writeLog({ message: `[RadiosPage] Invalid URL or PATH for radio update: ${w.text}`, type: 'WARN' });
           handleErrorRow(urlRadioRow, 'Invalid URL or PATH.');
-          const originalRadioUrl: string = this._radios[index].split(' - ')[1].trim();
-          w.set_text(originalRadioUrl);
+          w.set_text(this._radios[index].radioUrl);
           return;
         }
         this._updateRadio(index, 'radioUrl', w.text);
@@ -270,7 +267,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       targetRow.set_state_flags(Gtk4.StateFlags.NORMAL, true);
       listBox.remove(dragedExpanderRow as unknown as Gtk4.Widget);
       listBox.insert(dragedExpanderRow as unknown as Gtk4.Widget, targetIndex);
-      this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
+      this._saveRadios();
       return true;
     });
   }
@@ -290,46 +287,10 @@ export class RadiosPage extends Adw.PreferencesPage {
     writeLog({ message: '[RadiosPage] Radios list reloaded', type: 'INFO' });
   }
   private _addRadio(radioName: string, radioUrl: string): void {
-    const radioID = generateNanoIdWithSymbols(10);
-    writeLog({ message: `[RadiosPage] Generated radio ID: ${radioID} for ${radioName}`, type: 'INFO' });
-    this._radios.push(`${radioName} - ${radioUrl} - ${radioID}`);
-    this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, this._radios);
-  }
-  private _isPlayable({ uri }: { uri: string }): boolean {
-    if (uri.trim() === '') return false;
-    if (isUri(uri)) return true;
-    let path: string = uri;
-    if (path.startsWith('~')) {
-      path = GLib.get_home_dir() + path.slice(1);
-    }
-    const filepath: Gio.File = Gio.File.new_for_path(path);
-    if (!filepath) return false;
-    const basename: string[] = filepath.get_basename().split('.');
-    const ext: string = basename[basename.length - 1];
-    const filepathUri: string = filepath.get_uri();
-
-    try {
-      const fileUri: Gio.File = Gio.File.new_for_uri(filepathUri);
-      const fileInfo: Gio.FileInfo = fileUri.query_info('standard::*,access::*', Gio.FileQueryInfoFlags.NONE, null);
-
-      if (!ffmpegFormats.has(ext) && !fileInfo.get_content_type().match(/^video|^audio/)) {
-        return false;
-      }
-      const fileType: Gio.FileType = fileInfo.get_file_type();
-      const isFileReadable: boolean = fileInfo.get_attribute_boolean('access::can-read');
-
-      if (
-        isFileReadable &&
-        (fileType === Gio.FileType.REGULAR ||
-          fileType === Gio.FileType.SYMBOLIC_LINK ||
-          fileType === Gio.FileType.SPECIAL)
-      ) {
-        return true;
-      }
-    } catch (_e) {
-      return false;
-    }
-    return false;
+    const radio: Radio = createRadio(radioName, radioUrl);
+    writeLog({ message: `[RadiosPage] Generated radio ID: ${radio.id} for ${radio.radioName}`, type: 'INFO' });
+    this._radios.push(radio);
+    this._saveRadios();
   }
   private async _handleAddRadio(): Promise<void> {
     // Called from a GtkBuilder signal and a key controller, which both drop the promise.
@@ -355,7 +316,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       handleErrorRow(this._urlRadioRow, 'URL cannot be empty.');
       return;
     }
-    if (this._isPlayable({ uri: this._urlRadioRow.text }) === false) {
+    if (!isPlayable(this._urlRadioRow.text)) {
       writeLog({ message: `[RadiosPage] Invalid radio URL or path: ${this._urlRadioRow.text}`, type: 'WARN' });
       handleErrorRow(this._urlRadioRow, 'Invalid URL or PATH.');
       return;
@@ -436,7 +397,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   ) {
     super();
     writeLog({ message: '[RadiosPage] Initializing radios preferences page', type: 'INFO' });
-    this._radios = this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
+    this._radios = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
     writeLog({ message: `[RadiosPage] Loaded ${this._radios.length} radios from settings`, type: 'INFO' });
     this._populateRadios(this._radiosGroup);
     this._enableAddRadioOnEnter();

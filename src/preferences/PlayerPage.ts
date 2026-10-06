@@ -4,11 +4,12 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
-import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
-import { handleErrorRow, writeLog } from '@utils/helpers';
+import { handleErrorRow } from '@/preferences/RowError';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
+import { SETTINGS_KEYS, SHORTCUTS } from '@/shared/constants';
+import { debug, writeLog } from '@/shared/log';
+import { formatCookiesFromBrowser, parseCookiesFromBrowser } from '@/shared/settings';
 import type { Shortcut } from '@/types';
-import { debug } from '@/utils/debug';
 
 const BROWSER_YTDLP: Array<string> = [
   'brave',
@@ -368,7 +369,8 @@ These are passed directly to the player on startup.
       this._cookiesFromBrowserInfo.set_visible(true);
       return;
     }
-    const currentBrowser = this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[0];
+    const currentCookies = parseCookiesFromBrowser(this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER));
+    const currentBrowser = currentCookies.browser;
 
     const availableBrowsers: Array<Browser> = Gio.AppInfo.get_all()
       .filter((app) => {
@@ -418,9 +420,7 @@ These are passed directly to the player on startup.
           this._cookiesFromBrowser.set_selected(parseInt(index, 10));
           if (browser.name === 'Other') {
             this._customCookiesFromBrowser.set_visible(true);
-            this._customCookiesFromBrowser.set_text(
-              this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER).split(' - ')[1],
-            );
+            this._customCookiesFromBrowser.set_text(currentCookies.value);
           }
           break;
         }
@@ -432,7 +432,7 @@ These are passed directly to the player on startup.
     this._cookiesFromBrowser.connect('notify::selected', (row) => {
       const browserIdx = row.get_selected();
       const selectedBrowser = availableBrowsers[browserIdx];
-      const value = `${selectedBrowser.name} - ${selectedBrowser.ytdlp}`;
+      const value = formatCookiesFromBrowser({ browser: selectedBrowser.name, value: selectedBrowser.ytdlp });
       if (selectedBrowser.name === 'Other') {
         this._customCookiesFromBrowser.set_visible(true);
         this._customCookiesFromBrowser.set_text('');
@@ -453,7 +453,7 @@ These are passed directly to the player on startup.
             return;
           }
 
-          const customValue = `${selectedBrowser.name} - ${customBrowser}`;
+          const customValue = formatCookiesFromBrowser({ browser: selectedBrowser.name, value: customBrowser });
           this._settings.set_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER, customValue);
         });
         return;

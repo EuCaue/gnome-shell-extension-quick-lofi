@@ -8,15 +8,15 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
-import { debug } from '@utils/debug';
-import { isCurrentRadioPlaying, parseRadios, writeLog } from '@utils/helpers';
-import { buildPopupStyles } from '@utils/popupStyle';
+import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@/shared/constants';
+import { debug, writeLog } from '@/shared/log';
+import { findRadioById, parseRadios } from '@/shared/radios';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { IndicatorActions } from './IndicatorActions';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
+import { buildPopupStyles } from './PopupStyle';
 
 export default class Indicator extends PanelMenu.Button {
   static {
@@ -116,22 +116,22 @@ export default class Indicator extends PanelMenu.Button {
         if (key === SETTINGS_KEYS.RADIOS_LIST) {
           if (this.mpvPlayer.isPlaying()) {
             const currentRadioPlayingID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
-            const currentRadioPlaying = this._radios.find((radio) => radio.id === currentRadioPlayingID);
-            const [updatedRadioName, updatedRadioUrl, id]: string[] = this._extension._settings
-              .get_strv(SETTINGS_KEYS.RADIOS_LIST)
-              .find((radio) => radio.endsWith(currentRadioPlayingID))
-              .split(' - ');
-            if (currentRadioPlaying.radioUrl !== updatedRadioUrl.trim() && currentRadioPlaying.id === id) {
+            const currentRadioPlaying: Radio | undefined = findRadioById(this._radios, currentRadioPlayingID);
+            const updatedRadio: Radio | undefined = findRadioById(
+              parseRadios(this._extension._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST)),
+              currentRadioPlayingID,
+            );
+            if (currentRadioPlaying && updatedRadio && currentRadioPlaying.radioUrl !== updatedRadio.radioUrl) {
               const isPaused = this.mpvPlayer.getProperty('pause').data;
               if (!isPaused) {
                 this._isUpdatingCurrentRadio = true;
-                this.mpvPlayer.startPlayer({ id, radioName: updatedRadioName, radioUrl: updatedRadioUrl });
+                this.mpvPlayer.startPlayer(updatedRadio);
                 this._updateIndicatorIcon({ playing: 'playing' });
                 this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
                 this._activeRadioPopupItem.set_style('font-weight: bold');
               } else if (isPaused) {
                 this.mpvPlayer.stopPlayer();
-                this.mpvPlayer.startPlayer({ id, radioName: updatedRadioName, radioUrl: updatedRadioUrl });
+                this.mpvPlayer.startPlayer(updatedRadio);
                 this.mpvPlayer.playPause();
               }
               return;
@@ -375,8 +375,9 @@ export default class Indicator extends PanelMenu.Button {
     this._popupSection = new PopupMenu.PopupMenuSection();
     this._scrollView.add_child(this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
+    const currentRadioPlayingID: string = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
     this._radios.forEach((radio) => {
-      const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
+      const isRadioPlaying: boolean = currentRadioPlayingID !== '' && currentRadioPlayingID === radio.id;
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
         Gio.icon_new_for_string(

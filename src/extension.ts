@@ -1,11 +1,12 @@
 import type Gio from 'gi://Gio';
 import { Extension } from '@girs/gnome-shell/extensions/extension';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { SETTINGS_KEYS } from '@utils/constants';
-import { debug } from '@utils/debug';
-import { generateNanoIdWithSymbols, getExtSettings } from '@utils/helpers';
 import Indicator from '@/modules/Indicator';
 import ShortcutsHandler from '@/modules/ShortcutsHandler';
+import { SETTINGS_KEYS } from '@/shared/constants';
+import { debug } from '@/shared/log';
+import { migrateRadios } from '@/shared/radios';
+import { getExtSettings, resetExtSettings } from '@/shared/settings';
 
 export default class QuickLofi extends Extension {
   _indicator: Indicator | null = null;
@@ -14,18 +15,7 @@ export default class QuickLofi extends Extension {
 
   private _migrateRadios(): void {
     const radios = this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST);
-
-    const updatedRadios = radios.map((radio) => {
-      if (radio.split(' - ').length === 3) {
-        return radio;
-      }
-      if (radio.includes(' - ')) {
-        const [name, url] = radio.split(' - ');
-        const id = generateNanoIdWithSymbols(10);
-        return `${name} - ${url} - ${id}`;
-      }
-      return radio;
-    });
+    const updatedRadios: string[] = migrateRadios(radios);
     if (JSON.stringify(radios) === JSON.stringify(updatedRadios)) return;
     this._settings.set_strv(SETTINGS_KEYS.RADIOS_LIST, updatedRadios);
   }
@@ -46,5 +36,6 @@ export default class QuickLofi extends Extension {
     this._settings = null;
     this._shortcutsHandler.destroy();
     this._shortcutsHandler = null;
+    resetExtSettings();
   }
 }

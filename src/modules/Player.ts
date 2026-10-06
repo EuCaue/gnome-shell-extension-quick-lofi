@@ -2,10 +2,11 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { SETTINGS_KEYS } from '@utils/constants';
+import { SETTINGS_KEYS } from '@/shared/constants';
+import { debug, writeLog } from '@/shared/log';
+import { neighborRadio, parseRadios } from '@/shared/radios';
+import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
 import type { Radio } from '@/types';
-import { debug } from '@/utils/debug';
-import { findRadio, getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
 
 type PlayerCommandString = string;
@@ -135,15 +136,15 @@ export default class Player extends GObject.Object {
     return;
   }
 
-  private _nextRadio() {
-    const nextRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
-      if (radios[index].id === currentRadioPlayingID) {
-        return radios[(index + 1) % radios.length];
-      }
-      return undefined;
-    });
-    this.startPlayer(nextRadio);
+  private _nextRadio(): Radio | undefined {
+    const nextRadio: Radio | undefined = this._neighborRadio(1);
+    if (nextRadio) this.startPlayer(nextRadio);
     return nextRadio;
+  }
+
+  private _neighborRadio(step: number): Radio | undefined {
+    const radios: Radio[] = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
+    return neighborRadio(radios, this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING), step);
   }
 
   private _prevAuto(): Radio | undefined {
@@ -172,14 +173,9 @@ export default class Player extends GObject.Object {
     return undefined;
   }
 
-  private _prevRadio() {
-    const prevRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
-      if (radios[index].id === currentRadioPlayingID) {
-        return radios[(index - 1 + radios.length) % radios.length];
-      }
-      return undefined;
-    });
-    this.startPlayer(prevRadio);
+  private _prevRadio(): Radio | undefined {
+    const prevRadio: Radio | undefined = this._neighborRadio(-1);
+    if (prevRadio) this.startPlayer(prevRadio);
     return prevRadio;
   }
 
@@ -348,15 +344,15 @@ export default class Player extends GObject.Object {
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
       radio.radioUrl,
     ];
-    const [cookiesFromBrowserName, cookiesFromBrowserYtdlp] = this._settings
-      .get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER)
-      .split(' - ');
+    const cookiesFromBrowserYtdlp = cookiesFromBrowserValue(
+      this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+    );
     const node = GLib.find_program_in_path('node');
     const deno = GLib.find_program_in_path('deno');
 
     const jsRuntime = node ? 'node' : deno ? 'deno' : null;
 
-    const shouldUseBrowserCookies = cookiesFromBrowserName !== 'None' && !!cookiesFromBrowserYtdlp;
+    const shouldUseBrowserCookies = cookiesFromBrowserYtdlp !== null;
 
     if (shouldUseBrowserCookies && !jsRuntime) {
       Main.notifyError('Node.js or Deno is required to use cookies from browser.');

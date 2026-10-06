@@ -7,9 +7,11 @@ import type Gio from '@girs/gio-2.0';
 import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
-import { debug } from '@/utils/debug';
-import { getExtSettings, writeLog } from '@/utils/helpers';
+import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/shared/constants';
+import { debug, writeLog } from '@/shared/log';
+import { findRadioById, parseRadios } from '@/shared/radios';
+import { getExtSettings } from '@/shared/settings';
+import type { Radio } from '@/types';
 import Player from './Player';
 
 export default class MiniPlayer {
@@ -383,15 +385,8 @@ export default class MiniPlayer {
   private _getCurrentRadioName(): string {
     const currentRadioPlayingID = this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
 
-    const currentRadio = this._settings
-      .get_strv(SETTINGS_KEYS.RADIOS_LIST)
-      .find((radio) => radio.endsWith(currentRadioPlayingID));
-
-    if (!currentRadio) return 'Quick Lofi';
-
-    const [currentRadioName] = currentRadio.split(' - ');
-
-    return currentRadioName ?? 'Quick Lofi';
+    const radios: Radio[] = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
+    return findRadioById(radios, currentRadioPlayingID)?.radioName || 'Quick Lofi';
   }
 
   private _parseTime(time: string | number | undefined): string {

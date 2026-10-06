@@ -4,7 +4,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 import { ExtensionPreferences } from '@girs/gnome-shell/extensions/prefs';
-import { getExtSettings } from './utils/helpers';
+import { getExtSettings } from '@/shared/settings';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
   private _settings?: Gio.Settings;

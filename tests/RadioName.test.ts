@@ -3,9 +3,7 @@ import { test } from 'node:test';
 
 // GJS has no global URL, so the module must work without it.
 delete (globalThis as { URL?: unknown }).URL;
-const { fallbackRadioName, parseMpvProbe, pickRadioName, sanitizeRadioName } = await import(
-  '../src/utils/radioName.ts'
-);
+const { fallbackRadioName, parseMpvProbe, pickRadioName } = await import('../src/preferences/RadioName.ts');
 
 test('parseMpvProbe reads the playing message', () => {
   const out = 'AO: [null] 44100Hz\nQLNAME\x1fHunter.FM - O Canal Lo-Fi\x1flofi_high\nExiting...\n';
@@ -27,11 +25,6 @@ test('fallback uses the last URL path segment, then the host', () => {
   assert.equal(fallbackRadioName('https://example.com/a/b%20c?x=1'), 'b c');
 });
 
-test('sanitize protects the " - " storage separator and trims', () => {
-  assert.equal(sanitizeRadioName('  Hunter.FM - O Canal Lo-Fi '), 'Hunter.FM – O Canal Lo-Fi');
-  assert.equal(sanitizeRadioName('a  \n b'), 'a b');
-});
-
 test('icy-name wins for streams', () => {
   assert.equal(
     pickRadioName({
@@ -39,7 +32,7 @@ test('icy-name wins for streams', () => {
       icyName: 'Hunter.FM - O Canal Lo-Fi',
       mediaTitle: 'lofi_high',
     }),
-    'Hunter.FM – O Canal Lo-Fi',
+    'Hunter.FM - O Canal Lo-Fi',
   );
 });
 
@@ -67,11 +60,4 @@ test('result is always at least 2 characters', () => {
   assert.equal(pickRadioName({ source: 'https://x.io/a' }), 'x.io');
   assert.equal(pickRadioName({ source: 'https://x.io/', icyName: ' ' }), 'x.io');
   assert.equal(pickRadioName({ source: '/m/a.mp3' }), 'Radio');
-});
-
-test('sanitize leaves no " - " behind, even overlapping or trailing', () => {
-  for (const raw of ['a - - b', 'Chill - - Radio', 'Lofi -', 'Lofi\t-', ' - Lofi']) {
-    const stored = `${sanitizeRadioName(raw)} - http://u - ID`;
-    assert.equal(stored.split(' - ').length, 3, `${JSON.stringify(raw)} -> ${JSON.stringify(stored)}`);
-  }
 });

@@ -1,17 +1,25 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import { writeLog } from '@utils/helpers';
-import { PROBE_PREFIX, PROBE_SEPARATOR, parseMpvProbe, pickRadioName } from '@utils/radioName';
+import { PROBE_PREFIX, PROBE_SEPARATOR, parseMpvProbe, pickRadioName } from '@/preferences/RadioName';
+import { expandHome } from '@/preferences/RadioSource';
+import { writeLog } from '@/shared/log';
+import { cookiesFromBrowserValue } from '@/shared/settings';
 
 Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
 
 const MPV_TIMEOUT_SECONDS = 10;
 const YTDLP_TIMEOUT_SECONDS = 15;
 
-async function run(argv: string[], timeoutSeconds: number): Promise<{ stdout: string; timedOut: boolean }> {
-  const proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE);
-  let timedOut = false;
-  const timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, timeoutSeconds, () => {
+// stdout of a finished process, and whether it was killed for taking too long.
+type RunResult = { stdout: string; timedOut: boolean };
+
+async function run(argv: string[], timeoutSeconds: number): Promise<RunResult> {
+  const proc: Gio.Subprocess = Gio.Subprocess.new(
+    argv,
+    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
+  );
+  let timedOut: boolean = false;
+  const timer: number = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, timeoutSeconds, () => {
     timedOut = true;
     proc.force_exit();
     return GLib.SOURCE_REMOVE;
@@ -24,19 +32,16 @@ async function run(argv: string[], timeoutSeconds: number): Promise<{ stdout: st
   }
 }
 
-function expandHome(source: string): string {
-  return source.startsWith('~') ? GLib.get_home_dir() + source.slice(1) : source;
-}
-
 export async function detectRadioName(source: string, cookiesFromBrowser: string): Promise<string> {
-  const path = expandHome(source.trim());
-  let icyName = '';
-  let mediaTitle = '';
-  let ytTitle = '';
-  let unreachable = false;
+  const path: string = expandHome(source.trim());
+  let icyName: string = '';
+  let mediaTitle: string = '';
+  let ytTitle: string = '';
+  let unreachable: boolean = false;
 
   try {
     // --ytdl=no keeps this fast: ICY and file tags come from ffmpeg directly.
+    // Using mpv to find ICY and file tags (metadata) from the source.
     const mpv = await run(
       [
         'mpv',
@@ -57,13 +62,14 @@ export async function detectRadioName(source: string, cookiesFromBrowser: string
     icyName = probe?.icyName ?? '';
     mediaTitle = probe?.mediaTitle ?? '';
   } catch (e) {
-    writeLog({ message: `[probeRadioName] mpv probe failed: ${e}`, type: 'WARN' });
+    writeLog({ message: `[RadioNameProbe] mpv probe failed: ${e}`, type: 'WARN' });
   }
 
+  // Using yt-dlp to find the title of a YouTube video or playlist.
   const ytdlp = GLib.find_program_in_path('yt-dlp');
   if (!icyName && !unreachable && ytdlp && /^https?:\/\//i.test(path)) {
-    const [browser, cookiesValue] = cookiesFromBrowser.split(' - ');
-    const cookiesArgs = browser !== 'None' && cookiesValue ? ['--cookies-from-browser', cookiesValue] : [];
+    const cookiesValue = cookiesFromBrowserValue(cookiesFromBrowser);
+    const cookiesArgs = cookiesValue ? ['--cookies-from-browser', cookiesValue] : [];
     try {
       const out = await run(
         [
@@ -83,11 +89,11 @@ export async function detectRadioName(source: string, cookiesFromBrowser: string
       ytTitle = out.stdout.split('\n')[0]?.trim() ?? '';
       if (ytTitle === 'NA') ytTitle = '';
     } catch (e) {
-      writeLog({ message: `[probeRadioName] yt-dlp probe failed: ${e}`, type: 'WARN' });
+      writeLog({ message: `[RadioNameProbe] yt-dlp probe failed: ${e}`, type: 'WARN' });
     }
   }
 
   const name = pickRadioName({ source, icyName, mediaTitle, ytTitle });
-  writeLog({ message: `[probeRadioName] ${source} -> "${name}" (icy="${icyName}", yt="${ytTitle}")`, type: 'INFO' });
+  writeLog({ message: `[RadioNameProbe] ${source} -> "${name}" (icy="${icyName}", yt="${ytTitle}")`, type: 'INFO' });
   return name;
 }

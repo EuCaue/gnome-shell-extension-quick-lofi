@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildPopupStyles } from '../src/utils/popupStyle.ts';
+import { buildPopupStyles } from '../src/modules/PopupStyle.ts';
 
 const SHELL_STYLE = 'max-height: 900px;';
 

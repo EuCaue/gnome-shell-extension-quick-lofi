@@ -3,13 +3,14 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import type Gtk from 'gi://Gtk';
+import { handleErrorRow } from '@/preferences/RowError';
 import {
   INDICATOR_ACTIONS_NAMES,
   type IndicatorActionKey,
   type IndicatorActionValue,
   SETTINGS_KEYS,
-} from '@utils/constants';
-import { handleErrorRow, writeLog } from '@utils/helpers';
+} from '@/shared/constants';
+import { writeLog } from '@/shared/log';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {
