@@ -122,18 +122,12 @@ export default class Indicator extends PanelMenu.Button {
               currentRadioPlayingID,
             );
             if (currentRadioPlaying && updatedRadio && currentRadioPlaying.radioUrl !== updatedRadio.radioUrl) {
-              const isPaused = this.mpvPlayer.getProperty('pause').data;
-              if (!isPaused) {
-                this._isUpdatingCurrentRadio = true;
-                this.mpvPlayer.startPlayer(updatedRadio);
-                this._updateIndicatorIcon({ playing: 'playing' });
-                this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
-                this._activeRadioPopupItem.set_style('font-weight: bold');
-              } else if (isPaused) {
-                this.mpvPlayer.stopPlayer();
-                this.mpvPlayer.startPlayer(updatedRadio);
-                this.mpvPlayer.playPause();
-              }
+              // Restart on the new source; a paused radio resumes, since the new source starts playing.
+              this._isUpdatingCurrentRadio = true;
+              this.mpvPlayer.startPlayer(updatedRadio);
+              this._updateIndicatorIcon({ playing: 'playing' });
+              this._activeRadioPopupItem?.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
+              this._activeRadioPopupItem?.set_style('font-weight: bold');
               return;
             }
           }
