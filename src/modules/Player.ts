@@ -297,7 +297,14 @@ export default class Player extends GObject.Object {
     const readLine = async () => {
       if (!this._keepReading || this._proc === null) return;
 
-      const [bytes] = await stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+      let bytes: Uint8Array | null;
+      try {
+        [bytes] = await stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+      } catch (e) {
+        // stopPlayer() cancels the pending read; that is the normal way out of this loop.
+        if (e instanceof GLib.Error && e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) return;
+        throw e;
+      }
       if (this._cancellable?.is_cancelled()) {
         this._cancellable = null;
         return;
