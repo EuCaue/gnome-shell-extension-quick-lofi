@@ -355,15 +355,22 @@ export default class MiniPlayer {
       this._updateTitleVisibility();
     });
 
-    this._radioChangedSignalId = this.mpvPlayer.connect('playback-started', (_player, radioName: string) => {
-      if (!this._miniPlayerItem) return;
+    // playback-started carries (id, name, url).
+    this._radioChangedSignalId = this.mpvPlayer.connect(
+      'playback-started',
+      (_player, _radioID: string, radioName: string) => {
+        if (!this._miniPlayerItem) return;
 
-      this.currentRadio.set_text(radioName);
-      this._updateTitleVisibility();
-    });
+        this.currentRadio.set_text(radioName);
+        this._updateTitleVisibility();
+      },
+    );
     this._mediaTitleChangedSignalId = this.mpvPlayer.connect('media-title-changed', () => {
       this._updateTitleVisibility();
     });
+    // The menu rebuilds the mini player mid-playback (e.g. after a radio rename), and
+    // media-title-changed won't fire again until the next track, so show the current one now.
+    this._updateTitleVisibility();
   }
 
   private _updateTitleVisibility(): void {
