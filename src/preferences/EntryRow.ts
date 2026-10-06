@@ -16,3 +16,15 @@ export function handleErrorRow(row: Adw.EntryRow, errorMessage: string): void {
     return GLib.SOURCE_REMOVE;
   });
 }
+
+// Replaces the row text from code. `set_text` alone counts as an edit: it brings the apply
+// button back and moves the caret to the start, even when the text is the same.
+export function setEntryRowText(row: Adw.EntryRow, text: string): void {
+  if (row.text === text) return;
+  row.set_text(text);
+  row.set_position(-1);
+  if (row.show_apply_button) {
+    row.set_show_apply_button(false);
+    row.set_show_apply_button(true);
+  }
+}

@@ -4,7 +4,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
-import { handleErrorRow } from '@/preferences/RowError';
+import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
 import { SETTINGS_KEYS, SHORTCUTS } from '@/shared/constants';
 import { debug, writeLog } from '@/shared/log';
@@ -316,7 +316,7 @@ export class PlayerPage extends Adw.PreferencesPage {
     if (regex.test(args)) {
       const finalArgs: Array<string> = args.split(/,\s*/);
       this._settings.set_strv(SETTINGS_KEYS.MPV_ARGUMENTS, finalArgs);
-      w.set_text(finalArgs.join(', '));
+      setEntryRowText(w, finalArgs.join(', '));
     } else {
       handleErrorRow(w, 'Wrong format (--option=value)');
       return;

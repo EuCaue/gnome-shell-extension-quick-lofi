@@ -5,9 +5,9 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk4 from 'gi://Gtk';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
-import { handleErrorRow } from '@/preferences/RowError';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { createRadio, formatRadios, parseRadios, sanitizeRadioName } from '@/shared/radios';
@@ -181,11 +181,11 @@ export class RadiosPage extends Adw.PreferencesPage {
         if (newName.length < 2) {
           writeLog({ message: '[RadiosPage] Radio name too short (min 2 characters)', type: 'WARN' });
           handleErrorRow(w, 'Name must be at least 2 characters');
-          w.set_text(this._radios[index].radioName);
+          setEntryRowText(w, this._radios[index].radioName);
           return;
         }
         this._updateRadio(index, 'radioName', newName);
-        w.set_text(newName);
+        setEntryRowText(w, newName);
         radiosExpander.set_title(newName);
         const escapedName: string = GLib.markup_escape_text(newName, -1);
         removeButton.set_tooltip_markup(`Remove <b>${escapedName}</b>`);
@@ -196,11 +196,12 @@ export class RadiosPage extends Adw.PreferencesPage {
         if (!isPlayable(w.text)) {
           writeLog({ message: `[RadiosPage] Invalid URL or PATH for radio update: ${w.text}`, type: 'WARN' });
           handleErrorRow(urlRadioRow, 'Invalid URL or PATH.');
-          w.set_text(this._radios[index].radioUrl);
+          setEntryRowText(w, this._radios[index].radioUrl);
           return;
         }
         const newUrl: string = w.text.trim();
         this._updateRadio(index, 'radioUrl', newUrl);
+        setEntryRowText(w, newUrl);
         openButton.set_icon_name(isUri(newUrl) ? 'folder-globe-symbolic' : 'folder-open-symbolic');
       });
       buttonsRow.append(removeButton);

@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import type Gtk from 'gi://Gtk';
-import { handleErrorRow } from '@/preferences/RowError';
+import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import {
   INDICATOR_ACTIONS_NAMES,
   type IndicatorActionKey,
@@ -75,7 +75,7 @@ export class InterfacePage extends Adw.PreferencesPage {
         type: 'WARN',
       });
       handleErrorRow(w, 'Invalid CSS value');
-      w.set_text(defaultValue);
+      setEntryRowText(w, defaultValue);
       this._settings.set_string(key, defaultValue);
       return;
     }
