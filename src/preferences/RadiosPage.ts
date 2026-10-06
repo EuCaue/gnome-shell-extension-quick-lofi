@@ -91,6 +91,15 @@ export class RadiosPage extends Adw.PreferencesPage {
         showApplyButton: true,
         inputPurpose: Gtk4.InputPurpose.URL,
       });
+      const chooseFileButton = new Gtk4.Button({
+        tooltipText: _('Choose a file'),
+        iconName: 'folder-open-symbolic',
+        cursor: new Gdk.Cursor({ name: 'pointer' }),
+        valign: Gtk4.Align.CENTER,
+        cssClasses: ['flat'],
+      });
+      chooseFileButton.connect('clicked', () => this._chooseFileInto(urlRadioRow));
+      urlRadioRow.add_suffix(chooseFileButton);
       const removeButton = new Gtk4.Button({
         tooltipMarkup: `Remove <b>${GLib.markup_escape_text(radioName, -1)}</b>`,
         iconName: 'user-trash-symbolic',
@@ -365,6 +374,11 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.
   async _handleSelectFile(): Promise<void> {
+    await this._chooseFileInto(this._urlRadioRow);
+  }
+
+  // Puts the chosen file's path in `row`; the user still confirms it with the apply button.
+  private async _chooseFileInto(row: Adw.EntryRow): Promise<void> {
     const mediaFilter = new Gtk4.FileFilter({ name: _('Audio and video') });
     mediaFilter.add_mime_type('audio/*');
     mediaFilter.add_mime_type('video/*');
@@ -378,8 +392,12 @@ export class RadiosPage extends Adw.PreferencesPage {
     try {
       // The cast works around duplicate @girs Gtk types; at runtime this is a Gtk.Window.
       const file = await dialog.open(this._window as unknown as Gtk4.Window, null);
-      const path = file?.get_path();
-      if (path) this._urlRadioRow.set_text(path);
+      const path: string | null | undefined = file?.get_path();
+      if (!path) return;
+      // EntryRow only shows its apply button for text changed while it has focus.
+      row.grab_focus();
+      row.set_text(path);
+      row.set_position(-1);
     } catch (e) {
       if (!(e instanceof GLib.Error && e.matches(Gtk4.DialogError, Gtk4.DialogError.DISMISSED))) {
         logError(e, '[RadiosPage] Failed to choose a file');
