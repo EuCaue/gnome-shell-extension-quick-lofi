@@ -6,7 +6,7 @@ import type Gio from '@girs/gio-2.0';
 import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/shared/constants';
+import { ICONS, type MiniPlayerActionKey, SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { findRadioById, parseRadios } from '@/shared/radios';
 import { getExtSettings } from '@/shared/settings';
@@ -210,13 +210,7 @@ export default class MiniPlayer {
 
     prev.set_child(prevIcon);
     prev.connect('button-press-event', (_, event) => {
-      const btnClicked = event.get_button();
-      if (MOUSE_BUTTONS.get('LEFT') === btnClicked) {
-        this.mpvPlayer.prev();
-      }
-      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
-        this.mpvPlayer.prev('radio');
-      }
+      this._runControlAction(SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS, event.get_button());
     });
 
     const pause = new St.Button({
@@ -234,21 +228,11 @@ export default class MiniPlayer {
 
     pause.set_child(this.playIcon);
 
-    pause.connect('button-press-event', (_, event) => {
-      const btnClicked = event.get_button();
-
-      if (btnClicked === MOUSE_BUTTONS.get('LEFT')) {
-        this.mpvPlayer.playPause();
-        return Clutter.EVENT_STOP;
-      }
-
-      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
-        this.mpvPlayer.stopPlayer();
-        return Clutter.EVENT_STOP;
-      }
-
-      return Clutter.EVENT_PROPAGATE;
-    });
+    pause.connect('button-press-event', (_, event) =>
+      this._runControlAction(SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS, event.get_button())
+        ? Clutter.EVENT_STOP
+        : Clutter.EVENT_PROPAGATE,
+    );
 
     const next = new St.Button({ x_expand: false, reactive: true });
     const nextIcon = new St.Icon({
@@ -259,13 +243,7 @@ export default class MiniPlayer {
 
     next.set_child(nextIcon);
     next.connect('button-press-event', (_, event) => {
-      const btnClicked = event.get_button();
-      if (MOUSE_BUTTONS.get('LEFT') === btnClicked) {
-        this.mpvPlayer.next();
-      }
-      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
-        this.mpvPlayer.next('radio');
-      }
+      this._runControlAction(SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS, event.get_button());
     });
 
     controlsBox.add_child(prev);
@@ -288,6 +266,33 @@ export default class MiniPlayer {
     });
 
     popup.addMenuItem(this._miniPlayerItem, popup.numMenuItems - 1);
+  }
+
+  // Runs the action stored for `button` (1-3) in a mini player button's settings key.
+  private _runControlAction(settingsKey: string, button: number): boolean {
+    const action = this._settings.get_strv(settingsKey)[button - 1] as MiniPlayerActionKey | undefined;
+    switch (action) {
+      case 'playPause':
+        this.mpvPlayer.playPause();
+        return true;
+      case 'stopPlayer':
+        this.mpvPlayer.stopPlayer();
+        return true;
+      case 'prev':
+        this.mpvPlayer.prev();
+        return true;
+      case 'prevRadio':
+        this.mpvPlayer.prev('radio');
+        return true;
+      case 'next':
+        this.mpvPlayer.next();
+        return true;
+      case 'nextRadio':
+        this.mpvPlayer.next('radio');
+        return true;
+      default:
+        return false;
+    }
   }
 
   private _connectPlayerSignals(): void {
