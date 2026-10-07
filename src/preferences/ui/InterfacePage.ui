@@ -13,27 +13,107 @@
         <child>
           <object class="AdwComboRow" id="leftClickRow">
             <property name="title" translatable="yes">Left click action</property>
-            <property name="model">
-              <object class="GtkStringList" id="leftClickActionList"></object>
-            </property>
           </object>
         </child>
 
         <child>
           <object class="AdwComboRow" id="middleClickRow">
             <property name="title" translatable="yes">Middle Click Action: </property>
-            <property name="model">
-              <object class="GtkStringList" id="middleClickActionList" />
-            </property>
           </object>
         </child>
 
         <child>
           <object class="AdwComboRow" id="rightClickRow">
             <property name="title" translatable="yes">Right click action</property>
-            <property name="model">
-              <object class="GtkStringList" id="rightClickActionList"></object>
-            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Radio Click Actions</property>
+        <property name="description" translatable="yes">Configure what happens when you click the playing radio. A radio that isn't playing starts on any click, except with Copy URL.</property>
+        <child>
+          <object class="AdwComboRow" id="radioLeftClickRow">
+            <property name="title" translatable="yes">Left click action</property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwComboRow" id="radioMiddleClickRow">
+            <property name="title" translatable="yes">Middle click action</property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwComboRow" id="radioRightClickRow">
+            <property name="title" translatable="yes">Right click action</property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Mini Player Click Actions</property>
+        <property name="description" translatable="yes">Configure what each mini player button does for each mouse button.</property>
+        <child>
+          <object class="AdwExpanderRow">
+            <property name="title" translatable="yes">Previous button</property>
+            <child>
+              <object class="AdwComboRow" id="miniPrevLeftRow">
+                <property name="title" translatable="yes">Left click action</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPrevMiddleRow">
+                <property name="title" translatable="yes">Middle click action</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPrevRightRow">
+                <property name="title" translatable="yes">Right click action</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwExpanderRow">
+            <property name="title" translatable="yes">Play button</property>
+            <child>
+              <object class="AdwComboRow" id="miniPlayLeftRow">
+                <property name="title" translatable="yes">Left click action</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPlayMiddleRow">
+                <property name="title" translatable="yes">Middle click action</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPlayRightRow">
+                <property name="title" translatable="yes">Right click action</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwExpanderRow">
+            <property name="title" translatable="yes">Next button</property>
+            <child>
+              <object class="AdwComboRow" id="miniNextLeftRow">
+                <property name="title" translatable="yes">Left click action</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniNextMiddleRow">
+                <property name="title" translatable="yes">Middle click action</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniNextRightRow">
+                <property name="title" translatable="yes">Right click action</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

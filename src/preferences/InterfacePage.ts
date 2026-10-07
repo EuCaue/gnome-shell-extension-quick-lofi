@@ -2,12 +2,12 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
-import type Gtk from 'gi://Gtk';
+import Gtk from 'gi://Gtk';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import {
   INDICATOR_ACTIONS_NAMES,
-  type IndicatorActionKey,
-  type IndicatorActionValue,
+  MINI_PLAYER_ACTIONS_NAMES,
+  RADIO_ITEM_ACTIONS_NAMES,
   SETTINGS_KEYS,
 } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
@@ -27,12 +27,21 @@ export class InterfacePage extends Adw.PreferencesPage {
           'popupWidthRow',
           'setPopupHeightRow',
           'popupHeightRow',
-          'leftClickActionList',
-          'middleClickActionList',
-          'rightClickActionList',
           'leftClickRow',
           'middleClickRow',
           'rightClickRow',
+          'radioLeftClickRow',
+          'radioMiddleClickRow',
+          'radioRightClickRow',
+          'miniPrevLeftRow',
+          'miniPrevMiddleRow',
+          'miniPrevRightRow',
+          'miniPlayLeftRow',
+          'miniPlayMiddleRow',
+          'miniPlayRightRow',
+          'miniNextLeftRow',
+          'miniNextMiddleRow',
+          'miniNextRightRow',
           'enableDebug',
         ],
       },
@@ -48,15 +57,22 @@ export class InterfacePage extends Adw.PreferencesPage {
   private declare _popupWidthRow: Adw.EntryRow;
   private declare _setPopupHeightRow: Adw.SwitchRow;
   private declare _popupHeightRow: Adw.EntryRow;
-  private declare _leftClickActionList: Gtk.StringList;
-  private declare _middleClickActionList: Gtk.StringList;
-  private declare _rightClickActionList: Gtk.StringList;
   private declare _leftClickRow: Adw.ComboRow;
   private declare _middleClickRow: Adw.ComboRow;
   private declare _rightClickRow: Adw.ComboRow;
+  private declare _radioLeftClickRow: Adw.ComboRow;
+  private declare _radioMiddleClickRow: Adw.ComboRow;
+  private declare _radioRightClickRow: Adw.ComboRow;
+  private declare _miniPrevLeftRow: Adw.ComboRow;
+  private declare _miniPrevMiddleRow: Adw.ComboRow;
+  private declare _miniPrevRightRow: Adw.ComboRow;
+  private declare _miniPlayLeftRow: Adw.ComboRow;
+  private declare _miniPlayMiddleRow: Adw.ComboRow;
+  private declare _miniPlayRightRow: Adw.ComboRow;
+  private declare _miniNextLeftRow: Adw.ComboRow;
+  private declare _miniNextMiddleRow: Adw.ComboRow;
+  private declare _miniNextRightRow: Adw.ComboRow;
   private declare _enableDebug: Adw.SwitchRow;
-  private _indicatorActionsNames: Map<IndicatorActionKey, IndicatorActionValue>;
-  private _indicatorActionsSettings: IndicatorActionKey[];
 
   _handleApplyPopup(w: Adw.EntryRow): void {
     // row id maps to its settings key: popupMaxHeightRow -> popup-max-height
@@ -84,55 +100,30 @@ export class InterfacePage extends Adw.PreferencesPage {
     this._settings.set_string(key, w.text);
   }
 
-  private _handleIndicatorActions() {
-    writeLog({ message: '[InterfacePage] Setting up indicator actions handlers', type: 'INFO' });
+  // Each row picks the action for one mouse button (left, middle, right) of an `as` click actions key.
+  private _bindClickActions(key: string, names: ReadonlyMap<string, string>, rows: Adw.ComboRow[]): void {
+    const actions = Array.from(names.keys());
+    const defaults = this._settings.get_default_value(key).deepUnpack() as string[];
 
-    const updateAction = ({ mouseBtn, actionIndex }: { mouseBtn: number; actionIndex: number }): void => {
-      const actions = Array.from(this._indicatorActionsNames.keys());
-      const newAction = actions[actionIndex];
-      const buttonNames = ['left', 'middle', 'right'];
-      writeLog({
-        message: `[InterfacePage] Updating ${buttonNames[mouseBtn]} click action to: ${newAction}`,
-        type: 'INFO',
-      });
+    rows.forEach((row, button) => {
+      row.set_model(Gtk.StringList.new(Array.from(names.values())));
+      const position = actions.indexOf(this._settings.get_strv(key)[button] ?? defaults[button]);
+      if (position >= 0) row.set_selected(position);
 
-      this._indicatorActionsSettings[mouseBtn] = actions[actionIndex];
-      this._settings.set_strv(SETTINGS_KEYS.INDICATOR_ACTIONS, this._indicatorActionsSettings);
-    };
-
-    const setRowAction = ({ list, row, mouseBtn }: { list: Gtk.StringList; row: Adw.ComboRow; mouseBtn: number }) => {
-      const actions = Array.from(this._indicatorActionsNames.values());
-      const buttonNames = ['left', 'middle', 'right'];
-      writeLog({ message: `[InterfacePage] Setting up ${buttonNames[mouseBtn]} click action row`, type: 'INFO' });
-
-      for (const action of actions) {
-        list.append(action);
-      }
-      const savedActionKey = this._indicatorActionsSettings[mouseBtn];
-      const savedActionValue = this._indicatorActionsNames.get(savedActionKey);
-      const rowPosition = actions.indexOf(savedActionValue);
-      row.set_selected(rowPosition);
       row.connect('notify::selected', () => {
-        const newActionIndex: number = row.get_selected();
-        updateAction({ mouseBtn, actionIndex: newActionIndex });
+        // pad from the defaults so a short stored list never gets holes
+        const current = this._settings.get_strv(key);
+        const updated = defaults.map((action, i) => current[i] ?? action);
+        updated[button] = actions[row.get_selected()];
+        writeLog({ message: `[InterfacePage] Setting ${key} to: ${updated.join(', ')}`, type: 'INFO' });
+        this._settings.set_strv(key, updated);
       });
-    };
-
-    setRowAction({ list: this._leftClickActionList, row: this._leftClickRow, mouseBtn: 0 });
-    setRowAction({ list: this._middleClickActionList, row: this._middleClickRow, mouseBtn: 1 });
-    setRowAction({ list: this._rightClickActionList, row: this._rightClickRow, mouseBtn: 2 });
-    writeLog({ message: '[InterfacePage] Indicator actions handlers setup complete', type: 'INFO' });
+    });
   }
 
   constructor(private _settings: Gio.Settings) {
     super();
     writeLog({ message: '[InterfacePage] Initializing interface preferences page', type: 'INFO' });
-    this._indicatorActionsNames = INDICATOR_ACTIONS_NAMES;
-    this._indicatorActionsSettings = this._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS) as IndicatorActionKey[];
-    writeLog({
-      message: `[InterfacePage] Current indicator actions: ${this._indicatorActionsSettings.join(', ')}`,
-      type: 'INFO',
-    });
 
     this._settings.bind(SETTINGS_KEYS.POPUP_MAX_HEIGHT, this._popupMaxHeightRow, 'text', Gio.SettingsBindFlags.GET);
     this._settings.bind(
@@ -179,7 +170,31 @@ export class InterfacePage extends Adw.PreferencesPage {
     this._enableDebug.set_subtitle(
       `When enabled, app activity is logged to /tmp/quick-lofi-${GLib.get_user_name()}.log.`,
     );
-    this._handleIndicatorActions();
+    this._bindClickActions(SETTINGS_KEYS.INDICATOR_ACTIONS, INDICATOR_ACTIONS_NAMES, [
+      this._leftClickRow,
+      this._middleClickRow,
+      this._rightClickRow,
+    ]);
+    this._bindClickActions(SETTINGS_KEYS.RADIO_ITEM_ACTIONS, RADIO_ITEM_ACTIONS_NAMES, [
+      this._radioLeftClickRow,
+      this._radioMiddleClickRow,
+      this._radioRightClickRow,
+    ]);
+    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS, MINI_PLAYER_ACTIONS_NAMES, [
+      this._miniPrevLeftRow,
+      this._miniPrevMiddleRow,
+      this._miniPrevRightRow,
+    ]);
+    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS, MINI_PLAYER_ACTIONS_NAMES, [
+      this._miniPlayLeftRow,
+      this._miniPlayMiddleRow,
+      this._miniPlayRightRow,
+    ]);
+    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS, MINI_PLAYER_ACTIONS_NAMES, [
+      this._miniNextLeftRow,
+      this._miniNextMiddleRow,
+      this._miniNextRightRow,
+    ]);
     writeLog({ message: '[InterfacePage] Interface preferences page initialized', type: 'INFO' });
   }
 }
