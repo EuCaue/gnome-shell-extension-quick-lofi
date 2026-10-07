@@ -18,6 +18,7 @@ import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
 import { buildPopupStyles } from './PopupStyle';
+import { radioItemStep } from './RadioItemClick';
 import { createTooltip } from './Tooltip';
 
 export default class Indicator extends PanelMenu.Button {
@@ -267,22 +268,30 @@ export default class Indicator extends PanelMenu.Button {
     radioID: string,
     mouseButton: number,
   ): Promise<void> {
-    const isRightClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 3;
-    const isLeftClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 1;
     const currentRadio = this._radios.find((radio) => radio.id === radioID);
+    const step = radioItemStep({
+      actions: this._extension._settings.get_strv(SETTINGS_KEYS.RADIO_ITEM_ACTIONS),
+      button: mouseButton,
+      isActive: child === this._activeRadioPopupItem,
+    });
 
     writeLog({
-      message: `[Indicator] Toggle playing status - Radio: ${radioID}, Button: ${mouseButton}`,
+      message: `[Indicator] Toggle playing status - Radio: ${radioID}, Button: ${mouseButton}, Step: ${step}`,
       type: 'INFO',
     });
 
-    if (isRightClickOnActiveRadio) {
-      writeLog({ message: '[Indicator] Right click on active radio - stopping playback', type: 'INFO' });
+    if (step === 'none') return;
+    if (step === 'copyUrl') {
+      if (currentRadio) St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, currentRadio.radioUrl);
+      return;
+    }
+    if (step === 'stopPlayer') {
+      writeLog({ message: '[Indicator] Click on active radio - stopping playback', type: 'INFO' });
       this.mpvPlayer.stopPlayer(currentRadio);
       return;
     }
-    if (isLeftClickOnActiveRadio) {
-      writeLog({ message: '[Indicator] Left click on active radio - toggling play/pause', type: 'INFO' });
+    if (step === 'playPause') {
+      writeLog({ message: '[Indicator] Click on active radio - toggling play/pause', type: 'INFO' });
       this.mpvPlayer.playPause();
       return;
     }
