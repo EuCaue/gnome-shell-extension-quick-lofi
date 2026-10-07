@@ -46,5 +46,37 @@ export class IndicatorActions {
         this._mpv.stopPlayer({ id: currentRadio });
       },
     ],
+    [
+      'next',
+      () => {
+        writeLog({ message: '[IndicatorActions] Next', type: 'INFO' });
+        this.menu.close();
+        this._mpv.next();
+      },
+    ],
+    [
+      'nextRadio',
+      () => {
+        writeLog({ message: '[IndicatorActions] Next radio', type: 'INFO' });
+        this.menu.close();
+        this._mpv.next('radio');
+      },
+    ],
+    [
+      'prev',
+      () => {
+        writeLog({ message: '[IndicatorActions] Previous', type: 'INFO' });
+        this.menu.close();
+        this._mpv.prev();
+      },
+    ],
+    [
+      'prevRadio',
+      () => {
+        writeLog({ message: '[IndicatorActions] Previous radio', type: 'INFO' });
+        this.menu.close();
+        this._mpv.prev('radio');
+      },
+    ],
   ]);
 }
