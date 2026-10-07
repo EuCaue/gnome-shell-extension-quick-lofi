@@ -122,7 +122,7 @@
     <key name="radio-item-actions" type="as">
       <default>['playPause', 'restart', 'stopPlayer']</default>
       <summary>Radio click actions</summary>
-      <description>Actions for left, middle and right clicks on the playing radio. A radio that isn't playing starts on any click, except Copy URL.</description>
+      <description>Actions for left, middle and right clicks on a radio. Toggle play, Stop playback and Restart radio start a radio that isn't playing.</description>
     </key>
     <key name="mini-player-prev-actions" type="as">
       <default>['prev', 'none', 'prevRadio']</default>

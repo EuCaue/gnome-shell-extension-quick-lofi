@@ -18,7 +18,7 @@
 
         <child>
           <object class="AdwComboRow" id="middleClickRow">
-            <property name="title" translatable="yes">Middle Click Action: </property>
+            <property name="title" translatable="yes">Middle click action</property>
           </object>
         </child>
 
@@ -33,7 +33,7 @@
     <child>
       <object class="AdwPreferencesGroup">
         <property name="title" translatable="yes">Radio Click Actions</property>
-        <property name="description" translatable="yes">Configure what happens when you click the playing radio. A radio that isn't playing starts on any click, except with Copy URL.</property>
+        <property name="description" translatable="yes">Configure what happens when you click a radio. Toggle play, Stop playback and Restart radio start a radio that isn't playing.</property>
         <child>
           <object class="AdwComboRow" id="radioLeftClickRow">
             <property name="title" translatable="yes">Left click action</property>

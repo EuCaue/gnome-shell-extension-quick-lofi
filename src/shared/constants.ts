@@ -46,41 +46,22 @@ export const SETTINGS_KEYS = {
   COOKIES_FROM_BROWSER: 'cookies-from-browser',
 };
 
-// used across modules, keep in sync
-export const INDICATOR_ACTIONS_NAMES = new Map([
+// Click actions offered by the indicator, the radios and the mini player buttons.
+// Keys are stored in GSettings: never rename or remove one.
+export const CLICK_ACTIONS_NAMES = new Map([
+  ['none', 'Nothing'],
   ['showPopupMenu', 'Show menu'],
   ['playPause', 'Toggle play'],
-  ['openPrefs', 'Open preferences'],
   ['stopPlayer', 'Stop playback'],
-  ['next', 'Next'],
-  ['nextRadio', 'Next radio'],
-  ['prev', 'Previous'],
-  ['prevRadio', 'Previous radio'],
-] as const);
-export type IndicatorActionKey = typeof INDICATOR_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
-export type IndicatorActionValue = typeof INDICATOR_ACTIONS_NAMES extends Map<any, infer V> ? V : never;
-
-// Clicks on the playing radio; a radio that isn't playing starts on any click except copyUrl.
-export const RADIO_ITEM_ACTIONS_NAMES = new Map([
-  ['playPause', 'Toggle play'],
   ['restart', 'Restart radio'],
-  ['stopPlayer', 'Stop playback'],
-  ['copyUrl', 'Copy URL'],
-  ['none', 'Nothing'],
-] as const);
-export type RadioItemActionKey = typeof RADIO_ITEM_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
-
-// Shared by the three mini player buttons.
-export const MINI_PLAYER_ACTIONS_NAMES = new Map([
-  ['none', 'Nothing'],
-  ['playPause', 'Toggle play'],
-  ['stopPlayer', 'Stop playback'],
   ['prev', 'Previous'],
   ['prevRadio', 'Previous radio'],
   ['next', 'Next'],
   ['nextRadio', 'Next radio'],
+  ['copyUrl', 'Copy radio URL'],
+  ['openPrefs', 'Open preferences'],
 ] as const);
-export type MiniPlayerActionKey = typeof MINI_PLAYER_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
+export type ClickActionKey = typeof CLICK_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
 
 // ffmpeg container formats (from `ffmpeg -formats`)
 export const ffmpegFormats = new Set([
@@ -396,12 +377,4 @@ export const ffmpegFormats = new Set([
   'xwma',
   'yop',
   'yuv4mpegpipe',
-]);
-
-export type MOUSE_BUTTONS_KEYS = 'LEFT' | 'MIDDLE' | 'RIGHT';
-export type MOUSE_BUTTONS_VALUES = 1 | 2 | 3;
-export const MOUSE_BUTTONS = new Map<MOUSE_BUTTONS_KEYS, MOUSE_BUTTONS_VALUES>([
-  ['LEFT', 1],
-  ['MIDDLE', 2],
-  ['RIGHT', 3],
 ]);

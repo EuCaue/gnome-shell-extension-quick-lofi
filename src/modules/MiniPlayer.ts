@@ -6,11 +6,12 @@ import type Gio from '@girs/gio-2.0';
 import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, type MiniPlayerActionKey, SETTINGS_KEYS } from '@/shared/constants';
+import { ICONS, SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { findRadioById, parseRadios } from '@/shared/radios';
-import { getExtSettings } from '@/shared/settings';
+import { clickAction, getExtSettings } from '@/shared/settings';
 import type { Radio } from '@/types';
+import type { ClickActions } from './ClickActions';
 import { formatTime } from './IndicatorStatus';
 import Player from './Player';
 import { createTooltip } from './Tooltip';
@@ -29,6 +30,7 @@ export default class MiniPlayer {
 
   private _miniPlayerItem: PopupBaseMenuItem | null = null;
   private _settings: Gio.Settings;
+  private _clickActions: ClickActions | null = null;
 
   private _duration = 0;
   private _isSeekable = false;
@@ -55,10 +57,11 @@ export default class MiniPlayer {
     writeLog({ message: '[MiniPlayer] Initialized', type: 'INFO' });
   }
 
-  public createMiniPlayer(popup: PopupMenuSection) {
+  public createMiniPlayer(popup: PopupMenuSection, clickActions: ClickActions) {
     if (this._miniPlayerItem) {
       return;
     }
+    this._clickActions = clickActions;
 
     const MINI_PLAYER_ITEM_STYLE = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
     const TIME_BOX_BASE_STYLE = 'padding: 8px; border-radius: 10px;';
@@ -268,31 +271,10 @@ export default class MiniPlayer {
     popup.addMenuItem(this._miniPlayerItem, popup.numMenuItems - 1);
   }
 
-  // Runs the action stored for `button` (1-3) in a mini player button's settings key.
+  // Runs the action stored for `button` in a mini player button's settings key; the menu stays open.
   private _runControlAction(settingsKey: string, button: number): boolean {
-    const action = this._settings.get_strv(settingsKey)[button - 1] as MiniPlayerActionKey | undefined;
-    switch (action) {
-      case 'playPause':
-        this.mpvPlayer.playPause();
-        return true;
-      case 'stopPlayer':
-        this.mpvPlayer.stopPlayer();
-        return true;
-      case 'prev':
-        this.mpvPlayer.prev();
-        return true;
-      case 'prevRadio':
-        this.mpvPlayer.prev('radio');
-        return true;
-      case 'next':
-        this.mpvPlayer.next();
-        return true;
-      case 'nextRadio':
-        this.mpvPlayer.next('radio');
-        return true;
-      default:
-        return false;
-    }
+    const action = clickAction(this._settings, settingsKey, button);
+    return action ? (this._clickActions?.run(action, { closeMenu: false }) ?? false) : false;
   }
 
   private _connectPlayerSignals(): void {

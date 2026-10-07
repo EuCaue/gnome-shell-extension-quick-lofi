@@ -8,11 +8,12 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@/shared/constants';
+import { ICONS, SETTINGS_KEYS } from '@/shared/constants';
 import { debug, writeLog } from '@/shared/log';
 import { findRadioById, parseRadios } from '@/shared/radios';
+import { clickAction } from '@/shared/settings';
 import type { QuickLofiExtension, Radio } from '@/types';
-import { IndicatorActions } from './IndicatorActions';
+import { ClickActions } from './ClickActions';
 import { buildIndicatorStatus } from './IndicatorStatus';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
@@ -25,7 +26,7 @@ export default class Indicator extends PanelMenu.Button {
   static {
     GObject.registerClass(Indicator);
   }
-  private _indicatorActions: IndicatorActions;
+  private _clickActions: ClickActions;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
   private _radios?: Array<Radio>;
   private _icon: St.Icon;
@@ -60,6 +61,7 @@ export default class Indicator extends PanelMenu.Button {
       shouldShow: () => !this.menu.isOpen,
     });
     this._statusLabel = statusTooltip.label;
+    this._clickActions = new ClickActions(this.menu, this._extension);
     this._createMenu();
     this._bindSettingsChangeEvents();
     // runs after PanelMenu.Button's own handler, which resets `menu.actor.style`
@@ -68,7 +70,6 @@ export default class Indicator extends PanelMenu.Button {
       this._handlePopupSize();
       if (open) statusTooltip.hide();
     });
-    this._indicatorActions = new IndicatorActions(this.menu, this._extension);
     this._handleButtonClick();
     writeLog({ message: '[Indicator] Indicator initialized successfully', type: 'INFO' });
   }
@@ -190,7 +191,7 @@ export default class Indicator extends PanelMenu.Button {
         child.set_style('font-weight: bold');
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
         this._activeRadioPopupItem = child;
-        this._miniPlayer.createMiniPlayer(this._popupSection);
+        this._miniPlayer.createMiniPlayer(this._popupSection, this._clickActions);
         this._playback = { paused: false, position: 0, duration: 0 };
         this._updateStatus();
       }),
@@ -240,7 +241,7 @@ export default class Indicator extends PanelMenu.Button {
         // check if a radio is playing
         const enabled = this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER);
         if (enabled && this.mpvPlayer.isPlaying()) {
-          this._miniPlayer.createMiniPlayer(this._popupSection);
+          this._miniPlayer.createMiniPlayer(this._popupSection, this._clickActions);
         } else {
           this._miniPlayer.dispose();
         }
@@ -270,8 +271,7 @@ export default class Indicator extends PanelMenu.Button {
   ): Promise<void> {
     const currentRadio = this._radios.find((radio) => radio.id === radioID);
     const step = radioItemStep({
-      actions: this._extension._settings.get_strv(SETTINGS_KEYS.RADIO_ITEM_ACTIONS),
-      button: mouseButton,
+      action: clickAction(this._extension._settings, SETTINGS_KEYS.RADIO_ITEM_ACTIONS, mouseButton),
       isActive: child === this._activeRadioPopupItem,
     });
 
@@ -280,19 +280,8 @@ export default class Indicator extends PanelMenu.Button {
       type: 'INFO',
     });
 
-    if (step === 'none') return;
-    if (step === 'copyUrl') {
-      if (currentRadio) St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, currentRadio.radioUrl);
-      return;
-    }
-    if (step === 'stopPlayer') {
-      writeLog({ message: '[Indicator] Click on active radio - stopping playback', type: 'INFO' });
-      this.mpvPlayer.stopPlayer(currentRadio);
-      return;
-    }
-    if (step === 'playPause') {
-      writeLog({ message: '[Indicator] Click on active radio - toggling play/pause', type: 'INFO' });
-      this.mpvPlayer.playPause();
+    if (step !== 'start') {
+      this._clickActions.run(step, { radio: currentRadio });
       return;
     }
     if (this._activeRadioPopupItem) {
@@ -309,11 +298,10 @@ export default class Indicator extends PanelMenu.Button {
       if (event.type() !== Clutter.EventType.BUTTON_PRESS) {
         return Clutter.EVENT_PROPAGATE;
       }
-      const mouseBtn = event.get_button() - 1;
-      const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
-      const action = actions[mouseBtn] as IndicatorActionKey;
+      const mouseBtn = event.get_button();
+      const action = clickAction(this._extension._settings, SETTINGS_KEYS.INDICATOR_ACTIONS, mouseBtn);
       writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}`, type: 'INFO' });
-      this._indicatorActions.actions.get(action)?.();
+      if (action) this._clickActions.run(action);
       return Clutter.EVENT_STOP;
     });
   }
@@ -447,7 +435,7 @@ export default class Indicator extends PanelMenu.Button {
     });
     this._createVolumeSlider(this._popupSection);
     if (this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER) && this.mpvPlayer.isPlaying()) {
-      this._miniPlayer.createMiniPlayer(this._popupSection);
+      this._miniPlayer.createMiniPlayer(this._popupSection, this._clickActions);
     }
     // @ts-expect-error nothing
     this.menu.box.add_child(this._scrollView);

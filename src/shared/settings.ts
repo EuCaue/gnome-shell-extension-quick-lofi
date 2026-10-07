@@ -18,6 +18,14 @@ export function resetExtSettings(): void {
   _settings = null;
 }
 
+// The action stored for mouse `button` (1-3) in a click actions key; a short stored list falls back to the default.
+// Keyboard activation (0) and extra buttons have none.
+export function clickAction(settings: Gio.Settings, key: string, button: number): string | undefined {
+  if (button < 1 || button > 3) return undefined;
+  const defaults = settings.get_default_value(key)?.deepUnpack() as string[] | undefined;
+  return settings.get_strv(key)[button - 1] ?? defaults?.[button - 1];
+}
+
 // `cookies-from-browser` is stored as "<menu name> - <yt-dlp value>", e.g. "Firefox - firefox".
 export type CookiesFromBrowser = { browser: string; value: string };
 

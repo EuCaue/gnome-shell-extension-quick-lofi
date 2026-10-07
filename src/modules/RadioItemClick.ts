@@ -1,22 +1,13 @@
 // No runtime imports: tests load this file directly with Node.
-import type { RadioItemActionKey } from '@/shared/constants';
+import type { ClickActionKey } from '@/shared/constants';
 
-// 'start' (re)starts the clicked radio; the others act on the radio already playing.
-export type RadioItemStep = Exclude<RadioItemActionKey, 'restart'> | 'start';
+// 'start' (re)starts the clicked radio; anything else runs as a click action.
+export type RadioItemStep = Exclude<ClickActionKey, 'restart'> | 'start';
 
-// `button` is 1-3 for mouse clicks and 0 for keyboard activation.
-export function radioItemStep({
-  actions,
-  button,
-  isActive,
-}: {
-  actions: string[];
-  button: number;
-  isActive: boolean;
-}): RadioItemStep {
-  const action = actions[button - 1];
-  if (action === 'copyUrl') return 'copyUrl';
-  if (isActive && (action === 'playPause' || action === 'stopPlayer' || action === 'none')) return action;
-  // 'restart', keyboard and extra buttons on the playing radio start it again
-  return 'start';
+// `action` is undefined for keyboard activation and extra mouse buttons.
+export function radioItemStep({ action, isActive }: { action: string | undefined; isActive: boolean }): RadioItemStep {
+  if (action === undefined || action === 'restart') return 'start';
+  // playback actions start a radio that isn't playing
+  if (!isActive && (action === 'playPause' || action === 'stopPlayer')) return 'start';
+  return action as RadioItemStep;
 }

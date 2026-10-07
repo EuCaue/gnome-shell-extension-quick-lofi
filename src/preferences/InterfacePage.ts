@@ -4,13 +4,9 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
-import {
-  INDICATOR_ACTIONS_NAMES,
-  MINI_PLAYER_ACTIONS_NAMES,
-  RADIO_ITEM_ACTIONS_NAMES,
-  SETTINGS_KEYS,
-} from '@/shared/constants';
+import { CLICK_ACTIONS_NAMES, SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
+import { clickAction } from '@/shared/settings';
 
 export class InterfacePage extends Adw.PreferencesPage {
   static {
@@ -101,13 +97,14 @@ export class InterfacePage extends Adw.PreferencesPage {
   }
 
   // Each row picks the action for one mouse button (left, middle, right) of an `as` click actions key.
-  private _bindClickActions(key: string, names: ReadonlyMap<string, string>, rows: Adw.ComboRow[]): void {
-    const actions = Array.from(names.keys());
+  private _bindClickActions(key: string, rows: Adw.ComboRow[]): void {
+    const actions: string[] = Array.from(CLICK_ACTIONS_NAMES.keys());
     const defaults = this._settings.get_default_value(key).deepUnpack() as string[];
 
     rows.forEach((row, button) => {
-      row.set_model(Gtk.StringList.new(Array.from(names.values())));
-      const position = actions.indexOf(this._settings.get_strv(key)[button] ?? defaults[button]);
+      row.set_model(Gtk.StringList.new(Array.from(CLICK_ACTIONS_NAMES.values())));
+      // an unknown stored value runs nothing, so the row keeps showing 'Nothing' (the first option)
+      const position = actions.indexOf(clickAction(this._settings, key, button + 1));
       if (position >= 0) row.set_selected(position);
 
       row.connect('notify::selected', () => {
@@ -170,27 +167,27 @@ export class InterfacePage extends Adw.PreferencesPage {
     this._enableDebug.set_subtitle(
       `When enabled, app activity is logged to /tmp/quick-lofi-${GLib.get_user_name()}.log.`,
     );
-    this._bindClickActions(SETTINGS_KEYS.INDICATOR_ACTIONS, INDICATOR_ACTIONS_NAMES, [
+    this._bindClickActions(SETTINGS_KEYS.INDICATOR_ACTIONS, [
       this._leftClickRow,
       this._middleClickRow,
       this._rightClickRow,
     ]);
-    this._bindClickActions(SETTINGS_KEYS.RADIO_ITEM_ACTIONS, RADIO_ITEM_ACTIONS_NAMES, [
+    this._bindClickActions(SETTINGS_KEYS.RADIO_ITEM_ACTIONS, [
       this._radioLeftClickRow,
       this._radioMiddleClickRow,
       this._radioRightClickRow,
     ]);
-    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS, MINI_PLAYER_ACTIONS_NAMES, [
+    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS, [
       this._miniPrevLeftRow,
       this._miniPrevMiddleRow,
       this._miniPrevRightRow,
     ]);
-    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS, MINI_PLAYER_ACTIONS_NAMES, [
+    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS, [
       this._miniPlayLeftRow,
       this._miniPlayMiddleRow,
       this._miniPlayRightRow,
     ]);
-    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS, MINI_PLAYER_ACTIONS_NAMES, [
+    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS, [
       this._miniNextLeftRow,
       this._miniNextMiddleRow,
       this._miniNextRightRow,
