@@ -24,6 +24,10 @@ export const SETTINGS_KEYS = {
   ...SHORTCUTS,
   CURRENT_RADIO_PLAYING: 'current-radio-playing',
   INDICATOR_ACTIONS: 'indicator-actions',
+  RADIO_ITEM_ACTIONS: 'radio-item-actions',
+  MINI_PLAYER_PREV_ACTIONS: 'mini-player-prev-actions',
+  MINI_PLAYER_PLAY_ACTIONS: 'mini-player-play-actions',
+  MINI_PLAYER_NEXT_ACTIONS: 'mini-player-next-actions',
   POPUP_MAX_HEIGHT: 'popup-max-height',
   POPUP_MAX_WIDTH: 'popup-max-width',
   POPUP_WIDTH: 'popup-width',
@@ -48,9 +52,35 @@ export const INDICATOR_ACTIONS_NAMES = new Map([
   ['playPause', 'Toggle play'],
   ['openPrefs', 'Open preferences'],
   ['stopPlayer', 'Stop playback'],
+  ['next', 'Next'],
+  ['nextRadio', 'Next radio'],
+  ['prev', 'Previous'],
+  ['prevRadio', 'Previous radio'],
 ] as const);
 export type IndicatorActionKey = typeof INDICATOR_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
 export type IndicatorActionValue = typeof INDICATOR_ACTIONS_NAMES extends Map<any, infer V> ? V : never;
+
+// Clicks on the playing radio; a radio that isn't playing starts on any click except copyUrl.
+export const RADIO_ITEM_ACTIONS_NAMES = new Map([
+  ['playPause', 'Toggle play'],
+  ['restart', 'Restart radio'],
+  ['stopPlayer', 'Stop playback'],
+  ['copyUrl', 'Copy URL'],
+  ['none', 'Nothing'],
+] as const);
+export type RadioItemActionKey = typeof RADIO_ITEM_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
+
+// Shared by the three mini player buttons.
+export const MINI_PLAYER_ACTIONS_NAMES = new Map([
+  ['none', 'Nothing'],
+  ['playPause', 'Toggle play'],
+  ['stopPlayer', 'Stop playback'],
+  ['prev', 'Previous'],
+  ['prevRadio', 'Previous radio'],
+  ['next', 'Next'],
+  ['nextRadio', 'Next radio'],
+] as const);
+export type MiniPlayerActionKey = typeof MINI_PLAYER_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
 
 // ffmpeg container formats (from `ffmpeg -formats`)
 export const ffmpegFormats = new Set([

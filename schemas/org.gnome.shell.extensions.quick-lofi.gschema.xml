@@ -119,6 +119,26 @@
       <summary>Configure the behavior of indicator clicks.</summary>
       <description>Specifies which actions are triggered when the user clicks the indicator.</description>
     </key>
+    <key name="radio-item-actions" type="as">
+      <default>['playPause', 'restart', 'stopPlayer']</default>
+      <summary>Radio click actions</summary>
+      <description>Actions for left, middle and right clicks on the playing radio. A radio that isn't playing starts on any click, except Copy URL.</description>
+    </key>
+    <key name="mini-player-prev-actions" type="as">
+      <default>['prev', 'none', 'prevRadio']</default>
+      <summary>Mini player previous button actions</summary>
+      <description>Actions for left, middle and right clicks on the mini player previous button.</description>
+    </key>
+    <key name="mini-player-play-actions" type="as">
+      <default>['playPause', 'none', 'stopPlayer']</default>
+      <summary>Mini player play button actions</summary>
+      <description>Actions for left, middle and right clicks on the mini player play button.</description>
+    </key>
+    <key name="mini-player-next-actions" type="as">
+      <default>['next', 'none', 'nextRadio']</default>
+      <summary>Mini player next button actions</summary>
+      <description>Actions for left, middle and right clicks on the mini player next button.</description>
+    </key>
     <key name="enable-debug" type="b">
       <default>false</default>
       <summary>Enable Debug Logs</summary>
