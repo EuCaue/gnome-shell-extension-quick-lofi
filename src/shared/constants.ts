@@ -50,18 +50,20 @@ export const SETTINGS_KEYS = {
 // Keys are stored in GSettings: never rename or remove one.
 export const CLICK_ACTIONS_NAMES = new Map([
   ['none', 'Nothing'],
-  ['showPopupMenu', 'Show menu'],
-  ['playPause', 'Toggle play'],
-  ['stopPlayer', 'Stop playback'],
-  ['restart', 'Restart radio'],
+  ['showPopupMenu', 'Show Menu'],
+  ['playPause', 'Toggle Play'],
+  ['stopPlayer', 'Stop Playback'],
+  ['restart', 'Restart Radio'],
   ['prev', 'Previous'],
-  ['prevRadio', 'Previous radio'],
+  ['prevRadio', 'Previous Radio'],
   ['next', 'Next'],
-  ['nextRadio', 'Next radio'],
-  ['copyUrl', 'Copy radio URL'],
-  ['openPrefs', 'Open preferences'],
+  ['nextRadio', 'Next Radio'],
+  ['copyUrl', 'Copy Radio URL'],
+  ['openPrefs', 'Open Preferences'],
 ] as const);
 export type ClickActionKey = typeof CLICK_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
+// Hidden where the menu is already open (radios, mini player).
+export const MENU_HIDDEN_CLICK_ACTIONS: readonly ClickActionKey[] = ['showPopupMenu'];
 
 // ffmpeg container formats (from `ffmpeg -formats`)
 export const ffmpegFormats = new Set([

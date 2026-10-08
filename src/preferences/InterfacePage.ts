@@ -4,7 +4,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
-import { CLICK_ACTIONS_NAMES, SETTINGS_KEYS } from '@/shared/constants';
+import { CLICK_ACTIONS_NAMES, type ClickActionKey, MENU_HIDDEN_CLICK_ACTIONS, SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { clickAction } from '@/shared/settings';
 
@@ -97,13 +97,14 @@ export class InterfacePage extends Adw.PreferencesPage {
   }
 
   // Each row picks the action for one mouse button (left, middle, right) of an `as` click actions key.
-  private _bindClickActions(key: string, rows: Adw.ComboRow[]): void {
-    const actions: string[] = Array.from(CLICK_ACTIONS_NAMES.keys());
+  private _bindClickActions(key: string, rows: Adw.ComboRow[], hidden: readonly string[] = []): void {
+    const actions: string[] = Array.from(CLICK_ACTIONS_NAMES.keys()).filter((action) => !hidden.includes(action));
+    const labels = actions.map((action) => CLICK_ACTIONS_NAMES.get(action as ClickActionKey));
     const defaults = this._settings.get_default_value(key).deepUnpack() as string[];
 
     rows.forEach((row, button) => {
-      row.set_model(Gtk.StringList.new(Array.from(CLICK_ACTIONS_NAMES.values())));
-      // an unknown stored value runs nothing, so the row keeps showing 'Nothing' (the first option)
+      row.set_model(Gtk.StringList.new(labels));
+      // an unknown or hidden stored value shows 'Nothing' (the first option)
       const position = actions.indexOf(clickAction(this._settings, key, button + 1));
       if (position >= 0) row.set_selected(position);
 
@@ -172,26 +173,26 @@ export class InterfacePage extends Adw.PreferencesPage {
       this._middleClickRow,
       this._rightClickRow,
     ]);
-    this._bindClickActions(SETTINGS_KEYS.RADIO_ITEM_ACTIONS, [
-      this._radioLeftClickRow,
-      this._radioMiddleClickRow,
-      this._radioRightClickRow,
-    ]);
-    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS, [
-      this._miniPrevLeftRow,
-      this._miniPrevMiddleRow,
-      this._miniPrevRightRow,
-    ]);
-    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS, [
-      this._miniPlayLeftRow,
-      this._miniPlayMiddleRow,
-      this._miniPlayRightRow,
-    ]);
-    this._bindClickActions(SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS, [
-      this._miniNextLeftRow,
-      this._miniNextMiddleRow,
-      this._miniNextRightRow,
-    ]);
+    this._bindClickActions(
+      SETTINGS_KEYS.RADIO_ITEM_ACTIONS,
+      [this._radioLeftClickRow, this._radioMiddleClickRow, this._radioRightClickRow],
+      MENU_HIDDEN_CLICK_ACTIONS,
+    );
+    this._bindClickActions(
+      SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS,
+      [this._miniPrevLeftRow, this._miniPrevMiddleRow, this._miniPrevRightRow],
+      MENU_HIDDEN_CLICK_ACTIONS,
+    );
+    this._bindClickActions(
+      SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS,
+      [this._miniPlayLeftRow, this._miniPlayMiddleRow, this._miniPlayRightRow],
+      MENU_HIDDEN_CLICK_ACTIONS,
+    );
+    this._bindClickActions(
+      SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS,
+      [this._miniNextLeftRow, this._miniNextMiddleRow, this._miniNextRightRow],
+      MENU_HIDDEN_CLICK_ACTIONS,
+    );
     writeLog({ message: '[InterfacePage] Interface preferences page initialized', type: 'INFO' });
   }
 }
