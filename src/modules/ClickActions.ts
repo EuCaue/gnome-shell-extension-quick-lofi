@@ -17,13 +17,12 @@ export class ClickActions {
     writeLog({ message: '[ClickActions] Initialized', type: 'INFO' });
   }
 
-  // `radio` is the radio the click targets (the playing one when omitted). Playback actions close the menu
-  // unless `closeMenu` is false. Returns false when there was nothing to run.
-  public run(action: string, { radio, closeMenu = true }: { radio?: Radio; closeMenu?: boolean } = {}): boolean {
+  // `radio` is the radio the click targets (the playing one when omitted). Only openPrefs closes the menu.
+  // Returns false when there was nothing to run.
+  public run(action: string, { radio }: { radio?: Radio } = {}): boolean {
     const runAction = this._actions.get(action as ClickActionKey);
     if (!runAction || action === 'none') return false;
     writeLog({ message: `[ClickActions] Running ${action}`, type: 'INFO' });
-    if (closeMenu && action !== 'showPopupMenu') this.menu.close();
     runAction(radio ?? this._playingRadio());
     return true;
   }

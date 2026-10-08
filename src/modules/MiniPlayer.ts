@@ -271,10 +271,10 @@ export default class MiniPlayer {
     popup.addMenuItem(this._miniPlayerItem, popup.numMenuItems - 1);
   }
 
-  // Runs the action stored for `button` in a mini player button's settings key; the menu stays open.
+  // Runs the action stored for `button` in a mini player button's settings key.
   private _runControlAction(settingsKey: string, button: number): boolean {
     const action = clickAction(this._settings, settingsKey, button);
-    return action ? (this._clickActions?.run(action, { closeMenu: false }) ?? false) : false;
+    return action ? (this._clickActions?.run(action) ?? false) : false;
   }
 
   private _connectPlayerSignals(): void {
