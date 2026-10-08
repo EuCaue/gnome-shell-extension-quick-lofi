@@ -1,4 +1,5 @@
 // No gi:// imports: tests load this file directly with Node.
+import type { ClickActionKey } from '@/shared/constants';
 import type { Radio } from '@/types';
 
 // The `radios` setting stores each radio as "name - url - id".
@@ -56,9 +57,35 @@ export function findRadioById(radios: Radio[], id: string): Radio | undefined {
   return radios.find((radio) => radio.id === id);
 }
 
+export type DefaultRadioStep = 'start' | 'playPause' | 'stop' | 'none';
+
+export function defaultRadioStep(
+  radios: Radio[],
+  defaultId: string,
+  playingId: string,
+  intent: 'playPause' | 'stop',
+): DefaultRadioStep {
+  const radio = findRadioById(radios, defaultId);
+  if (!radio) return 'none';
+  const isPlaying = radio.id === playingId;
+  if (intent === 'stop') return isPlaying ? 'stop' : 'none';
+  return isPlaying ? 'playPause' : 'start';
+}
+
 // The radio `step` places after (or before, when negative) the one with `id`, wrapping around.
 export function neighborRadio(radios: Radio[], id: string, step: number): Radio | undefined {
   const index: number = id ? radios.findIndex((radio) => radio.id === id) : -1;
   if (index === -1) return undefined;
   return radios[(index + step + radios.length) % radios.length];
+}
+
+// 'start' (re)starts the clicked radio item; anything else runs as a click action.
+export type RadioItemStep = Exclude<ClickActionKey, 'restart'> | 'start';
+
+// `action` is undefined for keyboard activation and extra mouse buttons.
+export function radioItemStep({ action, isActive }: { action: string | undefined; isActive: boolean }): RadioItemStep {
+  if (action === undefined || action === 'restart') return 'start';
+  // playback actions start a radio that isn't playing
+  if (!isActive && (action === 'playPause' || action === 'stopPlayer')) return 'start';
+  return action as RadioItemStep;
 }

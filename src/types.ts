@@ -1,4 +1,5 @@
 import type Gio from 'gi://Gio';
+import type GObject from 'gi://GObject';
 import type { Extension } from '@girs/gnome-shell/extensions/extension';
 
 export interface QuickLofiExtension extends Extension {
@@ -8,3 +9,5 @@ export interface QuickLofiExtension extends Extension {
 export type Radio = { radioName: string; radioUrl: string; id: string };
 
 export type Shortcut = { settingsKey: string; title: string; subtitle?: string };
+
+export type SignalConnection = { emitter: GObject.Object; id: number };

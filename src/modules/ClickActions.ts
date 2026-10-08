@@ -56,6 +56,8 @@ export class ClickActions {
         if (radio) St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, radio.radioUrl);
       },
     ],
+    ['playPauseDefaultRadio', () => this._mpv.playPauseDefaultRadio()],
+    ['stopDefaultRadio', () => this._mpv.stopDefaultRadio()],
     [
       'openPrefs',
       () => {

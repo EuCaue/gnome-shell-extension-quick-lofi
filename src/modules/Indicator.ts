@@ -10,16 +10,14 @@ import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
 import { ICONS, SETTINGS_KEYS } from '@/shared/constants';
 import { debug, writeLog } from '@/shared/log';
-import { findRadioById, parseRadios } from '@/shared/radios';
+import { findRadioById, parseRadios, radioItemStep } from '@/shared/radios';
 import { clickAction } from '@/shared/settings';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { ClickActions } from './ClickActions';
-import { buildIndicatorStatus } from './IndicatorStatus';
+import { buildIndicatorStatus, buildPopupStyles } from './IndicatorView';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
-import { buildPopupStyles } from './PopupStyle';
-import { radioItemStep } from './RadioItemClick';
 import { createTooltip } from './Tooltip';
 
 export default class Indicator extends PanelMenu.Button {
@@ -81,6 +79,11 @@ export default class Indicator extends PanelMenu.Button {
 
     this._radios = parseRadios(radios);
     writeLog({ message: `[Indicator] Created ${this._radios.length} radio objects`, type: 'INFO' });
+    // runs on enable and whenever the radios change, so a removed default radio never lingers
+    const defaultId = this._extension._settings.get_string(SETTINGS_KEYS.DEFAULT_RADIO);
+    if (defaultId && !findRadioById(this._radios, defaultId)) {
+      this._extension._settings.set_string(SETTINGS_KEYS.DEFAULT_RADIO, '');
+    }
   }
 
   private _handlePopupSize(): void {

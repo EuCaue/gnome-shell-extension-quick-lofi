@@ -12,7 +12,7 @@ import { findRadioById, parseRadios } from '@/shared/radios';
 import { clickAction, getExtSettings } from '@/shared/settings';
 import type { Radio } from '@/types';
 import type { ClickActions } from './ClickActions';
-import { formatTime } from './IndicatorStatus';
+import { formatTime } from './IndicatorView';
 import Player from './Player';
 import { createTooltip } from './Tooltip';
 

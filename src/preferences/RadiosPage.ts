@@ -10,7 +10,7 @@ import { detectRadioName } from '@/preferences/RadioNameProbe';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
-import { createRadio, formatRadios, parseRadios, sanitizeRadioName } from '@/shared/radios';
+import { createRadio, findRadioById, formatRadios, parseRadios, sanitizeRadioName } from '@/shared/radios';
 import type { Radio } from '@/types';
 
 Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
@@ -23,7 +23,14 @@ export class RadiosPage extends Adw.PreferencesPage {
       {
         GTypeName: 'RadiosPage',
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/RadiosPage.ui',
-        InternalChildren: ['radiosGroup', 'nameRadioRow', 'urlRadioRow'],
+        InternalChildren: [
+          'radiosGroup',
+          'nameRadioRow',
+          'urlRadioRow',
+          'defaultRadioRow',
+          'playDefaultRadioOnStartupRow',
+          'playDefaultRadioOnUnlockRow',
+        ],
       },
       this,
     );
@@ -31,6 +38,10 @@ export class RadiosPage extends Adw.PreferencesPage {
   private declare _radiosGroup: Adw.PreferencesGroup;
   private declare _nameRadioRow: Adw.EntryRow;
   private declare _urlRadioRow: Adw.EntryRow;
+  private declare _defaultRadioRow: Adw.ComboRow;
+  private declare _playDefaultRadioOnStartupRow: Adw.SwitchRow;
+  private declare _playDefaultRadioOnUnlockRow: Adw.SwitchRow;
+  private _isSyncingDefaultRadio = false;
 
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
     if (index !== -1) {
@@ -63,6 +74,63 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   private _saveRadios(): void {
     this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, formatRadios(this._radios));
+    // a removed default radio must not linger in settings
+    this._clearStaleDefaultRadio();
+    this._syncDefaultRadioRow();
+  }
+
+  private _syncDefaultRadioRow(): void {
+    this._isSyncingDefaultRadio = true;
+    this._defaultRadioRow.set_model(Gtk4.StringList.new([_('None'), ...this._radios.map((radio) => radio.radioName)]));
+    this._isSyncingDefaultRadio = false;
+    this._selectDefaultRadio();
+  }
+
+  private _selectDefaultRadio(): void {
+    const defaultId = this._settings.get_string(SETTINGS_KEYS.DEFAULT_RADIO);
+    const position = this._radioIndex(defaultId) + 1;
+    if (this._defaultRadioRow.get_selected() !== position) {
+      this._isSyncingDefaultRadio = true;
+      this._defaultRadioRow.set_selected(position);
+      this._isSyncingDefaultRadio = false;
+    }
+    this._playDefaultRadioOnStartupRow.set_sensitive(position > 0);
+    this._playDefaultRadioOnUnlockRow.set_sensitive(position > 0);
+  }
+
+  private _clearStaleDefaultRadio(): void {
+    const defaultId = this._settings.get_string(SETTINGS_KEYS.DEFAULT_RADIO);
+    if (defaultId && !findRadioById(this._radios, defaultId))
+      this._settings.set_string(SETTINGS_KEYS.DEFAULT_RADIO, '');
+  }
+
+  private _bindDefaultRadio(): void {
+    this._settings.bind(
+      SETTINGS_KEYS.PLAY_DEFAULT_RADIO_ON_STARTUP,
+      this._playDefaultRadioOnStartupRow,
+      'active',
+      Gio.SettingsBindFlags.DEFAULT | Gio.SettingsBindFlags.NO_SENSITIVITY,
+    );
+    this._settings.bind(
+      SETTINGS_KEYS.PLAY_DEFAULT_RADIO_ON_UNLOCK,
+      this._playDefaultRadioOnUnlockRow,
+      'active',
+      Gio.SettingsBindFlags.DEFAULT | Gio.SettingsBindFlags.NO_SENSITIVITY,
+    );
+    this._defaultRadioRow.connect('notify::selected', () => {
+      if (this._isSyncingDefaultRadio || !this._settings || !this._radios) return;
+      const radio = this._radios[this._defaultRadioRow.get_selected() - 1];
+      writeLog({ message: `[RadiosPage] Default radio set to: ${radio?.radioName ?? 'None'}`, type: 'INFO' });
+      this._settings.set_string(SETTINGS_KEYS.DEFAULT_RADIO, radio?.id ?? '');
+    });
+    const changedId = this._settings.connect(`changed::${SETTINGS_KEYS.DEFAULT_RADIO}`, () =>
+      this._selectDefaultRadio(),
+    );
+    this._window.connect('close-request', () => {
+      this._settings?.disconnect(changedId);
+    });
+    this._clearStaleDefaultRadio();
+    this._syncDefaultRadioRow();
   }
 
   private _populateRadios(radiosGroup: Adw.PreferencesGroup): void {
@@ -434,6 +502,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     writeLog({ message: `[RadiosPage] Loaded ${this._radios.length} radios from settings`, type: 'INFO' });
     this._populateRadios(this._radiosGroup);
     this._enableAddRadioOnEnter();
+    this._bindDefaultRadio();
     this._window.connect('close-request', () => {
       writeLog({ message: '[RadiosPage] Cleaning up on window close', type: 'INFO' });
       this._settings = null;

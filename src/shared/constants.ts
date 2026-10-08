@@ -18,11 +18,16 @@ export const SHORTCUTS = {
   PREVIOUS_SHORTCUT: 'previous',
   NEXT_RADIO_SHORTCUT: 'next-radio',
   PREVIOUS_RADIO_SHORTCUT: 'previous-radio',
+  PLAY_PAUSE_DEFAULT_RADIO_SHORTCUT: 'play-pause-default-radio',
+  STOP_DEFAULT_RADIO_SHORTCUT: 'stop-default-radio',
 };
 
 export const SETTINGS_KEYS = {
   ...SHORTCUTS,
   CURRENT_RADIO_PLAYING: 'current-radio-playing',
+  DEFAULT_RADIO: 'default-radio',
+  PLAY_DEFAULT_RADIO_ON_STARTUP: 'play-default-radio-on-startup',
+  PLAY_DEFAULT_RADIO_ON_UNLOCK: 'play-default-radio-on-unlock',
   INDICATOR_ACTIONS: 'indicator-actions',
   RADIO_ITEM_ACTIONS: 'radio-item-actions',
   MINI_PLAYER_PREV_ACTIONS: 'mini-player-prev-actions',
@@ -60,6 +65,8 @@ export const CLICK_ACTIONS_NAMES = new Map([
   ['nextRadio', 'Next Radio'],
   ['copyUrl', 'Copy Radio URL'],
   ['openPrefs', 'Open Preferences'],
+  ['playPauseDefaultRadio', 'Toggle Default Radio'],
+  ['stopDefaultRadio', 'Stop Default Radio'],
 ] as const);
 export type ClickActionKey = typeof CLICK_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
 // Hidden where the menu is already open (radios, mini player).

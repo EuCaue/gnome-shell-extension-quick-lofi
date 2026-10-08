@@ -4,7 +4,7 @@ import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { debug, writeLog } from '@/shared/log';
-import { neighborRadio, parseRadios } from '@/shared/radios';
+import { defaultRadioStep, findRadioById, neighborRadio, parseRadios } from '@/shared/radios';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
 import type { Radio } from '@/types';
 import { MprisController } from './Mpris';
@@ -45,6 +45,7 @@ export default class Player extends GObject.Object {
   private _stdoutStream: Gio.DataInputStream | null = null;
   private _cancellable: Gio.Cancellable | null = null;
   private _settings: Gio.Settings;
+  private _isStartingDefaultRadio = false;
   private _mpris: MprisController | null = null;
   private _positionTimerId: number | null = null;
   private _lastMediaTitle: string | null = null;
@@ -240,6 +241,39 @@ export default class Player extends GObject.Object {
         log(`Error while exiting MPV Process: ${e}`);
       }
     }
+  }
+
+  public playPauseDefaultRadio(): void {
+    this._runDefaultRadio('playPause');
+  }
+
+  public stopDefaultRadio(): void {
+    this._runDefaultRadio('stop');
+  }
+
+  private _runDefaultRadio(intent: 'playPause' | 'stop'): void {
+    // `current-radio-playing` is only set once mpv starts; a second press before that would restart it
+    if (this._isStartingDefaultRadio) return;
+    const radios: Radio[] = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
+    const defaultId = this._settings.get_string(SETTINGS_KEYS.DEFAULT_RADIO);
+    const step = defaultRadioStep(
+      radios,
+      defaultId,
+      this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING),
+      intent,
+    );
+    writeLog({ message: `Default radio ${intent}: ${step}`, type: 'INFO' });
+    const radio = findRadioById(radios, defaultId);
+    if (step === 'start') {
+      this._isStartingDefaultRadio = true;
+      this.startPlayer(radio)
+        .catch(log)
+        .finally(() => {
+          this._isStartingDefaultRadio = false;
+        });
+    }
+    if (step === 'playPause') this.playPause();
+    if (step === 'stop') this.stopPlayer(radio);
   }
 
   public isPlaying(): boolean {

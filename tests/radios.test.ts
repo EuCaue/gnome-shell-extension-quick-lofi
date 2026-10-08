@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   createRadio,
+  defaultRadioStep,
   findRadioById,
   formatRadio,
   migrateRadios,
   neighborRadio,
   parseRadio,
   parseRadios,
+  radioItemStep,
   sanitizeRadioName,
 } from '../src/shared/radios.ts';
 
@@ -72,4 +74,61 @@ test('neighbor wraps around both ways', () => {
 test('neighbor is undefined when nothing is playing', () => {
   assert.equal(neighborRadio(radios, '', 1), undefined);
   assert.equal(neighborRadio([], 'id1', 1), undefined);
+});
+
+const DEFAULT_RADIOS = [
+  { radioName: 'A', radioUrl: 'http://a', id: 'idA' },
+  { radioName: 'B', radioUrl: 'http://b', id: 'idB' },
+];
+
+test('default radio does nothing when unset or stale', () => {
+  for (const intent of ['playPause', 'stop'] as const) {
+    assert.equal(defaultRadioStep(DEFAULT_RADIOS, '', '', intent), 'none');
+    assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'gone', 'idA', intent), 'none');
+  }
+});
+
+test('default radio play/pause starts it unless it is the one playing', () => {
+  assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'idA', '', 'playPause'), 'start');
+  assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'idA', 'idB', 'playPause'), 'start');
+  assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'idA', 'idA', 'playPause'), 'playPause');
+});
+
+test('default radio stop only stops the default radio', () => {
+  assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'idA', 'idA', 'stop'), 'stop');
+  assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'idA', 'idB', 'stop'), 'none');
+  assert.equal(defaultRadioStep(DEFAULT_RADIOS, 'idA', '', 'stop'), 'none');
+});
+
+test('defaults on the playing radio: toggle, restart, stop', () => {
+  assert.equal(radioItemStep({ action: 'playPause', isActive: true }), 'playPause');
+  assert.equal(radioItemStep({ action: 'restart', isActive: true }), 'start');
+  assert.equal(radioItemStep({ action: 'stopPlayer', isActive: true }), 'stopPlayer');
+});
+
+test('keyboard and extra buttons (no action) restart the playing radio', () => {
+  assert.equal(radioItemStep({ action: undefined, isActive: true }), 'start');
+});
+
+test('playback actions and keyboard start a radio that is not playing', () => {
+  for (const action of ['playPause', 'restart', 'stopPlayer', undefined]) {
+    assert.equal(radioItemStep({ action, isActive: false }), 'start');
+  }
+});
+
+test('copyUrl runs on any radio without starting it', () => {
+  assert.equal(radioItemStep({ action: 'copyUrl', isActive: true }), 'copyUrl');
+  assert.equal(radioItemStep({ action: 'copyUrl', isActive: false }), 'copyUrl');
+});
+
+test('none does nothing, playing or not', () => {
+  assert.equal(radioItemStep({ action: 'none', isActive: true }), 'none');
+  assert.equal(radioItemStep({ action: 'none', isActive: false }), 'none');
+});
+
+test('the other actions run as they do anywhere else', () => {
+  for (const action of ['next', 'nextRadio', 'prev', 'prevRadio', 'openPrefs', 'showPopupMenu']) {
+    assert.equal(radioItemStep({ action, isActive: false }), action);
+    assert.equal(radioItemStep({ action, isActive: true }), action);
+  }
 });

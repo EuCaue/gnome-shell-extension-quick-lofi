@@ -292,6 +292,16 @@ export class PlayerPage extends Adw.PreferencesPage {
         title: 'Previous Radio',
         subtitle: 'Go to the previous radio, ignoring the current playlist.',
       },
+      {
+        settingsKey: SHORTCUTS.PLAY_PAUSE_DEFAULT_RADIO_SHORTCUT,
+        title: 'Play or Pause Default Radio',
+        subtitle: 'Start the default radio, or pause it when it is playing.',
+      },
+      {
+        settingsKey: SHORTCUTS.STOP_DEFAULT_RADIO_SHORTCUT,
+        title: 'Stop Default Radio',
+        subtitle: 'Stop playback when the default radio is playing.',
+      },
     ];
 
     shortcuts.forEach((shortcut) => {

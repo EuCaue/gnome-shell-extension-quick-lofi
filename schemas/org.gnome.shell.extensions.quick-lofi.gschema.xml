@@ -18,6 +18,24 @@
       <summary>Current Radio Playing</summary>
     </key>
 
+    <key name="default-radio" type="s">
+      <default>""</default>
+      <summary>Default Radio</summary>
+      <description>Id of the radio played on startup and by the default radio shortcuts and click actions. Empty when none is set.</description>
+    </key>
+
+    <key name="play-default-radio-on-startup" type="b">
+      <default>true</default>
+      <summary>Play the default radio on startup</summary>
+      <description>Start the default radio when the extension loads for the first time in a session.</description>
+    </key>
+
+    <key name="play-default-radio-on-unlock" type="b">
+      <default>true</default>
+      <summary>Play the default radio on unlock</summary>
+      <description>Start the default radio when the extension loads again, e.g. after the screen is unlocked.</description>
+    </key>
+
     <key name="set-popup-max-height" type="b">
       <default>true</default>
       <summary>Overflow quick lofi popup</summary>
@@ -112,6 +130,18 @@
       <default>[]</default>
       <summary>Previous Radio</summary>
       <description>Go to the previous radio, ignoring the current playlist.</description>
+    </key>
+
+    <key name="play-pause-default-radio" type="as">
+      <default>[]</default>
+      <summary>Play or Pause Default Radio</summary>
+      <description>Start the default radio, or toggle pause when it is playing.</description>
+    </key>
+
+    <key name="stop-default-radio" type="as">
+      <default>[]</default>
+      <summary>Stop Default Radio</summary>
+      <description>Stop playback when the default radio is playing.</description>
     </key>
 
     <key name="indicator-actions" type="as">

@@ -124,6 +124,26 @@ export default class ShortcutsHandler {
         this._player.prev('radio');
       },
     );
+    Main.wm.addKeybinding(
+      SHORTCUTS.PLAY_PAUSE_DEFAULT_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+      Shell.ActionMode.NORMAL,
+      () => {
+        writeLog({ message: 'Play/Pause default radio shortcut triggered', type: 'INFO' });
+        this._player.playPauseDefaultRadio();
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.STOP_DEFAULT_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+      Shell.ActionMode.NORMAL,
+      () => {
+        writeLog({ message: 'Stop default radio shortcut triggered', type: 'INFO' });
+        this._player.stopDefaultRadio();
+      },
+    );
   }
 
   private _removeShortcuts() {

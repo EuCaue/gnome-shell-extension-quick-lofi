@@ -52,8 +52,18 @@ test('one list offers every action, including the ones saved by older versions',
     'nextRadio',
     'copyUrl',
     'openPrefs',
+    'playPauseDefaultRadio',
+    'stopDefaultRadio',
   ];
   assert.deepEqual([...CLICK_ACTIONS_NAMES.keys()].sort(), [...expected].sort());
+});
+
+test('default radio settings start empty, with autoplay on and no shortcuts', () => {
+  assert.match(schema, /<key name="default-radio" type="s">\s*<default>""<\/default>/);
+  assert.match(schema, /<key name="play-default-radio-on-startup" type="b">\s*<default>true<\/default>/);
+  assert.match(schema, /<key name="play-default-radio-on-unlock" type="b">\s*<default>true<\/default>/);
+  assert.deepEqual(schemaDefault(SETTINGS_KEYS.PLAY_PAUSE_DEFAULT_RADIO_SHORTCUT), []);
+  assert.deepEqual(schemaDefault(SETTINGS_KEYS.STOP_DEFAULT_RADIO_SHORTCUT), []);
 });
 
 // Minimal stand-in for Gio.Settings: only what clickAction reads.

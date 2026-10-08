@@ -5,6 +5,45 @@
     <property name="title" translatable="yes">Radios</property>
     <property name="icon-name">quick-lofi-radios-symbolic</property>
     <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Default Radio</property>
+        <property name="description" translatable="yes">Play it on startup or with its shortcuts and click actions.</property>
+        <child>
+          <object class="AdwComboRow" id="defaultRadioRow">
+            <property name="title" translatable="yes">Default radio</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwSwitchRow" id="playDefaultRadioOnStartupRow">
+            <property name="title" translatable="yes">Play on Startup</property>
+            <property name="subtitle" translatable="yes">Start the default radio when you log in.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwSwitchRow" id="playDefaultRadioOnUnlockRow">
+            <property name="title" translatable="yes">Play on Unlock</property>
+            <property name="subtitle" translatable="yes">Start the default radio again after you unlock the screen.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
       <object class="AdwPreferencesGroup" id="radiosGroup">
         <property name="title" translatable="yes">Radios List</property>
         <property name="description" translatable="yes">Manage your radios</property>
