@@ -56,6 +56,7 @@ export default class Indicator extends PanelMenu.Button {
     this.add_child(this._icon);
     const statusTooltip = createTooltip(this, {
       placement: 'below',
+      maxWidth: 320,
       // the menu opens right below the icon, where the tooltip would cover it
       // @ts-expect-error nothing
       shouldShow: () => !this.menu.isOpen,

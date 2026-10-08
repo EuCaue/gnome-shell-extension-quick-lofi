@@ -10,6 +10,8 @@ export type TooltipPlacement = 'above' | 'below';
 export type TooltipOptions = {
   placement?: TooltipPlacement;
   shouldShow?: () => boolean;
+  // in px; longer text wraps
+  maxWidth?: number;
 };
 
 export type Tooltip = {
@@ -22,6 +24,7 @@ export type Tooltip = {
 export function createTooltip(targetWidget: St.Widget, options: TooltipOptions = {}): Tooltip {
   const placement: TooltipPlacement = options.placement ?? 'above';
   const shouldShow = options.shouldShow ?? ((): boolean => true);
+  const maxWidth = options.maxWidth ?? 210;
   // St.BoxLayout draws its background more reliably than a bare St.Label
   const tooltip = new St.BoxLayout({
     style: [
@@ -34,7 +37,7 @@ export function createTooltip(targetWidget: St.Widget, options: TooltipOptions =
       'padding-bottom: 6px;',
       'padding-left: 12px;',
       'padding-right: 12px;',
-      'max-width: 210px;',
+      `max-width: ${maxWidth}px;`,
     ].join(' '),
     opacity: 0,
     visible: false,
