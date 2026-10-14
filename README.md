@@ -12,6 +12,8 @@ Play **lofi music and other sounds, locally or online**, on your GNOME desktop w
 
 ![GNOME Supported Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2FEuCaue%2Fgnome-shell-extension-quick-lofi%2Fraw%2Fmaster%2Fsrc%2Fmetadata.json&query=%24%5B'shell-version'%5D&style=for-the-badge&logo=gnome&label=Compatible%20with%20GNOME)
 
+[![Website](https://img.shields.io/badge/Website-quick--lofi.eucaue.online-8b5cf6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://quick-lofi.eucaue.online/)
+
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20Me%20a%20Coffee-ff5f5f?logo=kofi&logoColor=white&style=for-the-badge)](https://ko-fi.com/eucaue)
 
 [<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
@@ -24,11 +26,18 @@ Play **lofi music and other sounds, locally or online**, on your GNOME desktop w
 
 ## Features
 
-- Play lofi and any other sound with one click
-- Global keyboard shortcuts for quick control
+- Play lofi and any other sound with one click, from a URL or a local file
+- Radio names filled in from the stream when you leave the name empty
+- Default radio that can start when you log in or unlock the screen
+- Global keyboard shortcuts for play/pause, stop, volume, next/previous and the default radio
+- Configurable left, middle and right click actions on the indicator, radios and mini player
+- Mini player in the pop-up, with an optional track title
+- MPRIS integration, so media keys and the GNOME media controls work
+- Playback status in a tooltip when you hover the icon
 - Volume control directly from pop-up menu
 - Drag and drop to rearrange radio stations
-- Adjustable pop-up height
+- Adjustable pop-up width and height, fixed or with a maximum
+- Custom `mpv` arguments and browser cookies for sources that need a login
 
 ## Dependencies
 
