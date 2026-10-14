@@ -2,8 +2,9 @@ import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { SETTINGS_KEYS, SHORTCUTS } from '@utils/constants';
-import { getExtSettings, writeLog } from '@/utils/helpers';
+import { SETTINGS_KEYS, SHORTCUTS } from '@/shared/constants';
+import { writeLog } from '@/shared/log';
+import { getExtSettings } from '@/shared/settings';
 import Player from './Player';
 
 export default class ShortcutsHandler {
@@ -121,6 +122,26 @@ export default class ShortcutsHandler {
       Shell.ActionMode.NORMAL,
       () => {
         this._player.prev('radio');
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.PLAY_PAUSE_DEFAULT_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+      Shell.ActionMode.NORMAL,
+      () => {
+        writeLog({ message: 'Play/Pause default radio shortcut triggered', type: 'INFO' });
+        this._player.playPauseDefaultRadio();
+      },
+    );
+    Main.wm.addKeybinding(
+      SHORTCUTS.STOP_DEFAULT_RADIO_SHORTCUT,
+      this._settings,
+      Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
+      Shell.ActionMode.NORMAL,
+      () => {
+        writeLog({ message: 'Stop default radio shortcut triggered', type: 'INFO' });
+        this._player.stopDefaultRadio();
       },
     );
   }

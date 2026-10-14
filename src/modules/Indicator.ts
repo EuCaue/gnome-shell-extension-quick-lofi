@@ -2,25 +2,29 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, type IndicatorActionKey, SETTINGS_KEYS } from '@utils/constants';
-import { debug } from '@utils/debug';
-import { isCurrentRadioPlaying, parseRadios, writeLog } from '@utils/helpers';
+import { ICONS, SETTINGS_KEYS } from '@/shared/constants';
+import { debug, writeLog } from '@/shared/log';
+import { findRadioById, parseRadios, radioItemStep } from '@/shared/radios';
+import { clickAction } from '@/shared/settings';
 import type { QuickLofiExtension, Radio } from '@/types';
-import { IndicatorActions } from './IndicatorActions';
+import { ClickActions } from './ClickActions';
+import { buildIndicatorStatus, buildPopupStyles } from './IndicatorView';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
+import { createTooltip } from './Tooltip';
 
 export default class Indicator extends PanelMenu.Button {
   static {
     GObject.registerClass(Indicator);
   }
-  private _indicatorActions: IndicatorActions;
+  private _clickActions: ClickActions;
   private _activeRadioPopupItem: PopupMenu.PopupImageMenuItem | null = null;
   private _radios?: Array<Radio>;
   private _icon: St.Icon;
@@ -32,6 +36,9 @@ export default class Indicator extends PanelMenu.Button {
   public menuSignals: Array<{ emitter: any; signalID: number }> = [];
   private _volumeFocusId: number;
   private _popupSection: PopupMenu.PopupMenuSection;
+  private _scrollView: St.ScrollView;
+  private _statusLabel: St.Label;
+  private _playback = { paused: false, position: 0, duration: 0 };
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
@@ -45,9 +52,23 @@ export default class Indicator extends PanelMenu.Button {
       styleClass: 'system-status-icon indicator-icon',
     });
     this.add_child(this._icon);
+    const statusTooltip = createTooltip(this, {
+      placement: 'below',
+      maxWidth: 320,
+      // the menu opens right below the icon, where the tooltip would cover it
+      // @ts-expect-error nothing
+      shouldShow: () => !this.menu.isOpen,
+    });
+    this._statusLabel = statusTooltip.label;
+    this._clickActions = new ClickActions(this.menu, this._extension);
     this._createMenu();
     this._bindSettingsChangeEvents();
-    this._indicatorActions = new IndicatorActions(this.menu, this._extension);
+    // runs after PanelMenu.Button's own handler, which resets `menu.actor.style`
+    // @ts-expect-error nothing
+    this.menu.connect('open-state-changed', (_menu, open: boolean) => {
+      this._handlePopupSize();
+      if (open) statusTooltip.hide();
+    });
     this._handleButtonClick();
     writeLog({ message: '[Indicator] Indicator initialized successfully', type: 'INFO' });
   }
@@ -58,16 +79,34 @@ export default class Indicator extends PanelMenu.Button {
 
     this._radios = parseRadios(radios);
     writeLog({ message: `[Indicator] Created ${this._radios.length} radio objects`, type: 'INFO' });
+    // runs on enable and whenever the radios change, so a removed default radio never lingers
+    const defaultId = this._extension._settings.get_string(SETTINGS_KEYS.DEFAULT_RADIO);
+    if (defaultId && !findRadioById(this._radios, defaultId)) {
+      this._extension._settings.set_string(SETTINGS_KEYS.DEFAULT_RADIO, '');
+    }
   }
 
-  private _handlePopupMaxHeight(): void {
-    const isPopupMaxHeightSet = this._extension._settings.get_boolean(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT);
-    const popupMaxHeight = this._extension._settings.get_string(SETTINGS_KEYS.POPUP_MAX_HEIGHT);
-    const styleString = isPopupMaxHeightSet ? popupMaxHeight : 'auto';
+  private _handlePopupSize(): void {
+    const settings = this._extension._settings;
+    const valueIf = (enabledKey: string, valueKey: string): string | null =>
+      settings.get_boolean(enabledKey) ? settings.get_string(valueKey) : null;
+
+    const styles = buildPopupStyles(
+      {
+        maxWidth: valueIf(SETTINGS_KEYS.SET_POPUP_MAX_WIDTH, SETTINGS_KEYS.POPUP_MAX_WIDTH),
+        maxHeight: valueIf(SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT, SETTINGS_KEYS.POPUP_MAX_HEIGHT),
+        width: valueIf(SETTINGS_KEYS.SET_POPUP_WIDTH, SETTINGS_KEYS.POPUP_WIDTH),
+        height: valueIf(SETTINGS_KEYS.SET_POPUP_HEIGHT, SETTINGS_KEYS.POPUP_HEIGHT),
+      },
+      // @ts-expect-error nothing
+      this.menu.actor.style ?? '',
+    );
+    // one write per widget: `style` is a single property, so two assignments would drop the first
     // @ts-expect-error nothing
-    this.menu.box.style = `
-        max-height: ${styleString};
-      `;
+    this.menu.box.style = styles.box;
+    // @ts-expect-error nothing
+    this.menu.actor.style = styles.actor;
+    this._scrollView.style = styles.scrollView || null;
   }
 
   private _bindSettingsChangeEvents(): void {
@@ -97,24 +136,18 @@ export default class Indicator extends PanelMenu.Button {
         if (key === SETTINGS_KEYS.RADIOS_LIST) {
           if (this.mpvPlayer.isPlaying()) {
             const currentRadioPlayingID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
-            const currentRadioPlaying = this._radios.find((radio) => radio.id === currentRadioPlayingID);
-            const [updatedRadioName, updatedRadioUrl, id]: string[] = this._extension._settings
-              .get_strv(SETTINGS_KEYS.RADIOS_LIST)
-              .find((radio) => radio.endsWith(currentRadioPlayingID))
-              .split(' - ');
-            if (currentRadioPlaying.radioUrl !== updatedRadioUrl.trim() && currentRadioPlaying.id === id) {
-              const isPaused = this.mpvPlayer.getProperty('pause').data;
-              if (!isPaused) {
-                this._isUpdatingCurrentRadio = true;
-                this.mpvPlayer.startPlayer({ id, radioName: updatedRadioName, radioUrl: updatedRadioUrl });
-                this._updateIndicatorIcon({ playing: 'playing' });
-                this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
-                this._activeRadioPopupItem.set_style('font-weight: bold');
-              } else if (isPaused) {
-                this.mpvPlayer.stopPlayer();
-                this.mpvPlayer.startPlayer({ id, radioName: updatedRadioName, radioUrl: updatedRadioUrl });
-                this.mpvPlayer.playPause();
-              }
+            const currentRadioPlaying: Radio | undefined = findRadioById(this._radios, currentRadioPlayingID);
+            const updatedRadio: Radio | undefined = findRadioById(
+              parseRadios(this._extension._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST)),
+              currentRadioPlayingID,
+            );
+            if (currentRadioPlaying && updatedRadio && currentRadioPlaying.radioUrl !== updatedRadio.radioUrl) {
+              // Restart on the new source; a paused radio resumes, since the new source starts playing.
+              this._isUpdatingCurrentRadio = true;
+              this.mpvPlayer.startPlayer(updatedRadio);
+              this._updateIndicatorIcon({ playing: 'playing' });
+              this._activeRadioPopupItem?.setIcon(Gio.icon_new_for_string(ICONS.POPUP_STOP));
+              this._activeRadioPopupItem?.set_style('font-weight: bold');
               return;
             }
           }
@@ -137,18 +170,21 @@ export default class Indicator extends PanelMenu.Button {
         }
       }),
     });
-    this.signalsHandlers.push({
-      emitter: this._extension._settings,
-      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT}`, () => {
-        this._handlePopupMaxHeight();
-      }),
-    });
-    this.signalsHandlers.push({
-      emitter: this._extension._settings,
-      signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.POPUP_MAX_HEIGHT}`, () => {
-        this._handlePopupMaxHeight();
-      }),
-    });
+    for (const key of [
+      SETTINGS_KEYS.SET_POPUP_MAX_HEIGHT,
+      SETTINGS_KEYS.POPUP_MAX_HEIGHT,
+      SETTINGS_KEYS.SET_POPUP_MAX_WIDTH,
+      SETTINGS_KEYS.POPUP_MAX_WIDTH,
+      SETTINGS_KEYS.SET_POPUP_WIDTH,
+      SETTINGS_KEYS.POPUP_WIDTH,
+      SETTINGS_KEYS.SET_POPUP_HEIGHT,
+      SETTINGS_KEYS.POPUP_HEIGHT,
+    ]) {
+      this.signalsHandlers.push({
+        emitter: this._extension._settings,
+        signalID: this._extension._settings.connect(`changed::${key}`, () => this._handlePopupSize()),
+      });
+    }
     this.signalsHandlers.push({
       emitter: this.mpvPlayer,
       signalID: this.mpvPlayer.connect('playback-started', (_sender: Player, radioID: string) => {
@@ -159,7 +195,9 @@ export default class Indicator extends PanelMenu.Button {
         child.set_style('font-weight: bold');
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, radioID);
         this._activeRadioPopupItem = child;
-        this._miniPlayer.createMiniPlayer(this._popupSection);
+        this._miniPlayer.createMiniPlayer(this._popupSection, this._clickActions);
+        this._playback = { paused: false, position: 0, duration: 0 };
+        this._updateStatus();
       }),
     });
     this.signalsHandlers.push({
@@ -167,6 +205,21 @@ export default class Indicator extends PanelMenu.Button {
       signalID: this.mpvPlayer.connect('play-state-changed', (_sender: Player, isPaused: boolean) => {
         this._activeRadioPopupItem.setIcon(Gio.icon_new_for_string(isPaused ? ICONS.POPUP_PAUSE : ICONS.POPUP_STOP));
         this._updateIndicatorIcon({ playing: isPaused ? 'paused' : 'playing' });
+        this._playback.paused = isPaused;
+        this._updateStatus();
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('position-changed', (_sender: Player, position: number) => {
+        this._playback.position = position;
+        this._updateStatus();
+      }),
+    });
+    this.signalsHandlers.push({
+      emitter: this.mpvPlayer,
+      signalID: this.mpvPlayer.connect('duration-changed', (_sender: Player, duration: number) => {
+        this._playback.duration = duration;
       }),
     });
     this.signalsHandlers.push({
@@ -183,6 +236,7 @@ export default class Indicator extends PanelMenu.Button {
         this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
         this._activeRadioPopupItem.set_style('font-weight: normal');
         this._activeRadioPopupItem = null;
+        this._updateStatus();
       }),
     });
     this.signalsHandlers.push({
@@ -191,12 +245,18 @@ export default class Indicator extends PanelMenu.Button {
         // check if a radio is playing
         const enabled = this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER);
         if (enabled && this.mpvPlayer.isPlaying()) {
-          this._miniPlayer.createMiniPlayer(this._popupSection);
+          this._miniPlayer.createMiniPlayer(this._popupSection, this._clickActions);
         } else {
           this._miniPlayer.dispose();
         }
       }),
     });
+  }
+
+  private _updateStatus(): void {
+    const radioID = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
+    const radioName = this.mpvPlayer.isPlaying() ? (findRadioById(this._radios, radioID)?.radioName ?? null) : null;
+    this._statusLabel.set_text(buildIndicatorStatus({ radioName, ...this._playback }));
   }
 
   private _updateIndicatorIcon({ playing }: { playing: 'playing' | 'default' | 'paused' }): void {
@@ -213,23 +273,19 @@ export default class Indicator extends PanelMenu.Button {
     radioID: string,
     mouseButton: number,
   ): Promise<void> {
-    const isRightClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 3;
-    const isLeftClickOnActiveRadio = child === this._activeRadioPopupItem && mouseButton === 1;
     const currentRadio = this._radios.find((radio) => radio.id === radioID);
+    const step = radioItemStep({
+      action: clickAction(this._extension._settings, SETTINGS_KEYS.RADIO_ITEM_ACTIONS, mouseButton),
+      isActive: child === this._activeRadioPopupItem,
+    });
 
     writeLog({
-      message: `[Indicator] Toggle playing status - Radio: ${radioID}, Button: ${mouseButton}`,
+      message: `[Indicator] Toggle playing status - Radio: ${radioID}, Button: ${mouseButton}, Step: ${step}`,
       type: 'INFO',
     });
 
-    if (isRightClickOnActiveRadio) {
-      writeLog({ message: '[Indicator] Right click on active radio - stopping playback', type: 'INFO' });
-      this.mpvPlayer.stopPlayer(currentRadio);
-      return;
-    }
-    if (isLeftClickOnActiveRadio) {
-      writeLog({ message: '[Indicator] Left click on active radio - toggling play/pause', type: 'INFO' });
-      this.mpvPlayer.playPause();
+    if (step !== 'start') {
+      this._clickActions.run(step, { radio: currentRadio });
       return;
     }
     if (this._activeRadioPopupItem) {
@@ -246,11 +302,10 @@ export default class Indicator extends PanelMenu.Button {
       if (event.type() !== Clutter.EventType.BUTTON_PRESS) {
         return Clutter.EVENT_PROPAGATE;
       }
-      const mouseBtn = event.get_button() - 1;
-      const actions = this._extension._settings.get_strv(SETTINGS_KEYS.INDICATOR_ACTIONS);
-      const action = actions[mouseBtn] as IndicatorActionKey;
+      const mouseBtn = event.get_button();
+      const action = clickAction(this._extension._settings, SETTINGS_KEYS.INDICATOR_ACTIONS, mouseBtn);
       writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}`, type: 'INFO' });
-      this._indicatorActions.actions.get(action)?.();
+      if (action) this._clickActions.run(action);
       return Clutter.EVENT_STOP;
     });
   }
@@ -270,6 +325,7 @@ export default class Indicator extends PanelMenu.Button {
     this._radios = [];
     this._createRadios();
     this._createMenuItems();
+    this._updateStatus();
     writeLog({ message: '[Indicator] Menu created successfully', type: 'INFO' });
   }
 
@@ -349,18 +405,22 @@ export default class Indicator extends PanelMenu.Button {
   }
 
   private _createMenuItems(): void {
-    const scrollView = new St.ScrollView();
+    this._scrollView = new St.ScrollView();
     this._popupSection = new PopupMenu.PopupMenuSection();
-    scrollView.add_child(this._popupSection.actor);
+    this._scrollView.add_child(this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
+    const currentRadioPlayingID: string = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
     this._radios.forEach((radio) => {
-      const isRadioPlaying = isCurrentRadioPlaying(this._extension._settings, radio.id);
+      const isRadioPlaying: boolean = currentRadioPlayingID !== '' && currentRadioPlayingID === radio.id;
       const menuItem = new PopupMenu.PopupImageMenuItem(
         radio.radioName,
         Gio.icon_new_for_string(
           isRadioPlaying && isPaused.data ? ICONS.POPUP_PAUSE : isRadioPlaying ? ICONS.POPUP_STOP : ICONS.POPUP_PLAY,
         ),
       );
+      // without ellipsizing, the label's minimum width is the full radio name, and a
+      // minimum width is never capped by `max-width`
+      menuItem.label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
       if (isRadioPlaying) {
         menuItem.set_style('font-weight: bold');
         this._activeRadioPopupItem = menuItem;
@@ -368,6 +428,9 @@ export default class Indicator extends PanelMenu.Button {
       this.menuSignals.push({
         emitter: menuItem,
         signalID: menuItem.connect('activate', (item, event) => {
+          // the menu closes from an AFTER 'activate' handler; stopping here keeps it open (openPrefs closes it)
+          // @ts-expect-error nothing
+          GObject.signal_stop_emission_by_name(item, 'activate');
           //  NOTE: MOUSE BUTTONS IDS
           // 1 -> LMB
           // 3 -> RMB
@@ -379,11 +442,11 @@ export default class Indicator extends PanelMenu.Button {
     });
     this._createVolumeSlider(this._popupSection);
     if (this._extension._settings.get_boolean(SETTINGS_KEYS.ENABLE_MINI_PLAYER) && this.mpvPlayer.isPlaying()) {
-      this._miniPlayer.createMiniPlayer(this._popupSection);
+      this._miniPlayer.createMiniPlayer(this._popupSection, this._clickActions);
     }
     // @ts-expect-error nothing
-    this.menu.box.add_child(scrollView);
-    this._handlePopupMaxHeight();
+    this.menu.box.add_child(this._scrollView);
+    this._handlePopupSize();
   }
 
   public dispose(): void {

@@ -13,17 +13,21 @@
         <child>
           <object class="AdwComboRow" id="leftClickRow">
             <property name="title" translatable="yes">Left click action</property>
-            <property name="model">
-              <object class="GtkStringList" id="leftClickActionList"></object>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
             </property>
           </object>
         </child>
 
         <child>
           <object class="AdwComboRow" id="middleClickRow">
-            <property name="title" translatable="yes">Middle Click Action: </property>
-            <property name="model">
-              <object class="GtkStringList" id="middleClickActionList" />
+            <property name="title" translatable="yes">Middle click action</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
             </property>
           </object>
         </child>
@@ -31,9 +35,175 @@
         <child>
           <object class="AdwComboRow" id="rightClickRow">
             <property name="title" translatable="yes">Right click action</property>
-            <property name="model">
-              <object class="GtkStringList" id="rightClickActionList"></object>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
             </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Radio Click Actions</property>
+        <property name="description" translatable="yes">Configure what happens when you click a radio.</property>
+        <child>
+          <object class="AdwComboRow" id="radioLeftClickRow">
+            <property name="title" translatable="yes">Left click action</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwComboRow" id="radioMiddleClickRow">
+            <property name="title" translatable="yes">Middle click action</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwComboRow" id="radioRightClickRow">
+            <property name="title" translatable="yes">Right click action</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Mini Player Click Actions</property>
+        <property name="description" translatable="yes">Configure what each mini player button does for each mouse button.</property>
+        <child>
+          <object class="AdwExpanderRow">
+            <property name="title" translatable="yes">Previous button</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+            <child>
+              <object class="AdwComboRow" id="miniPrevLeftRow">
+                <property name="title" translatable="yes">Left click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPrevMiddleRow">
+                <property name="title" translatable="yes">Middle click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPrevRightRow">
+                <property name="title" translatable="yes">Right click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwExpanderRow">
+            <property name="title" translatable="yes">Play button</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+            <child>
+              <object class="AdwComboRow" id="miniPlayLeftRow">
+                <property name="title" translatable="yes">Left click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPlayMiddleRow">
+                <property name="title" translatable="yes">Middle click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniPlayRightRow">
+                <property name="title" translatable="yes">Right click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwExpanderRow">
+            <property name="title" translatable="yes">Next button</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+            <child>
+              <object class="AdwComboRow" id="miniNextLeftRow">
+                <property name="title" translatable="yes">Left click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniNextMiddleRow">
+                <property name="title" translatable="yes">Middle click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwComboRow" id="miniNextRightRow">
+                <property name="title" translatable="yes">Right click action</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
         </child>
       </object>
@@ -61,6 +231,136 @@
             <property name="text">10em</property>
             <property name="visible">true</property>
             <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="setPopupMaxWidthRow">
+            <property name="title" translatable="yes">Limit popup Width</property>
+            <property name="subtitle" translatable="yes">Enable to set a maximum width for the popup.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="popupMaxWidthRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title" translatable="yes">Popup maximum width</property>
+            <property name="text">26em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="setPopupWidthRow">
+            <property name="title" translatable="yes">Fixed popup width</property>
+            <property name="subtitle" translatable="yes">Open the popup at this width.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="popupWidthRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title" translatable="yes">Popup width</property>
+            <property name="text">20em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSwitchRow" id="setPopupHeightRow">
+            <property name="title" translatable="yes">Fixed popup height</property>
+            <property name="subtitle" translatable="yes">Open the popup at this height.</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwEntryRow" id="popupHeightRow">
+            <signal name="apply" handler="_handleApplyPopup" swapped="no" />
+            <property name="title" translatable="yes">Popup height</property>
+            <property name="text">13em</property>
+            <property name="visible">true</property>
+            <property name="show-apply-button">true</property>
+            <child type="suffix">
+              <object class="GtkButton">
+                <property name="icon-name">help-about</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">help</property>
+                  </object>
+                </property>
+                <property name="valign">center</property>
+                <property name="tooltip-markup" translatable="yes">A number and a unit: px, pt, em, rem, ex, pc, in, cm or mm.
+&lt;b&gt;Examples:&lt;/b&gt; &lt;tt&gt;20em&lt;/tt&gt;, &lt;tt&gt;320px&lt;/tt&gt;, &lt;tt&gt;12.5rem&lt;/tt&gt;</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
       </object>

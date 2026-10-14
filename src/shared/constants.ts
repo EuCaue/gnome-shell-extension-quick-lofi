@@ -18,15 +18,30 @@ export const SHORTCUTS = {
   PREVIOUS_SHORTCUT: 'previous',
   NEXT_RADIO_SHORTCUT: 'next-radio',
   PREVIOUS_RADIO_SHORTCUT: 'previous-radio',
+  PLAY_PAUSE_DEFAULT_RADIO_SHORTCUT: 'play-pause-default-radio',
+  STOP_DEFAULT_RADIO_SHORTCUT: 'stop-default-radio',
 };
 
 export const SETTINGS_KEYS = {
   ...SHORTCUTS,
   CURRENT_RADIO_PLAYING: 'current-radio-playing',
+  DEFAULT_RADIO: 'default-radio',
+  PLAY_DEFAULT_RADIO_ON_STARTUP: 'play-default-radio-on-startup',
+  PLAY_DEFAULT_RADIO_ON_UNLOCK: 'play-default-radio-on-unlock',
   INDICATOR_ACTIONS: 'indicator-actions',
+  RADIO_ITEM_ACTIONS: 'radio-item-actions',
+  MINI_PLAYER_PREV_ACTIONS: 'mini-player-prev-actions',
+  MINI_PLAYER_PLAY_ACTIONS: 'mini-player-play-actions',
+  MINI_PLAYER_NEXT_ACTIONS: 'mini-player-next-actions',
   POPUP_MAX_HEIGHT: 'popup-max-height',
+  POPUP_MAX_WIDTH: 'popup-max-width',
+  POPUP_WIDTH: 'popup-width',
+  POPUP_HEIGHT: 'popup-height',
   RADIOS_LIST: 'radios',
   SET_POPUP_MAX_HEIGHT: 'set-popup-max-height',
+  SET_POPUP_MAX_WIDTH: 'set-popup-max-width',
+  SET_POPUP_WIDTH: 'set-popup-width',
+  SET_POPUP_HEIGHT: 'set-popup-height',
   VOLUME: 'volume',
   ENABLE_DEBUG: 'enable-debug',
   ENABLE_MPRIS: 'enable-mpris',
@@ -36,15 +51,26 @@ export const SETTINGS_KEYS = {
   COOKIES_FROM_BROWSER: 'cookies-from-browser',
 };
 
-// used across modules, keep in sync
-export const INDICATOR_ACTIONS_NAMES = new Map([
-  ['showPopupMenu', 'Show menu'],
-  ['playPause', 'Toggle play'],
-  ['openPrefs', 'Open preferences'],
-  ['stopPlayer', 'Stop playback'],
+// Click actions offered by the indicator, the radios and the mini player buttons.
+// Keys are stored in GSettings: never rename or remove one.
+export const CLICK_ACTIONS_NAMES = new Map([
+  ['none', 'Nothing'],
+  ['showPopupMenu', 'Show Menu'],
+  ['playPause', 'Toggle Play'],
+  ['stopPlayer', 'Stop Playback'],
+  ['restart', 'Restart Radio'],
+  ['prev', 'Previous'],
+  ['prevRadio', 'Previous Radio'],
+  ['next', 'Next'],
+  ['nextRadio', 'Next Radio'],
+  ['copyUrl', 'Copy Radio URL'],
+  ['openPrefs', 'Open Preferences'],
+  ['playPauseDefaultRadio', 'Toggle Default Radio'],
+  ['stopDefaultRadio', 'Stop Default Radio'],
 ] as const);
-export type IndicatorActionKey = typeof INDICATOR_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
-export type IndicatorActionValue = typeof INDICATOR_ACTIONS_NAMES extends Map<any, infer V> ? V : never;
+export type ClickActionKey = typeof CLICK_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
+// Hidden where the menu is already open (radios, mini player).
+export const MENU_HIDDEN_CLICK_ACTIONS: readonly ClickActionKey[] = ['showPopupMenu'];
 
 // ffmpeg container formats (from `ffmpeg -formats`)
 export const ffmpegFormats = new Set([
@@ -360,12 +386,4 @@ export const ffmpegFormats = new Set([
   'xwma',
   'yop',
   'yuv4mpegpipe',
-]);
-
-export type MOUSE_BUTTONS_KEYS = 'LEFT' | 'MIDDLE' | 'RIGHT';
-export type MOUSE_BUTTONS_VALUES = 1 | 2 | 3;
-export const MOUSE_BUTTONS = new Map<MOUSE_BUTTONS_KEYS, MOUSE_BUTTONS_VALUES>([
-  ['LEFT', 1],
-  ['MIDDLE', 2],
-  ['RIGHT', 3],
 ]);

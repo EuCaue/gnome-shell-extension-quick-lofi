@@ -4,7 +4,7 @@ import type Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Gtk4 from 'gi://Gtk';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { writeLog } from '@utils/helpers';
+import { writeLog } from '@/shared/log';
 
 export class ShortcutButton extends Gtk4.Button {
   private _label: Gtk4.ShortcutLabel;

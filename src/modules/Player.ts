@@ -2,10 +2,11 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
-import { SETTINGS_KEYS } from '@utils/constants';
+import { SETTINGS_KEYS } from '@/shared/constants';
+import { debug, writeLog } from '@/shared/log';
+import { defaultRadioStep, findRadioById, neighborRadio, parseRadios } from '@/shared/radios';
+import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
 import type { Radio } from '@/types';
-import { debug } from '@/utils/debug';
-import { findRadio, getExtSettings, writeLog } from '@/utils/helpers';
 import { MprisController } from './Mpris';
 
 type PlayerCommandString = string;
@@ -44,6 +45,7 @@ export default class Player extends GObject.Object {
   private _stdoutStream: Gio.DataInputStream | null = null;
   private _cancellable: Gio.Cancellable | null = null;
   private _settings: Gio.Settings;
+  private _isStartingDefaultRadio = false;
   private _mpris: MprisController | null = null;
   private _positionTimerId: number | null = null;
   private _lastMediaTitle: string | null = null;
@@ -135,15 +137,15 @@ export default class Player extends GObject.Object {
     return;
   }
 
-  private _nextRadio() {
-    const nextRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
-      if (radios[index].id === currentRadioPlayingID) {
-        return radios[(index + 1) % radios.length];
-      }
-      return undefined;
-    });
-    this.startPlayer(nextRadio);
+  private _nextRadio(): Radio | undefined {
+    const nextRadio: Radio | undefined = this._neighborRadio(1);
+    if (nextRadio) this.startPlayer(nextRadio);
     return nextRadio;
+  }
+
+  private _neighborRadio(step: number): Radio | undefined {
+    const radios: Radio[] = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
+    return neighborRadio(radios, this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING), step);
   }
 
   private _prevAuto(): Radio | undefined {
@@ -172,14 +174,9 @@ export default class Player extends GObject.Object {
     return undefined;
   }
 
-  private _prevRadio() {
-    const prevRadio = findRadio((_radio, index, radios, currentRadioPlayingID) => {
-      if (radios[index].id === currentRadioPlayingID) {
-        return radios[(index - 1 + radios.length) % radios.length];
-      }
-      return undefined;
-    });
-    this.startPlayer(prevRadio);
+  private _prevRadio(): Radio | undefined {
+    const prevRadio: Radio | undefined = this._neighborRadio(-1);
+    if (prevRadio) this.startPlayer(prevRadio);
     return prevRadio;
   }
 
@@ -246,6 +243,39 @@ export default class Player extends GObject.Object {
     }
   }
 
+  public playPauseDefaultRadio(): void {
+    this._runDefaultRadio('playPause');
+  }
+
+  public stopDefaultRadio(): void {
+    this._runDefaultRadio('stop');
+  }
+
+  private _runDefaultRadio(intent: 'playPause' | 'stop'): void {
+    // `current-radio-playing` is only set once mpv starts; a second press before that would restart it
+    if (this._isStartingDefaultRadio) return;
+    const radios: Radio[] = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
+    const defaultId = this._settings.get_string(SETTINGS_KEYS.DEFAULT_RADIO);
+    const step = defaultRadioStep(
+      radios,
+      defaultId,
+      this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING),
+      intent,
+    );
+    writeLog({ message: `Default radio ${intent}: ${step}`, type: 'INFO' });
+    const radio = findRadioById(radios, defaultId);
+    if (step === 'start') {
+      this._isStartingDefaultRadio = true;
+      this.startPlayer(radio)
+        .catch(log)
+        .finally(() => {
+          this._isStartingDefaultRadio = false;
+        });
+    }
+    if (step === 'playPause') this.playPause();
+    if (step === 'stop') this.stopPlayer(radio);
+  }
+
   public isPlaying(): boolean {
     return this._proc !== null;
   }
@@ -301,7 +331,14 @@ export default class Player extends GObject.Object {
     const readLine = async () => {
       if (!this._keepReading || this._proc === null) return;
 
-      const [bytes] = await stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+      let bytes: Uint8Array | null;
+      try {
+        [bytes] = await stream.read_line_async(GLib.PRIORITY_DEFAULT, this._cancellable);
+      } catch (e) {
+        // stopPlayer() cancels the pending read; that is the normal way out of this loop.
+        if (e instanceof GLib.Error && e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) return;
+        throw e;
+      }
       if (this._cancellable?.is_cancelled()) {
         this._cancellable = null;
         return;
@@ -348,15 +385,15 @@ export default class Player extends GObject.Object {
       `--volume=${this._settings.get_int(SETTINGS_KEYS.VOLUME)}`,
       radio.radioUrl,
     ];
-    const [cookiesFromBrowserName, cookiesFromBrowserYtdlp] = this._settings
-      .get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER)
-      .split(' - ');
+    const cookiesFromBrowserYtdlp = cookiesFromBrowserValue(
+      this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+    );
     const node = GLib.find_program_in_path('node');
     const deno = GLib.find_program_in_path('deno');
 
     const jsRuntime = node ? 'node' : deno ? 'deno' : null;
 
-    const shouldUseBrowserCookies = cookiesFromBrowserName !== 'None' && !!cookiesFromBrowserYtdlp;
+    const shouldUseBrowserCookies = cookiesFromBrowserYtdlp !== null;
 
     if (shouldUseBrowserCookies && !jsRuntime) {
       Main.notifyError('Node.js or Deno is required to use cookies from browser.');

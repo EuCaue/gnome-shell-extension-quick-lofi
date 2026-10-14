@@ -2,15 +2,19 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type Gio from '@girs/gio-2.0';
 import type { PopupBaseMenuItem, PopupMenuSection } from '@girs/gnome-shell/ui/popupMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, MOUSE_BUTTONS, SETTINGS_KEYS } from '@/utils/constants';
-import { debug } from '@/utils/debug';
-import { getExtSettings, writeLog } from '@/utils/helpers';
+import { ICONS, SETTINGS_KEYS } from '@/shared/constants';
+import { writeLog } from '@/shared/log';
+import { findRadioById, parseRadios } from '@/shared/radios';
+import { clickAction, getExtSettings } from '@/shared/settings';
+import type { Radio } from '@/types';
+import type { ClickActions } from './ClickActions';
+import { formatTime } from './IndicatorView';
 import Player from './Player';
+import { createTooltip } from './Tooltip';
 
 export default class MiniPlayer {
   private static _instance: MiniPlayer | null = null;
@@ -26,6 +30,7 @@ export default class MiniPlayer {
 
   private _miniPlayerItem: PopupBaseMenuItem | null = null;
   private _settings: Gio.Settings;
+  private _clickActions: ClickActions | null = null;
 
   private _duration = 0;
   private _isSeekable = false;
@@ -52,10 +57,11 @@ export default class MiniPlayer {
     writeLog({ message: '[MiniPlayer] Initialized', type: 'INFO' });
   }
 
-  public createMiniPlayer(popup: PopupMenuSection) {
+  public createMiniPlayer(popup: PopupMenuSection, clickActions: ClickActions) {
     if (this._miniPlayerItem) {
       return;
     }
+    this._clickActions = clickActions;
 
     const MINI_PLAYER_ITEM_STYLE = 'padding-left: 0px; padding-right: 0px; background-color: transparent;';
     const TIME_BOX_BASE_STYLE = 'padding: 8px; border-radius: 10px;';
@@ -102,7 +108,7 @@ export default class MiniPlayer {
     this.currentPlaylistItem.clutter_text.ellipsize = Pango.EllipsizeMode.END;
     this.currentPlaylistItem.clutter_text.line_wrap = false;
 
-    this._playlistItemTooltip = this._createTooltip(this.currentPlaylistItem, '');
+    this._playlistItemTooltip = createTooltip(this.currentPlaylistItem).label;
 
     this._settings.connect(`changed::${SETTINGS_KEYS.SHOW_MINI_PLAYER_TITLE}`, () => {
       this._updateTitleVisibility();
@@ -207,13 +213,7 @@ export default class MiniPlayer {
 
     prev.set_child(prevIcon);
     prev.connect('button-press-event', (_, event) => {
-      const btnClicked = event.get_button();
-      if (MOUSE_BUTTONS.get('LEFT') === btnClicked) {
-        this.mpvPlayer.prev();
-      }
-      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
-        this.mpvPlayer.prev('radio');
-      }
+      this._runControlAction(SETTINGS_KEYS.MINI_PLAYER_PREV_ACTIONS, event.get_button());
     });
 
     const pause = new St.Button({
@@ -231,21 +231,11 @@ export default class MiniPlayer {
 
     pause.set_child(this.playIcon);
 
-    pause.connect('button-press-event', (_, event) => {
-      const btnClicked = event.get_button();
-
-      if (btnClicked === MOUSE_BUTTONS.get('LEFT')) {
-        this.mpvPlayer.playPause();
-        return Clutter.EVENT_STOP;
-      }
-
-      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
-        this.mpvPlayer.stopPlayer();
-        return Clutter.EVENT_STOP;
-      }
-
-      return Clutter.EVENT_PROPAGATE;
-    });
+    pause.connect('button-press-event', (_, event) =>
+      this._runControlAction(SETTINGS_KEYS.MINI_PLAYER_PLAY_ACTIONS, event.get_button())
+        ? Clutter.EVENT_STOP
+        : Clutter.EVENT_PROPAGATE,
+    );
 
     const next = new St.Button({ x_expand: false, reactive: true });
     const nextIcon = new St.Icon({
@@ -256,13 +246,7 @@ export default class MiniPlayer {
 
     next.set_child(nextIcon);
     next.connect('button-press-event', (_, event) => {
-      const btnClicked = event.get_button();
-      if (MOUSE_BUTTONS.get('LEFT') === btnClicked) {
-        this.mpvPlayer.next();
-      }
-      if (btnClicked === MOUSE_BUTTONS.get('RIGHT')) {
-        this.mpvPlayer.next('radio');
-      }
+      this._runControlAction(SETTINGS_KEYS.MINI_PLAYER_NEXT_ACTIONS, event.get_button());
     });
 
     controlsBox.add_child(prev);
@@ -287,11 +271,17 @@ export default class MiniPlayer {
     popup.addMenuItem(this._miniPlayerItem, popup.numMenuItems - 1);
   }
 
+  // Runs the action stored for `button` in a mini player button's settings key.
+  private _runControlAction(settingsKey: string, button: number): boolean {
+    const action = clickAction(this._settings, settingsKey, button);
+    return action ? (this._clickActions?.run(action) ?? false) : false;
+  }
+
   private _connectPlayerSignals(): void {
     this._positionSignalId = this.mpvPlayer.connect('position-changed', (_player, position: number) => {
       if (!this._miniPlayerItem) return;
 
-      this.currentTime.set_text(this._parseTime(position));
+      this.currentTime.set_text(formatTime(position));
 
       if (this._duration > 0 && this._isSeekable) {
         this.timeTrackingSlider.value = position / this._duration;
@@ -315,7 +305,7 @@ export default class MiniPlayer {
         return;
       }
 
-      this.endTime.set_text(this._parseTime(duration));
+      this.endTime.set_text(formatTime(duration));
       this.timeTrackingSlider.set_reactive(true);
     });
 
@@ -353,15 +343,22 @@ export default class MiniPlayer {
       this._updateTitleVisibility();
     });
 
-    this._radioChangedSignalId = this.mpvPlayer.connect('playback-started', (_player, radioName: string) => {
-      if (!this._miniPlayerItem) return;
+    // playback-started carries (id, name, url).
+    this._radioChangedSignalId = this.mpvPlayer.connect(
+      'playback-started',
+      (_player, _radioID: string, radioName: string) => {
+        if (!this._miniPlayerItem) return;
 
-      this.currentRadio.set_text(radioName);
-      this._updateTitleVisibility();
-    });
+        this.currentRadio.set_text(radioName);
+        this._updateTitleVisibility();
+      },
+    );
     this._mediaTitleChangedSignalId = this.mpvPlayer.connect('media-title-changed', () => {
       this._updateTitleVisibility();
     });
+    // The menu rebuilds the mini player mid-playback (e.g. after a radio rename), and
+    // media-title-changed won't fire again until the next track, so show the current one now.
+    this._updateTitleVisibility();
   }
 
   private _updateTitleVisibility(): void {
@@ -383,27 +380,8 @@ export default class MiniPlayer {
   private _getCurrentRadioName(): string {
     const currentRadioPlayingID = this._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
 
-    const currentRadio = this._settings
-      .get_strv(SETTINGS_KEYS.RADIOS_LIST)
-      .find((radio) => radio.endsWith(currentRadioPlayingID));
-
-    if (!currentRadio) return 'Quick Lofi';
-
-    const [currentRadioName] = currentRadio.split(' - ');
-
-    return currentRadioName ?? 'Quick Lofi';
-  }
-
-  private _parseTime(time: string | number | undefined): string {
-    const parsed = parseInt(String(time), 10);
-
-    if (Number.isNaN(parsed)) return '00:00';
-
-    const hours = Math.floor(parsed / 3600);
-    const minutes = String(Math.floor((parsed % 3600) / 60)).padStart(2, '0');
-    const seconds = String(Math.floor(parsed % 60)).padStart(2, '0');
-
-    return `${hours > 0 ? `${hours}:` : ''}${minutes}:${seconds}`;
+    const radios: Radio[] = parseRadios(this._settings.get_strv(SETTINGS_KEYS.RADIOS_LIST));
+    return findRadioById(radios, currentRadioPlayingID)?.radioName || 'Quick Lofi';
   }
 
   private _disconnectPlayerSignals(): void {
@@ -441,90 +419,6 @@ export default class MiniPlayer {
       this.mpvPlayer.disconnect(this._mediaTitleChangedSignalId);
       this._mediaTitleChangedSignalId = null;
     }
-  }
-
-  private _createTooltip(targetWidget: St.Widget, tooltipText: string) {
-    // Usando BoxLayout que renderiza background de forma mais confiável em St
-    const tooltip = new St.BoxLayout({
-      style: [
-        'background-color: #1e1e1e;',
-        'border-width: 1px;',
-        'border-style: solid;',
-        'border-color: rgba(255, 255, 255, 0.2);',
-        'border-radius: 8px;',
-        'padding-top: 6px;',
-        'padding-bottom: 6px;',
-        'padding-left: 12px;',
-        'padding-right: 12px;',
-        'max-width: 210px;',
-      ].join(' '),
-      opacity: 0,
-      visible: false,
-      vertical: true,
-      reactive: false,
-    });
-
-    const label = new St.Label({
-      text: tooltipText,
-      style: 'color: #ffffff; font-size: 10pt;',
-    });
-
-    label.clutter_text.line_wrap = true;
-    label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
-    label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
-
-    tooltip.add_child(label);
-
-    // Adiciona ao uiGroup que é a camada de overlay global
-    Main.layoutManager.uiGroup.add_child(tooltip);
-
-    targetWidget.reactive = true;
-    targetWidget.track_hover = true;
-
-    const showTooltip = () => {
-      if (!label.text) return;
-
-      const [, _tw] = tooltip.get_preferred_size(); // ← pega o natural width (índice 1)
-      const [, th] = tooltip.get_preferred_height(-1); // ← altura natural
-
-      const [x, y] = targetWidget.get_transformed_position();
-      const [_w] = targetWidget.get_size();
-
-      const posX = Math.round(x);
-      const posY = Math.round(y - th - 6);
-
-      tooltip.set_position(posX, posY);
-
-      // Eleva o tooltip para garantir que fique sobre tudo
-      tooltip.get_parent()?.set_child_above_sibling(tooltip, null);
-
-      tooltip.visible = true;
-      tooltip.ease({
-        opacity: 255,
-        duration: 150,
-        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-      });
-    };
-
-    const hideTooltip = () => {
-      tooltip.ease({
-        opacity: 0,
-        duration: 150,
-        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        onComplete: () => {
-          tooltip.visible = false;
-        },
-      });
-    };
-
-    targetWidget.connect('enter-event', showTooltip);
-    targetWidget.connect('leave-event', hideTooltip);
-    targetWidget.connect('destroy', () => {
-      debug('targetWidget destroyed');
-      tooltip.destroy();
-    });
-
-    return label;
   }
 
   public dispose() {

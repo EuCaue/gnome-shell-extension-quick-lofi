@@ -18,16 +18,70 @@
       <summary>Current Radio Playing</summary>
     </key>
 
+    <key name="default-radio" type="s">
+      <default>""</default>
+      <summary>Default Radio</summary>
+      <description>Id of the radio played on startup and by the default radio shortcuts and click actions. Empty when none is set.</description>
+    </key>
+
+    <key name="play-default-radio-on-startup" type="b">
+      <default>true</default>
+      <summary>Play the default radio on startup</summary>
+      <description>Start the default radio when the extension loads for the first time in a session.</description>
+    </key>
+
+    <key name="play-default-radio-on-unlock" type="b">
+      <default>true</default>
+      <summary>Play the default radio on unlock</summary>
+      <description>Start the default radio when the extension loads again, e.g. after the screen is unlocked.</description>
+    </key>
+
     <key name="set-popup-max-height" type="b">
       <default>true</default>
       <summary>Overflow quick lofi popup</summary>
       <description>If enabled, it will make the popup have a max height</description>
     </key>
 
+    <key name="popup-max-width" type="s">
+      <default>"26em"</default>
+      <summary>Width for Quick Lofi popup</summary>
+      <description>This will set the width for the popup</description>
+    </key>
+
+    <key name="set-popup-max-width" type="b">
+      <default>true</default>
+      <summary>Overflow quick lofi popup</summary>
+      <description>If enabled, it will make the popup have a max width</description>
+    </key>
+
     <key name="popup-max-height" type="s">
       <default>"13em"</default>
       <summary>Height for Quick Lofi popup</summary>
       <description>This will set the height for the popup</description>
+    </key>
+
+    <key name="set-popup-width" type="b">
+      <default>false</default>
+      <summary>Fixed popup width</summary>
+      <description>If enabled, the popup opens at popup-width, still capped by popup-max-width</description>
+    </key>
+
+    <key name="popup-width" type="s">
+      <default>"20em"</default>
+      <summary>Fixed width for Quick Lofi popup</summary>
+      <description>CSS length used when set-popup-width is enabled</description>
+    </key>
+
+    <key name="set-popup-height" type="b">
+      <default>false</default>
+      <summary>Fixed popup height</summary>
+      <description>If enabled, the popup opens at popup-height, still capped by popup-max-height and the screen</description>
+    </key>
+
+    <key name="popup-height" type="s">
+      <default>"13em"</default>
+      <summary>Fixed height for Quick Lofi popup</summary>
+      <description>CSS length used when set-popup-height is enabled</description>
     </key>
 
     <key name="play-pause-quick-lofi" type="as">
@@ -78,10 +132,42 @@
       <description>Go to the previous radio, ignoring the current playlist.</description>
     </key>
 
+    <key name="play-pause-default-radio" type="as">
+      <default>[]</default>
+      <summary>Play or Pause Default Radio</summary>
+      <description>Start the default radio, or toggle pause when it is playing.</description>
+    </key>
+
+    <key name="stop-default-radio" type="as">
+      <default>[]</default>
+      <summary>Stop Default Radio</summary>
+      <description>Stop playback when the default radio is playing.</description>
+    </key>
+
     <key name="indicator-actions" type="as">
       <default>['showPopupMenu', 'playPause', 'openPrefs']</default>
       <summary>Configure the behavior of indicator clicks.</summary>
       <description>Specifies which actions are triggered when the user clicks the indicator.</description>
+    </key>
+    <key name="radio-item-actions" type="as">
+      <default>['playPause', 'restart', 'stopPlayer']</default>
+      <summary>Radio click actions</summary>
+      <description>Actions for left, middle and right clicks on a radio. Toggle play, Stop playback and Restart radio start a radio that isn't playing.</description>
+    </key>
+    <key name="mini-player-prev-actions" type="as">
+      <default>['prev', 'none', 'prevRadio']</default>
+      <summary>Mini player previous button actions</summary>
+      <description>Actions for left, middle and right clicks on the mini player previous button.</description>
+    </key>
+    <key name="mini-player-play-actions" type="as">
+      <default>['playPause', 'none', 'stopPlayer']</default>
+      <summary>Mini player play button actions</summary>
+      <description>Actions for left, middle and right clicks on the mini player play button.</description>
+    </key>
+    <key name="mini-player-next-actions" type="as">
+      <default>['next', 'none', 'nextRadio']</default>
+      <summary>Mini player next button actions</summary>
+      <description>Actions for left, middle and right clicks on the mini player next button.</description>
     </key>
     <key name="enable-debug" type="b">
       <default>false</default>
