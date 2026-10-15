@@ -9,10 +9,11 @@ RUN if ! dnf -q makecache --refresh >/dev/null 2>&1; then \
         /etc/yum.repos.d/fedora*.repo; \
     fi
 
+# mutter-devkit lives in mutter-devel on 43 and in its own package from 44; the path works for both.
 RUN dnf install -y --nodocs --setopt=install_weak_deps=False \
       gnome-shell mutter gjs dbus-daemon dconf mesa-dri-drivers \
       gnome-extensions-app mpv procps-ng xorg-x11-server-Xwayland \
-      $( [ "$FEDORA" -ge 43 ] && echo mutter-devkit ) \
+      $( [ "$FEDORA" -ge 43 ] && echo /usr/libexec/mutter-devkit ) \
  && dnf clean all
 
 COPY rootfs /
