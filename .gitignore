@@ -4,3 +4,4 @@ bun.lock
 bun.lockb
 *.zip
 schemas/gschemas.compiled
+.shell-test

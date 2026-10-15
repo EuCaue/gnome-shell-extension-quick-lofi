@@ -28,7 +28,9 @@
     "check:unsafe": "biome check --write --unsafe src build.js && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "release": "npm run check && npm run build:prod && npm run install:prod",
-    "radios": "bash ./scripts/test-radios.sh"
+    "radios": "bash ./scripts/test-radios.sh",
+    "gnome:image": "bash ./scripts/shell-image.sh",
+    "gnome:clean": "bash ./scripts/shell-image.sh --clean"
   },
   "repository": {
     "type": "git",

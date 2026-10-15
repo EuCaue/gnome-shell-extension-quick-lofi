@@ -1,0 +1,27 @@
+ARG FEDORA=44
+FROM quay.io/fedora/fedora:${FEDORA}
+ARG FEDORA
+
+# EOL releases (39-41) moved to the archive; the default mirrors stop answering.
+RUN if ! dnf -q makecache --refresh >/dev/null 2>&1; then \
+      sed -i -e 's|^metalink=|#metalink=|' \
+        -e "s|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://archives.fedoraproject.org/pub/archive/fedora/linux|" \
+        /etc/yum.repos.d/fedora*.repo; \
+    fi
+
+RUN dnf install -y --nodocs --setopt=install_weak_deps=False \
+      gnome-shell mutter gjs dbus-daemon dconf mesa-dri-drivers \
+      gnome-extensions-app mpv procps-ng xorg-x11-server-Xwayland \
+      $( [ "$FEDORA" -ge 43 ] && echo mutter-devkit ) \
+ && dnf clean all
+
+COPY rootfs /
+
+RUN systemctl set-default multi-user.target \
+ && systemctl mask systemd-oomd low-memory-monitor rtkit-daemon udisks2 \
+ && systemctl unmask systemd-logind \
+ && truncate --size 0 /etc/machine-id \
+ && mpv --ao=null --vo=null --length=1 'av://lavfi:sine=frequency=440' >/dev/null
+
+ENV XDG_CURRENT_DESKTOP=GNOME
+CMD ["/sbin/init"]
