@@ -34,7 +34,7 @@ wait_for() {
 # Prints the result of evaluating JS in the Shell, as Eval returns it (JSON text).
 shell_eval() {
   local out
-  out=$(session_exec gdbus call --session --dest org.gnome.Shell --object-path /org/gnome/Shell \
+  out=$(session_exec gdbus call --session --timeout 5 --dest org.gnome.Shell --object-path /org/gnome/Shell \
     --method org.gnome.Shell.Eval "$1") || return 1
   [[ "$out" == "(true, "* ]] || { echo "$out" >&2; return 1; }
   out=${out#"(true, '"}
@@ -61,7 +61,7 @@ session_prepare() {
     || { echo "logind did not start" >&2; return 1; }
 
   session_exec sh -c "dbus-daemon --session --nofork --nopidfile --address=unix:path=$WORK/runtime/bus >$WORK/bus.log 2>&1 &"
-  wait_for 20 session_exec gdbus call --session --dest org.freedesktop.DBus --object-path / \
+  wait_for 20 session_exec gdbus call --session --timeout 5 --dest org.freedesktop.DBus --object-path / \
     --method org.freedesktop.DBus.Peer.Ping || { echo "session bus did not start" >&2; return 1; }
 
   # Installed before the Shell starts: a running Wayland Shell doesn't pick up new extensions.

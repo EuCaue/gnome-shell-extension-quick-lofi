@@ -29,7 +29,7 @@ ext_state() {
   local info errs
   info=$(session_exec gnome-extensions info "$QL_UUID")
   grep -qE 'State: (ENABLED|ACTIVE)' <<<"$info" || { grep State <<<"$info"; return 1; }
-  errs=$(session_exec gdbus call --session --dest org.gnome.Shell.Extensions \
+  errs=$(session_exec gdbus call --session --timeout 5 --dest org.gnome.Shell.Extensions \
     --object-path /org/gnome/Shell/Extensions --method org.gnome.Shell.Extensions.GetExtensionErrors "$QL_UUID")
   [[ "$errs" == "(@as [],)" ]] || { echo "$errs"; return 1; }
 }
@@ -43,7 +43,7 @@ setting_is() {
 }
 
 screenshot() {
-  session_exec gdbus call --session --dest org.gnome.Shell.Screenshot --object-path /org/gnome/Shell/Screenshot \
+  session_exec gdbus call --session --timeout 5 --dest org.gnome.Shell.Screenshot --object-path /org/gnome/Shell/Screenshot \
     --method org.gnome.Shell.Screenshot.Screenshot false false "$WORK/$1" >/dev/null
 }
 
@@ -62,7 +62,7 @@ prefs_window='global.get_window_actors().some(a => a.meta_window.get_wm_class() 
 
 js_errors() {
   local hits
-  hits=$(grep -hE 'JS ERROR|Exception in callback|quick-lofi@eucaue.*(Error|error)' "$WORK/shell.log" "$WORK/bus.log" || true)
+  hits=$(grep -hE 'JS ERROR|Exception in callback|Gjs-CRITICAL|JS WARNING.*quick-lofi|Unhandled promise rejection|quick-lofi@eucaue.*(Error|error)' "$WORK/shell.log" "$WORK/bus.log" || true)
   [[ -z "$hits" ]] || { head -5 <<<"$hits"; return 1; }
 }
 
