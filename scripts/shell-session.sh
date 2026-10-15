@@ -79,7 +79,7 @@ session_prepare() {
 session_launch() {
   local envs=()
   while [[ "${1:-}" == --env=* ]]; do envs+=("$1"); shift; done
-  session_exec "${envs[@]}" sh -c "exec gnome-shell $* >$WORK/shell.log 2>&1" &
+  session_exec "${envs[@]}" sh -c "exec gnome-shell $* >$WORK/shell.log 2>&1" 2>/dev/null &
   wait_for 60 session_exec gdbus wait --session --timeout=1 org.gnome.Shell.Screenshot \
     || { echo "gnome-shell did not start, see $WORK/shell.log" >&2; return 1; }
   for ((i = 0; i < 60; i++)); do
