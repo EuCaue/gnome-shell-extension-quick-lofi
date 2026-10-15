@@ -30,7 +30,9 @@
     "release": "npm run check && npm run build:prod && npm run install:prod",
     "radios": "bash ./scripts/test-radios.sh",
     "gnome:image": "bash ./scripts/shell-image.sh",
-    "gnome:clean": "bash ./scripts/shell-image.sh --clean"
+    "gnome:clean": "bash ./scripts/shell-image.sh --clean",
+    "gnome:test": "bash ./scripts/shell-test.sh",
+    "gnome:open": "bash ./scripts/shell-open.sh"
   },
   "repository": {
     "type": "git",
