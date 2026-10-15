@@ -429,7 +429,6 @@ export default class Indicator extends PanelMenu.Button {
         emitter: menuItem,
         signalID: menuItem.connect('activate', (item, event) => {
           // the menu closes from an AFTER 'activate' handler; stopping here keeps it open (openPrefs closes it)
-          // @ts-expect-error nothing
           GObject.signal_stop_emission_by_name(item, 'activate');
           //  NOTE: MOUSE BUTTONS IDS
           // 1 -> LMB
