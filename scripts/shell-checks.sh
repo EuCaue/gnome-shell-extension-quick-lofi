@@ -71,6 +71,7 @@ run_checks() {
   check 'extension enabled, no errors' ext_state
   check 'indicator in panel' expect_eval "!!$IND" true
   check 'menu opens' expect_eval "($IND.menu.open(), $IND.menu.isOpen)" true
+  check 'menu has room for the radios' wait_true expect_eval "$IND.menu.box.get_height() > 100" true
   check 'radios listed' expect_eval "$radio_names" '"Tone A|Tone B"'
   check 'play radio' click_radio 0 1
   check 'mpv running' wait_true mpv_running
