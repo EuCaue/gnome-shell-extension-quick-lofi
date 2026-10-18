@@ -1,9 +1,9 @@
 import Clutter from 'gi://Clutter';
 import type St from 'gi://St';
-import * as Config from '@girs/gnome-shell/misc/config';
+import { shellMajor } from './ShellVersion';
 
 // GNOME 48 added `orientation` to St.BoxLayout and GNOME 51 removed `vertical`.
-const hasOrientation = Number.parseInt(Config.PACKAGE_VERSION, 10) >= 48;
+const hasOrientation = shellMajor >= 48;
 
 // St.BoxLayout constructor props that lay children out vertically or horizontally on every supported version.
 export function boxOrientation(vertical: boolean): Partial<St.BoxLayout.ConstructorProps> {

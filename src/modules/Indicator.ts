@@ -19,6 +19,7 @@ import { buildIndicatorStatus, buildPopupStyles } from './IndicatorView';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
+import { setScrollChild } from './ScrollView';
 import { createTooltip } from './Tooltip';
 
 export default class Indicator extends PanelMenu.Button {
@@ -408,7 +409,7 @@ export default class Indicator extends PanelMenu.Button {
   private _createMenuItems(): void {
     this._scrollView = new St.ScrollView();
     this._popupSection = new PopupMenu.PopupMenuSection();
-    this._scrollView.add_child(this._popupSection.actor);
+    setScrollChild(this._scrollView, this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
     const currentRadioPlayingID: string = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
     this._radios.forEach((radio) => {
