@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: sudo apt-get update && sudo apt-get install -y libglib2.0-bin libglib2.0-dev-bin
+      - run: sudo apt-get update && sudo apt-get install -y libglib2.0-bin libglib2.0-dev-bin libxml2-utils
       - run: npm ci
       - run: npm run gnome:test -- ${{ matrix.gnome }}
       - uses: actions/upload-artifact@v4
@@ -28,3 +28,6 @@ jobs:
         with:
           name: gnome-${{ matrix.gnome }}
           path: .shell-test/${{ matrix.gnome }}/
+      # act --bind runs this job as root inside your checkout; give the files back to the checkout's owner
+      - if: always()
+        run: sudo chown -R "$(stat -c %u:%g .)" .
