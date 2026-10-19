@@ -12,7 +12,7 @@ trap session_stop EXIT
 declare -A summary
 for v in $(versions_from_args "$@"); do
   echo "GNOME $v"
-  if ! podman image exists "$(image_for "$v")" && ! bash "$dir/shell-image.sh" "$v"; then
+  if ! image_exists "$(image_for "$v")" && ! bash "$dir/shell-image.sh" "$v"; then
     summary[$v]='image build failed'
     continue
   fi
@@ -26,7 +26,7 @@ for v in $(versions_from_args "$@"); do
   fi
   session_stop
   # never start the next container while one is still alive
-  [[ -z "$(podman ps -q --filter ancestor="$(image_for "$v")")" ]] || { echo "container leaked" >&2; exit 2; }
+  [[ -z "$("$QL_ENGINE" ps -q --filter ancestor="$(image_for "$v")")" ]] || { echo "container leaked" >&2; exit 2; }
 done
 
 echo

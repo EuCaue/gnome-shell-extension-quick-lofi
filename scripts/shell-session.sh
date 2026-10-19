@@ -16,12 +16,12 @@ session_env() {
 }
 
 # Runs a command in the container as the host user, with the session env.
-# Leading --env=NAME=VALUE args are passed to podman.
+# Leading --env=NAME=VALUE args are passed to the container engine.
 session_exec() {
   local args=()
   while read -r e; do args+=("--env=$e"); done < <(session_env)
   while [[ "${1:-}" == --env=* ]]; do args+=("$1"); shift; done
-  podman exec --user="$(id -u)" "${args[@]}" "$CID" "$@"
+  "$QL_ENGINE" exec --user="$(id -u)" "${args[@]}" "$CID" "$@"
 }
 
 # Retries a command once per second, up to $1 seconds.
@@ -46,18 +46,26 @@ ext_gsettings() {
     org.gnome.shell.extensions.quick-lofi "${@:2}"
 }
 
-# Creates the container, the session bus and the extension setup. Extra args go to `podman create`.
+# Creates the container, the session bus and the extension setup. Extra args go to `create`.
 session_prepare() {
   local major="$1"
   WORK="$2"
   shift 2
   mkdir -p -m 0700 "$WORK"/{runtime,config,cache,data,home}
 
-  CID=$(podman create --log-driver=none --tty --cap-add="$CAPS" --security-opt=label=disable \
-    --user=0 --userns=keep-id "${QL_PODMAN_LIMITS[@]}" -v "$WORK:$WORK" \
+  # systemd as PID 1: podman handles it with caps; docker needs privileged mode and its own /run.
+  local engine_args=(--cap-add="$CAPS" --userns=keep-id)
+  [[ "$QL_ENGINE" == docker ]] && engine_args=(--privileged --tmpfs /run --tmpfs /run/lock)
+
+  CID=$("$QL_ENGINE" create --log-driver=none --tty --security-opt=label=disable --user=0 \
+    "${engine_args[@]}" "${QL_LIMITS[@]}" -v "$WORK:$WORK" \
     -v "$QL_ROOT/$QL_UUID.zip:/tmp/ext.zip:ro" "$@" "$(image_for "$major")") || return 1
-  podman start "$CID" >/dev/null || return 1
-  wait_for 60 podman exec "$CID" gdbus wait --system --timeout=1 org.freedesktop.login1 \
+  "$QL_ENGINE" start "$CID" >/dev/null || return 1
+  # docker has no keep-id: the host user must exist in the container for `exec --user`.
+  if [[ "$QL_ENGINE" == docker ]]; then
+    "$QL_ENGINE" exec "$CID" useradd -M -u "$(id -u)" -d "$WORK/home" quicklofi >/dev/null || return 1
+  fi
+  wait_for 60 "$QL_ENGINE" exec "$CID" gdbus wait --system --timeout=1 org.freedesktop.login1 \
     || { echo "logind did not start" >&2; return 1; }
 
   session_exec sh -c "dbus-daemon --session --nofork --nopidfile --address=unix:path=$WORK/runtime/bus >$WORK/bus.log 2>&1 &"
@@ -103,6 +111,9 @@ session_start() {
 }
 
 session_stop() {
-  [[ -n "$CID" ]] && podman rm -f -t 2 "$CID" >/dev/null 2>&1
+  # podman waits 10 s for the stop signal unless told otherwise; docker -f kills at once
+  local wait=()
+  [[ "$QL_ENGINE" == podman ]] && wait=(-t 2)
+  [[ -n "$CID" ]] && "$QL_ENGINE" rm -f "${wait[@]}" "$CID" >/dev/null 2>&1
   CID=''
 }

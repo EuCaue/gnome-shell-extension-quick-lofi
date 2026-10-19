@@ -9,7 +9,7 @@ source "$dir/shell-session.sh"
 v="${1:?usage: shell-open.sh <gnome major>}"
 trap session_stop EXIT
 (cd "$QL_ROOT" && npm run --silent build:dev >/dev/null)
-podman image exists "$(image_for "$v")" || bash "$dir/shell-image.sh" "$v"
+image_exists "$(image_for "$v")" || bash "$dir/shell-image.sh" "$v"
 work="$QL_OUT/open-$v"
 rm -rf "${work:?}"
 

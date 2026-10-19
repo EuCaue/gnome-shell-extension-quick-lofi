@@ -3,7 +3,9 @@ QL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 QL_OUT="$QL_ROOT/.shell-test"
 QL_UUID='quick-lofi@eucaue'
 QL_VERSIONS=(45 46 47 48 49 50 51)
-QL_PODMAN_LIMITS=(--memory=3g --cpus=2)
+QL_LIMITS=(--memory=3g --cpus=2)
+# podman when installed, docker otherwise; QL_ENGINE=docker forces docker.
+QL_ENGINE="${QL_ENGINE:-$(command -v podman >/dev/null && echo podman || echo docker)}"
 
 fedora_for() {
   case "$1" in
@@ -19,3 +21,5 @@ image_for() { echo "localhost/quick-lofi-shell:$1"; }
 versions_from_args() {
   if (($#)); then printf '%s\n' "$@"; else printf '%s\n' "${QL_VERSIONS[@]}"; fi
 }
+
+image_exists() { "$QL_ENGINE" image inspect "$1" >/dev/null 2>&1; }
