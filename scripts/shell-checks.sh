@@ -42,9 +42,11 @@ setting_is() {
   [[ "$got" == "$2" ]] || { echo "$1 is $got, expected $2"; return 1; }
 }
 
+# Not a check: a missing picture only warns, and the reason goes to screenshot.log.
 screenshot() {
-  session_exec gdbus call --session --timeout 5 --dest org.gnome.Shell.Screenshot --object-path /org/gnome/Shell/Screenshot \
-    --method org.gnome.Shell.Screenshot.Screenshot false false "$WORK/$1" >/dev/null
+  session_exec gdbus call --session --timeout 20 --dest org.gnome.Shell.Screenshot --object-path /org/gnome/Shell/Screenshot \
+    --method org.gnome.Shell.Screenshot.Screenshot false false "$WORK/$1" >>"$WORK/screenshot.log" 2>&1
+  [[ -s "$WORK/$1" ]] || echo "  ! $1 is empty, see screenshot.log"
 }
 
 radio_names="$IND"'._popupSection._getMenuItems().map(i => i.label?.text).filter(Boolean).join("|")'
@@ -76,6 +78,8 @@ run_checks() {
   check 'play radio' click_radio 0 1
   check 'mpv running' wait_true mpv_running
   check 'current radio saved' wait_true setting_is current-radio-playing "'ta'"
+  # Rebuilding the menu (as a radio list change does) must not leave handlers on the old widgets.
+  check 'menu rebuilt' expect_eval "($IND._createMenu(), true)" true
   check 'volume slider moves' expect_eval "($find_slider.value = 0.3, true)" true
   check 'volume saved' wait_true setting_is volume 30
   screenshot menu.png
