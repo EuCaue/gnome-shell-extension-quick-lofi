@@ -11,7 +11,7 @@ import { MprisController } from './Mpris';
 
 type PlayerCommandString = string;
 type PlayerCommand = {
-  command: Array<string | boolean>;
+  command: Array<string | boolean | number>;
 };
 
 type NavigationMode = 'auto' | 'radio';

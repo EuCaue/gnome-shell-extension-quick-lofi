@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
 import * as Main from '@girs/gnome-shell/ui/main';
+import { boxOrientation } from './BoxOrientation';
 
 const GAP = 6;
 
@@ -41,7 +42,7 @@ export function createTooltip(targetWidget: St.Widget, options: TooltipOptions =
     ].join(' '),
     opacity: 0,
     visible: false,
-    vertical: true,
+    ...boxOrientation({ vertical: true }),
     reactive: false,
   });
 

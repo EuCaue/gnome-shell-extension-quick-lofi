@@ -1,38 +1,53 @@
-<div align="center">
+<h1 align="center">
+  <a href="https://quick-lofi.eucaue.online/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/readme/banner-dark.svg">
+      <img alt="Quick Lofi: lofi radio and other sounds, one click away in the GNOME top bar" src="docs/readme/banner-light.svg" width="100%">
+    </picture>
+  </a>
+</h1>
 
-<img src="./logo.svg" width="192px" height="192px" />
+<p align="center">
+  <a href="https://extensions.gnome.org/extension/6904/quick-lofi/"><img alt="Get it on GNOME Extensions" height="80" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png"></a>
+</p>
 
-# Quick Lofi
+<p align="center">
+  <a href="https://github.com/EuCaue/gnome-shell-extension-quick-lofi/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/EuCaue/gnome-shell-extension-quick-lofi?style=for-the-badge&logo=github&color=2190a4&label=release"></a>
+  <img alt="Supported GNOME versions" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2FEuCaue%2Fgnome-shell-extension-quick-lofi%2Fraw%2Fmaster%2Fsrc%2Fmetadata.json&query=%24%5B'shell-version'%5D&style=for-the-badge&logo=gnome&color=2190a4&label=GNOME">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-2190a4?style=for-the-badge"></a>
+  <a href="https://github.com/EuCaue/gnome-shell-extension-quick-lofi/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/EuCaue/gnome-shell-extension-quick-lofi?style=for-the-badge&logo=github&color=2190a4"></a>
+</p>
 
-Play **lofi music and other sounds, locally or online**, on your GNOME desktop with just a **click**!
+<p align="center">
+  <a href="https://quick-lofi.eucaue.online/"><b>Website</b></a>&emsp;
+  <a href="#install">Install</a>&emsp;
+  <a href="#troubleshooting">Troubleshooting</a>&emsp;
+  <a href="#development">Development</a>&emsp;
+  <a href="https://ko-fi.com/eucaue">Ko-fi</a>
+</p>
 
-[![GitHub Release](https://img.shields.io/github/v/release/EuCaue/quick-lofi?include_prereleases&sort=date&display_name=release&style=for-the-badge&logo=github&)](https://github.com/EuCaue/quick-lofi/releases)
-[![GitHub last commit](https://img.shields.io/github/last-commit/EuCaue/quick-lofi?style=for-the-badge&logo=github&color=blue)](https://github.com/EuCaue/quick-lofi/commits/master)
-[![GitHub Repo stars](https://img.shields.io/github/stars/EuCaue/quick-lofi?style=for-the-badge&logo=github)](https://github.com/EuCaue/quick-lofi/stargazers)
+https://github.com/EuCaue/gnome-shell-extension-quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d
 
-![GNOME Supported Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2FEuCaue%2Fgnome-shell-extension-quick-lofi%2Fraw%2Fmaster%2Fsrc%2Fmetadata.json&query=%24%5B'shell-version'%5D&style=for-the-badge&logo=gnome&label=Compatible%20with%20GNOME)
+## What you get
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20Me%20a%20Coffee-ff5f5f?logo=kofi&logoColor=white&style=for-the-badge)](https://ko-fi.com/eucaue)
+- Click the icon to play or pause. Open the menu to switch stations, change the volume or skip a track.
+- Any stream URL, playlist or audio file can be a station. If `mpv` plays it, Quick Lofi plays it.
+- Your favorite station can start on its own when you log in or unlock the screen.
+- Media keys and the GNOME media controls work, and you can add your own global shortcuts.
+- Hovering over the icon shows what is playing.
+- You choose what left, middle and right click do.
 
-[<img height="100" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/6904/quick-lofi/)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/shortcuts-dark.png">
+    <img alt="Quick Lofi preferences window, Player page, with the global keyboard shortcuts" src="docs/readme/shortcuts-light.png" width="560">
+  </picture>
+</p>
 
-</div>
+## Install
 
-## Demo
-
-[quick-lofi-demo.webm](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/assets/69485603/351f34da-023c-4b28-94d6-b49ca83aa34d)
-
-## Features
-
-- Play lofi and any other sound with one click
-- Global keyboard shortcuts for quick control
-- Volume control directly from pop-up menu
-- Drag and drop to rearrange radio stations
-- Adjustable pop-up height
-
-## Dependencies
-
-This extension requires `mpv`. Install it using your package manager:
+> [!IMPORTANT]
+> Quick Lofi plays everything through `mpv`. Install it first.
 
 ```bash
 # Fedora
@@ -40,7 +55,7 @@ sudo dnf install mpv
 ```
 
 ```bash
-# Debian/Ubuntu
+# Debian, Ubuntu
 sudo apt install mpv
 ```
 
@@ -54,191 +69,154 @@ sudo pacman -S mpv
 sudo zypper install mpv
 ```
 
-## Installation
+Then get the extension from [extensions.gnome.org](https://extensions.gnome.org/extension/6904/quick-lofi/), with the [browser integration](https://gnome.pages.gitlab.gnome.org/gnome-browser-integration/pages/installation-guide.html) or [Extension Manager](https://flathub.org/apps/com.mattjakeman.ExtensionManager). Updates arrive on their own that way.
 
-### Via [EGO](https://extensions.gnome.org/extension/6904/quick-lofi/)
+<details>
+<summary><b>From the release zip</b></summary>
+<br>
 
-1. Install from the [extension page](https://extensions.gnome.org/extension/6904/quick-lofi/) using the [browser integration](https://gnome.pages.gitlab.gnome.org/gnome-browser-integration/pages/installation-guide.html#fedora_linux) or the [Extension Manager](https://flathub.org/apps/com.mattjakeman.ExtensionManager).
+Download `quick-lofi@eucaue.zip` from the [releases page](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/releases), then run this in the same folder:
 
-### From the release `.zip`
+```bash
+gnome-extensions install --force quick-lofi@eucaue.zip
+```
 
-1. Download `quicklofi@eucaue.zip` from the [releases page](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/releases).
-2. Run in the same folder:
+Log out and back in.
 
-   ```bash
-   gnome-extensions install --force quicklofi@eucaue.zip
-   ```
+</details>
 
-3. Log out and back in.
+<details>
+<summary><b>From source</b></summary>
+<br>
 
-### Manual installation (stable)
+The newest release may not run on older GNOME versions, so check the release notes first. You need Node, npm and the GLib dev tools.
 
-> You're installing the latest release, which may not work on older GNOME versions, check the release notes.
-> Requires `Node`, `npm`, GLib dev tools and `mpv`. Run `npm run doctor` to see what is missing.
+```bash
+git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+cd gnome-shell-extension-quick-lofi
+npm install
+npm run install:prod
+```
 
-1. Clone the repository:
+Log out and back in.
 
-   ```bash
-   git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Build and install:
-
-   ```bash
-   npm run install:prod
-   ```
-
-4. Log out and back in.
-
-### From the `develop` branch (latest, may be unstable)
-
-> Use this if you want the newest features before they hit a release.
-> Requires `Node`, `npm`, GLib dev tools and `mpv`. Run `npm run doctor` to see what is missing.
->
-> ⚠️ The `develop` branch targets the latest GNOME version and **your current version may not be supported**.
-
-1. Clone the repository and switch to the `develop` branch:
-
-   ```bash
-   git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
-   cd gnome-shell-extension-quick-lofi
-   git checkout develop
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Build and install:
-
-   ```bash
-   npm run install:prod
-   ```
-
-4. Log out and back in.
-
----
-
-## Development
-
-> Requires `Node`, `npm`, GLib dev tools and `mpv`. Run `npm run doctor` to see what is missing.
->
-> Pull requests should be opened against the **`develop`** branch.
-
-Set up a local environment to work on the extension:
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
-   cd gnome-shell-extension-quick-lofi
-   ```
-
-2. Switch to the `develop` branch:
-
-   ```bash
-   git checkout develop
-   ```
-
-3. Check system tools, install dependencies and build:
-
-   ```bash
-   npm run setup
-   ```
-
-   If something is missing, `doctor` prints the install command for Fedora, Debian/Ubuntu, Arch, openSUSE and distros based on them.
-
-4. Run the extension in a nested GNOME Wayland session:
-
-   ```bash
-   npm run run:dev
-   ```
-
----
+</details>
 
 ## Troubleshooting
 
-If something isn't working as expected, enabling debug logs helps a lot when diagnosing problems.
-Please follow the steps below **before opening an issue**.
+Turn on debug logs before you open an issue. They usually show the problem right away.
 
-### Enable debug logging
+1. In Quick Lofi's preferences, open **Interface** and enable **Debug logging**. Or from a terminal:
 
-Debug logging can be enabled either from the **extension preferences** or via the CLI.
+   ```bash
+   gsettings --schemadir "$HOME/.local/share/gnome-shell/extensions/quick-lofi@eucaue/schemas" set "org.gnome.shell.extensions.quick-lofi" "enable-debug" true
+   ```
 
-**From the UI:**
+2. Make the problem happen again, then copy the log:
 
-- Open **Quick Lofi Preferences**
-- Go to the **Interface** tab
-- Enable **Debug logging**
+   ```bash
+   cat /tmp/quick-lofi-$USER.log | wl-copy
+   ```
 
-**From the CLI:**
+   No file, or an empty one, means logging was still off.
 
-```bash
-gsettings --schemadir "$HOME/.local/share/gnome-shell/extensions/quick-lofi@eucaue/schemas" set "org.gnome.shell.extensions.quick-lofi" "enable-debug" true
-```
+3. [Open an issue](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/issues) with what you expected, what happened, your GNOME and Quick Lofi versions, and the log.
 
-### Collect logs
+<details>
+<summary><h2 id="development">Development</h2></summary>
 
-When debug logging is enabled, Quick Lofi writes logs to:
+You need Node, npm, the GLib dev tools, `mpv` and GNOME Shell. On GNOME 49 or newer, the nested session also needs `mutter-devkit`. Run `npm run doctor` to check all of them. It prints the install command for anything missing.
 
-```text
-/tmp/quick-lofi-$USER.log
-```
+### First run
 
-To view the logs:
+Development happens on `develop`. `master` only receives releases.
 
 ```bash
-cat /tmp/quick-lofi-$USER.log
+git clone -b develop https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+cd gnome-shell-extension-quick-lofi
+
+# Check system tools, install dependencies and make a dev build
+npm run setup
 ```
 
-To copy the logs to your clipboard:
+### Try your changes
 
 ```bash
-cat /tmp/quick-lofi-$USER.log | wl-copy
+# Build, install and open GNOME Shell in a 1600x900 window
+npm run run:dev
 ```
 
-If the file is empty or missing, make sure debug logging is enabled and reproduce the issue once more.
+This replaces your installed copy of the extension with the dev build. Your current session keeps running the previous version until you log out, so test inside the nested window.
 
-### Open an issue
+`debug()` messages show up in that terminal.
 
-When opening a new issue, please include:
+`scripts/seed-radios.json` has radios for edge cases: a working stream, YouTube, an offline tone, a broken URL, a missing file and odd names. Load them into the installed extension with:
 
-- A **clear description** of the problem
-- **Steps to reproduce**
-- Your **GNOME version**
-- Your **Quick Lofi version**
-- The **debug logs** collected above (paste them or attach the file)
+```bash
+# Add the sample radios (running it again replaces them)
+npm run radios -- --add
 
-<div align="center">
+# Remove only the sample radios
+npm run radios -- --remove
+```
 
-[Open an issue here](https://github.com/EuCaue/gnome-shell-extension-quick-lofi/issues)
+### Test on other GNOME versions
 
-</div>
+Each supported GNOME version (45 to 51) runs headless in its own container, one at a time. It needs `podman` or `docker`.
 
----
+```bash
+# Run the checks on GNOME 45 and 50 (no arguments runs every version)
+npm run gnome:test -- 45 50
 
-## Contributing
+# Open GNOME 45 in a window with your build installed
+npm run gnome:open -- 45
 
-Contributions are always welcome! 💡
+# Delete the container images (about 1.5 GB each)
+npm run gnome:clean
+```
 
-1. **Fork** the repository and create a new branch based on **`develop`** for your changes.
-2. **Make your improvements** whether it's fixing a bug, improving code, or adding a feature.
-3. **Commit and push** your changes to your branch.
-4. **Open a pull request** against the **`develop`** branch with a short description of what you've done.
-5. If you find any bugs or have ideas, feel free to **open an issue** anytime!
+Results go to `.shell-test/<version>/`. Missing images are built on the first run. `QL_ENGINE=docker` picks docker over podman.
 
----
+GitHub runs the same checks on every pull request. To run them locally, use [act](https://github.com/nektos/act) (docker only):
 
-<small>
-  <div align="center">
-    Made with ❤️  by  <a href="https://www.github.com/EuCaue" target="_blank">EuCaue</a>
-  </div>
-</small>
+```bash
+npm run gnome:act -- --matrix gnome:50
+```
+
+### Before you open a pull request
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+```
+
+`npm test` runs the logic tests in `tests/` with Node's test runner and does not need GNOME. `npm run check` also lints and formats, but it writes the fixes to your files.
+
+Open the pull request against **`develop`**.
+
+### Where things are
+
+| Path | Contents |
+| --- | --- |
+| `src/extension.ts` | Entry point inside GNOME Shell |
+| `src/prefs.ts` | Entry point for the preferences window |
+| `src/modules/` | Shell side: indicator, player, mini player, shortcuts, MPRIS |
+| `src/preferences/` | Preferences pages and widgets |
+| `src/shared/` | Settings, station storage and logging, used by both sides |
+| `schemas/` | GSettings keys and defaults |
+| `tests/` | Tests for logic that runs without GNOME |
+
+`dist/` and `quick-lofi@eucaue.zip` are build output. Edit the sources instead.
+
+</details>
+
+<br>
+
+<p align="center">
+  <a href="https://quick-lofi.eucaue.online/"><img alt="Quick Lofi" src="logo.svg" width="48"></a>
+</p>
+
+<p align="center">
+  <sub>Made by <a href="https://www.github.com/EuCaue">EuCaue</a>. Released under the <a href="LICENSE">GPL-3.0</a>. If it keeps you company while you work, you can support it on <a href="https://github.com/sponsors/EuCaue">GitHub Sponsors</a> or <a href="https://ko-fi.com/eucaue">Ko-fi</a>.</sub>
+</p>
