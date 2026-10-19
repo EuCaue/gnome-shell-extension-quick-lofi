@@ -59,7 +59,7 @@ session_prepare() {
 
   CID=$("$QL_ENGINE" create --log-driver=none --tty --security-opt=label=disable --user=0 \
     "${engine_args[@]}" "${QL_LIMITS[@]}" -v "$WORK:$WORK" \
-    -v "$QL_ROOT/$QL_UUID.zip:/tmp/ext.zip:ro" "$@" "$(image_for "$major")") || return 1
+    -v "$QL_ROOT/$QL_UUID.zip:/srv/ext.zip:ro" "$@" "$(image_for "$major")") || return 1
   "$QL_ENGINE" start "$CID" >/dev/null || return 1
   # docker has no keep-id: the host user must exist in the container for `exec --user`.
   if [[ "$QL_ENGINE" == docker ]]; then
@@ -73,7 +73,8 @@ session_prepare() {
     --method org.freedesktop.DBus.Peer.Ping || { echo "session bus did not start" >&2; return 1; }
 
   # Installed before the Shell starts: a running Wayland Shell doesn't pick up new extensions.
-  session_exec gnome-extensions install --force /tmp/ext.zip || return 1
+  # /srv, not /tmp: under docker systemd mounts a fresh tmpfs over /tmp and hides the zip.
+  session_exec gnome-extensions install --force /srv/ext.zip || return 1
   session_exec gsettings set org.gnome.shell disable-extension-version-validation true
   session_exec gsettings set org.gnome.shell enabled-extensions "['$QL_UUID']"
   ext_gsettings set radios \
