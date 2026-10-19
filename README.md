@@ -149,7 +149,7 @@ npm run run:dev
 
 This replaces your installed copy of the extension with the dev build. Your current session keeps running the previous version until you log out, so test inside the nested window.
 
-Calls to `debug()` from `src/shared/log.ts` print to the same terminal with the `[ QUICK LOFI DEBUG ]` prefix. Production builds remove them.
+`debug()` messages show up in that terminal. Production builds drop them.
 
 `radios-test.json` has stations for edge cases: a broken URL, a local path and unusual names. Load them into the installed extension with:
 
@@ -176,9 +176,9 @@ npm run gnome:open -- 45
 npm run gnome:clean
 ```
 
-`gnome:test` builds a missing image on its own. Rebuild one after changing `tests/shell/Containerfile` with `npm run gnome:image -- 45`. Logs and screenshots go to `.shell-test/<version>/`. Set `QL_ENGINE=docker` to use docker when both are installed.
+Results go to `.shell-test/<version>/`. Missing images are built on the first run. `QL_ENGINE=docker` picks docker over podman.
 
-The same checks run on GitHub for every pull request. To run that workflow locally, use [act](https://github.com/nektos/act) with docker (act fails to copy actions into its container through podman):
+GitHub runs the same checks on every pull request. To run them locally, use [act](https://github.com/nektos/act) (docker only):
 
 ```bash
 npm run gnome:act -- --matrix gnome:50
