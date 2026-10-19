@@ -4,7 +4,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/shell-lib.sh"
 CID='' WORK=''
 # Inside the container, not under $WORK: a long checkout path (like GitHub's) pushes the bus socket
 # past the 108-character limit for socket paths.
-QL_RUNTIME=/run/quick-lofi
+QL_RUNTIME="${QL_RUNTIME:-/run/quick-lofi}"
 CAPS='SYS_ADMIN,SYS_NICE,SYS_PTRACE,SETPCAP,NET_RAW,NET_BIND_SERVICE,IPC_LOCK'
 
 session_env() {

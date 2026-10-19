@@ -15,6 +15,9 @@ rm -rf "${work:?}"
 
 if ((v >= 49)); then
   session_prepare "$v" "$work" -v "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY:/run/host-wayland"
+  # The devkit window gets the screen over PipeWire; without it the Shell quits right after start.
+  session_exec sh -c "pipewire >$work/pipewire.log 2>&1 &"
+  wait_for 10 session_exec test -S "$QL_RUNTIME/pipewire-0"
   session_launch_fg --env=WAYLAND_DISPLAY=/run/host-wayland --env=MUTTER_DEBUG_DUMMY_MODE_SPECS=1280x800 \
     --devkit --wayland --unsafe-mode
 else
