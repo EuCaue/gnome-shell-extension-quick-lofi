@@ -2,16 +2,19 @@
 source "$(dirname "${BASH_SOURCE[0]}")/shell-lib.sh"
 
 CID='' WORK=''
+# Inside the container, not under $WORK: a long checkout path (like GitHub's) pushes the bus socket
+# past the 108-character limit for socket paths.
+QL_RUNTIME=/run/quick-lofi
 CAPS='SYS_ADMIN,SYS_NICE,SYS_PTRACE,SETPCAP,NET_RAW,NET_BIND_SERVICE,IPC_LOCK'
 
 session_env() {
   printf '%s\n' \
     "HOME=$WORK/home" \
-    "XDG_RUNTIME_DIR=$WORK/runtime" \
+    "XDG_RUNTIME_DIR=$QL_RUNTIME" \
     "XDG_CONFIG_HOME=$WORK/config" \
     "XDG_CACHE_HOME=$WORK/cache" \
     "XDG_DATA_HOME=$WORK/data" \
-    "DBUS_SESSION_BUS_ADDRESS=unix:path=$WORK/runtime/bus" \
+    "DBUS_SESSION_BUS_ADDRESS=unix:path=$QL_RUNTIME/bus" \
     "NO_AT_BRIDGE=1" "GTK_A11Y=none"
 }
 
@@ -51,7 +54,7 @@ session_prepare() {
   local major="$1"
   WORK="$2"
   shift 2
-  mkdir -p -m 0700 "$WORK"/{runtime,config,cache,data,home}
+  mkdir -p -m 0700 "$WORK"/{config,cache,data,home}
 
   # systemd as PID 1: podman handles it with caps; docker needs privileged mode and its own /run.
   local engine_args=(--cap-add="$CAPS" --userns=keep-id)
@@ -69,8 +72,9 @@ session_prepare() {
   fi
   wait_for 60 "$QL_ENGINE" exec "$CID" gdbus wait --system --timeout=1 org.freedesktop.login1 \
     || { echo "logind did not start" >&2; return 1; }
+  "$QL_ENGINE" exec "$CID" install -d -m 0700 -o "$(id -u)" "$QL_RUNTIME" || return 1
 
-  session_exec sh -c "dbus-daemon --session --nofork --nopidfile --address=unix:path=$WORK/runtime/bus >$WORK/bus.log 2>&1 &"
+  session_exec sh -c "dbus-daemon --session --nofork --nopidfile --address=unix:path=$QL_RUNTIME/bus >$WORK/bus.log 2>&1 &"
   wait_for 20 session_exec gdbus call --session --timeout 5 --dest org.freedesktop.DBus --object-path / \
     --method org.freedesktop.DBus.Peer.Ping || { echo "session bus did not start" >&2; return 1; }
 
