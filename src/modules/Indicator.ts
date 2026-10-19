@@ -391,7 +391,8 @@ export default class Indicator extends PanelMenu.Button {
         this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
       }),
     });
-    this.signalsHandlers.push({
+    // menuSignals, not signalsHandlers: this handler touches widgets that die when the menu is rebuilt
+    this.menuSignals.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
         const volume = settings.get_int(key);
