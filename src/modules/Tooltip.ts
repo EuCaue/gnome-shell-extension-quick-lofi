@@ -42,7 +42,7 @@ export function createTooltip(targetWidget: St.Widget, options: TooltipOptions =
     ].join(' '),
     opacity: 0,
     visible: false,
-    ...boxOrientation(true),
+    ...boxOrientation({ vertical: true }),
     reactive: false,
   });
 

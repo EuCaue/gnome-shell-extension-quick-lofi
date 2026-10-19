@@ -336,7 +336,7 @@ export default class Indicator extends PanelMenu.Button {
     const separator = new PopupMenu.PopupSeparatorMenuItem();
     const volumeLevel = this._extension._settings.get_int(SETTINGS_KEYS.VOLUME);
     const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: true, can_focus: true });
-    const volumeBoxLayout = new St.BoxLayout({ ...boxOrientation(true), x_expand: true });
+    const volumeBoxLayout = new St.BoxLayout({ ...boxOrientation({ vertical: true }), x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
     volumeSlider.add_style_class_name('volume-slider');
     volumeSlider.can_focus = true;

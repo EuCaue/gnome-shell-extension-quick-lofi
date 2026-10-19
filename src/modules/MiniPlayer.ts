@@ -80,12 +80,12 @@ export default class MiniPlayer {
     this._miniPlayerItem.style = MINI_PLAYER_ITEM_STYLE;
 
     const miniPlayerBoxLayout = new St.BoxLayout({
-      ...boxOrientation(true),
+      ...boxOrientation({ vertical: true }),
       x_expand: true,
     });
 
     const radioBox = new St.BoxLayout({
-      ...boxOrientation(true),
+      ...boxOrientation({ vertical: true }),
       x_align: Clutter.ActorAlign.CENTER,
       x_expand: true,
       style: 'margin-bottom: 6px;',
@@ -128,7 +128,7 @@ export default class MiniPlayer {
     timeTrackingBoxWrapper.add_style_class_name('time-slider-row');
 
     const timeTrackingBox = new St.BoxLayout({
-      ...boxOrientation(false),
+      ...boxOrientation({ vertical: false }),
       x_expand: true,
     });
 
@@ -195,7 +195,7 @@ export default class MiniPlayer {
     timeTrackingBoxWrapper.add_child(timeTrackingBox);
 
     const controlsBox = new St.BoxLayout({
-      ...boxOrientation(false),
+      ...boxOrientation({ vertical: false }),
       marginBottom: 5,
       xAlign: Clutter.ActorAlign.CENTER,
       x_expand: true,

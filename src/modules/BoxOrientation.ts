@@ -6,7 +6,7 @@ import { shellMajor } from './ShellVersion';
 const hasOrientation = shellMajor >= 48;
 
 // St.BoxLayout constructor props that lay children out vertically or horizontally on every supported version.
-export function boxOrientation(vertical: boolean): Partial<St.BoxLayout.ConstructorProps> {
+export function boxOrientation({ vertical }: { vertical: boolean }): Partial<St.BoxLayout.ConstructorProps> {
   if (hasOrientation) {
     return { orientation: vertical ? Clutter.Orientation.VERTICAL : Clutter.Orientation.HORIZONTAL };
   }
