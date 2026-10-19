@@ -1,18 +1,11 @@
 [
-  {
-    "radioName": "Radio Test with URL",
-    "radioUrl": "https://placeholder-url"
-  },
-  {
-    "radioName": "Radio Test with Invalid URL",
-    "radioUrl": "https://wrong-placeholder-url"
-  },
-  {
-    "radioName": "Radio Test with Path",
-    "radioUrl": "/path/to/file"
-  },
-  {
-    "radioName": "Radio Test with Invalid Path",
-    "radioUrl": "/invalid/path/to/file"
-  }
+  { "radioName": "SomaFM Groove Salad", "radioUrl": "https://ice1.somafm.com/groovesalad-128-mp3", "note": "plain HTTP stream that works" },
+  { "radioName": "Lofi Girl (YouTube live)", "radioUrl": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "note": "goes through yt-dlp" },
+  { "radioName": "Offline tone", "radioUrl": "av://lavfi:sine=frequency=440", "note": "plays with no network and no file" },
+  { "radioName": "Broken URL", "radioUrl": "https://example.invalid/stream.mp3", "note": "host never resolves, mpv must fail cleanly" },
+  { "radioName": "Missing file", "radioUrl": "~/Music/quick-lofi-missing.mp3", "note": "~ expansion on a file that is not there" },
+  { "radioName": "Path with a separator", "radioUrl": "~/Music/Artist - Track.mp3", "note": "url contains ' - ', the setting's separator" },
+  { "radioName": "Café ☕ ローファイ", "radioUrl": "av://lavfi:sine=frequency=330", "note": "non-ASCII name" },
+  { "radioName": "Lofi Girl's \"beats to relax\"", "radioUrl": "av://lavfi:sine=frequency=550", "note": "both quote kinds in the name" },
+  { "radioName": "A very long radio name that should be cut with an ellipsis in the menu and the mini player", "radioUrl": "av://lavfi:sine=frequency=660", "note": "ellipsis in the menu and mini player" }
 ]

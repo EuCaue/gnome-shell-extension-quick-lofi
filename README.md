@@ -150,13 +150,13 @@ This replaces your installed copy of the extension with the dev build. Your curr
 
 `debug()` messages show up in that terminal.
 
-`radios-test.json` has stations for edge cases: a broken URL, a local path and unusual names. Load them into the installed extension with:
+`scripts/seed-radios.json` has radios for edge cases: a working stream, YouTube, an offline tone, a broken URL, a missing file and odd names. Load them into the installed extension with:
 
 ```bash
-# Add the test stations
+# Add the sample radios (running it again replaces them)
 npm run radios -- --add
 
-# Remove only the test stations
+# Remove only the sample radios
 npm run radios -- --remove
 ```
 
