@@ -62,8 +62,10 @@ session_prepare() {
     -v "$QL_ROOT/$QL_UUID.zip:/srv/ext.zip:ro" "$@" "$(image_for "$major")") || return 1
   "$QL_ENGINE" start "$CID" >/dev/null || return 1
   # docker has no keep-id: the host user must exist in the container for `exec --user`.
+  # Root (act runs jobs as root) already exists.
   if [[ "$QL_ENGINE" == docker ]]; then
-    "$QL_ENGINE" exec "$CID" useradd -M -u "$(id -u)" -d "$WORK/home" quicklofi >/dev/null || return 1
+    "$QL_ENGINE" exec "$CID" sh -c "getent passwd $(id -u) >/dev/null || useradd -M -u $(id -u) -d '$WORK/home' quicklofi" \
+      || return 1
   fi
   wait_for 60 "$QL_ENGINE" exec "$CID" gdbus wait --system --timeout=1 org.freedesktop.login1 \
     || { echo "logind did not start" >&2; return 1; }
