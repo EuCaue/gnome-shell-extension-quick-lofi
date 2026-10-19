@@ -1,0 +1,43 @@
+name: Bug report
+description: Something in Quick Lofi doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you got instead.
+      placeholder: |
+        1. Click a radio
+        2. ...
+        Expected: ...
+        Got: ...
+    validations:
+      required: true
+  - type: dropdown
+    id: gnome
+    attributes:
+      label: GNOME version
+      description: Run `gnome-shell --version`.
+      options: ['45', '46', '47', '48', '49', '50', 'Other']
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Quick Lofi version
+      description: Shown on the extension's page in the Extensions app.
+      placeholder: '1.10.0'
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+      placeholder: Fedora 44
+  - type: textarea
+    id: log
+    attributes:
+      label: Debug log
+      description: Turn on **Debug logging** in the preferences (Interface page), make the problem happen again, then paste the output of `cat /tmp/quick-lofi-$USER.log`.
+      render: text

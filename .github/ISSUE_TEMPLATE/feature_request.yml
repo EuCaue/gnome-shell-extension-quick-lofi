@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest something Quick Lofi could do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The situation where Quick Lofi falls short today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: Optional. A sketch, a screenshot or another app that does it well.
