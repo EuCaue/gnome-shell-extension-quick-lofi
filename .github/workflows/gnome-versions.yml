@@ -2,14 +2,7 @@ name: GNOME versions
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 6 * * 1'
-  # only when the test itself changes; extension changes are checked locally with npm run gnome:test
   pull_request:
-    paths:
-      - 'scripts/shell-*.sh'
-      - 'tests/shell/**'
-      - '.github/workflows/gnome-versions.yml'
 
 jobs:
   shell:
