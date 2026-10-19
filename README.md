@@ -161,6 +161,29 @@ npm run radios -- --add
 npm run radios -- --remove
 ```
 
+### Test on other GNOME versions
+
+Each supported GNOME version (45 to 51) runs headless in its own container, one at a time. It needs `podman` or `docker`.
+
+```bash
+# Run the checks on GNOME 45 and 50 (no arguments runs every version)
+npm run gnome:test -- 45 50
+
+# Open GNOME 45 in a window with your build installed
+npm run gnome:open -- 45
+
+# Delete the container images (about 1.5 GB each)
+npm run gnome:clean
+```
+
+`gnome:test` builds a missing image on its own. Rebuild one after changing `tests/shell/Containerfile` with `npm run gnome:image -- 45`. Logs and screenshots go to `.shell-test/<version>/`. Set `QL_ENGINE=docker` to use docker when both are installed.
+
+The same checks run on GitHub for every pull request. To run that workflow locally, use [act](https://github.com/nektos/act) with docker (act fails to copy actions into its container through podman):
+
+```bash
+npm run gnome:act -- --matrix gnome:50
+```
+
 ### Before you open a pull request
 
 ```bash
