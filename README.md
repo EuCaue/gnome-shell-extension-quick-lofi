@@ -132,9 +132,8 @@ You need Node, npm, the GLib dev tools, `mpv` and GNOME Shell. On GNOME 49 or ne
 Development happens on `develop`. `master` only receives releases.
 
 ```bash
-git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+git clone -b develop https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
 cd gnome-shell-extension-quick-lofi
-git checkout develop
 
 # Check system tools, install dependencies and make a dev build
 npm run setup
@@ -149,7 +148,7 @@ npm run run:dev
 
 This replaces your installed copy of the extension with the dev build. Your current session keeps running the previous version until you log out, so test inside the nested window.
 
-`debug()` messages show up in that terminal. Production builds drop them.
+`debug()` messages show up in that terminal.
 
 `radios-test.json` has stations for edge cases: a broken URL, a local path and unusual names. Load them into the installed extension with:
 
