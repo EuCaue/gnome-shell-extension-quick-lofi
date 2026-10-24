@@ -138,6 +138,23 @@
       <object class="AdwPreferencesGroup" id="searchResultsGroup">
         <property name="title" translatable="yes">Search Results</property>
         <property name="visible">false</property>
+        <child>
+          <object class="GtkScrolledWindow" id="searchResultsScroll">
+            <property name="hscrollbar-policy">2</property>
+            <property name="vscrollbar-policy">1</property>
+            <property name="max-content-height">320</property>
+            <property name="propagate-natural-height">true</property>
+            <property name="has-frame">false</property>
+            <child>
+              <object class="GtkListBox" id="searchResultsList">
+                <property name="selection-mode">0</property>
+                <style>
+                  <class name="boxed-list"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
 

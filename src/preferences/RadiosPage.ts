@@ -47,6 +47,7 @@ export class RadiosPage extends Adw.PreferencesPage {
           'searchQueryRow',
           'searchButton',
           'searchResultsGroup',
+          'searchResultsList',
           'searchSpinner',
         ],
       },
@@ -62,6 +63,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   declare private _searchQueryRow: Adw.EntryRow;
   declare private _searchButton: Gtk4.Button;
   declare private _searchResultsGroup: Adw.PreferencesGroup;
+  declare private _searchResultsList: Gtk4.ListBox;
   declare private _searchSpinner: Gtk4.Spinner;
   private _isSyncingDefaultRadio = false;
 
@@ -523,7 +525,7 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   private _clearSearchResults(): void {
     for (const row of this._searchResultRows) {
-      this._searchResultsGroup.remove(row);
+      this._searchResultsList.remove(row);
     }
     this._searchResultRows = [];
     this._searchResults = [];
@@ -539,7 +541,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     for (const result of merged.added) {
       const row = this._buildResultRow(result);
       this._searchResultRows.push(row);
-      this._searchResultsGroup.add(row);
+      this._searchResultsList.append(row);
     }
     this._updateResultsDescription();
     this._addMoreResultsControl();
@@ -623,7 +625,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     for (const result of merged.added) {
       const row = this._buildResultRow(result);
       this._searchResultRows.push(row);
-      this._searchResultsGroup.add(row);
+      this._searchResultsList.append(row);
     }
     this._updateResultsDescription();
   }
