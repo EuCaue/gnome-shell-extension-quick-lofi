@@ -1,36 +1,12 @@
-import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { PROBE_PREFIX, PROBE_SEPARATOR, parseMpvProbe, pickRadioName } from '@/preferences/RadioName';
 import { expandHome } from '@/preferences/RadioSource';
+import { run } from '@/preferences/Subprocess';
 import { writeLog } from '@/shared/log';
 import { cookiesFromBrowserValue } from '@/shared/settings';
 
-Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
-
 const MPV_TIMEOUT_SECONDS = 10;
 const YTDLP_TIMEOUT_SECONDS = 15;
-
-// stdout of a finished process, and whether it was killed for taking too long.
-type RunResult = { stdout: string; timedOut: boolean };
-
-async function run(argv: string[], timeoutSeconds: number): Promise<RunResult> {
-  const proc: Gio.Subprocess = Gio.Subprocess.new(
-    argv,
-    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
-  );
-  let timedOut: boolean = false;
-  const timer: number = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, timeoutSeconds, () => {
-    timedOut = true;
-    proc.force_exit();
-    return GLib.SOURCE_REMOVE;
-  });
-  try {
-    const [stdout] = await proc.communicate_utf8_async(null, null);
-    return { stdout: stdout ?? '', timedOut };
-  } finally {
-    if (!timedOut) GLib.Source.remove(timer);
-  }
-}
 
 export async function detectRadioName(source: string, cookiesFromBrowser: string): Promise<string> {
   const path: string = expandHome(source.trim());
