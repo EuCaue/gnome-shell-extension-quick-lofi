@@ -647,6 +647,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
     addButton.connect('clicked', () => this._addSearchResult(result, addButton));
+    addButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Add to Radios')]);
     row.add_suffix(addButton);
     // Clicking the row background triggers the primary control.
     row.set_activatable_widget(addButton);
@@ -671,6 +672,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
     menuButton.insert_action_group('result', actions);
+    menuButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('More Actions')]);
     row.add_suffix(menuButton);
     return row;
   }
@@ -687,6 +689,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     }
     addButton.set_icon_name('object-select-symbolic');
     addButton.set_tooltip_text(_('Added'));
+    addButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Added')]);
     addButton.set_sensitive(false);
   }
 
