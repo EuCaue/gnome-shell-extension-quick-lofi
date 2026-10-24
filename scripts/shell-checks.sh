@@ -87,6 +87,8 @@ run_checks() {
   check 'switched radio saved' wait_true setting_is current-radio-playing "'tb'"
   check 'stop radio' click_radio 1 3
   check 'mpv stopped' wait_true mpv_stopped
+  # The fade on stop lowers mpv's volume only; the stored setting must survive it.
+  check 'volume kept after fade' setting_is volume 30
   check 'play before disable' click_radio 0 1
   check 'mpv running again' wait_true mpv_running
   check 'disable' session_exec gnome-extensions disable "$QL_UUID"
