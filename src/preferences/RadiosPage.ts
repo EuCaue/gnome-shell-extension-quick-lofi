@@ -94,6 +94,43 @@ export class RadiosPage extends Adw.PreferencesPage {
     return this._radios.findIndex((radio) => radio.id === radioID);
   }
 
+  private _confirmRemoveRadio(radioName: string, radioID: string, radiosGroup: Adw.PreferencesGroup): void {
+    const heading = _(`Are you sure you want to delete ${radioName} ?`);
+    const onResponse = (response: string) => {
+      if (response === 'ok') {
+        writeLog({ message: `[RadiosPage] User confirmed removal of radio: ${radioName}`, type: 'INFO' });
+        this._removeRadio(radioID);
+        this._reloadRadios(radiosGroup);
+      } else {
+        writeLog({ message: `[RadiosPage] User cancelled removal of radio: ${radioName}`, type: 'INFO' });
+      }
+    };
+
+    // GNOME 45 ships libadwaita 1.4, which has no AdwAlertDialog.
+    if (typeof Adw.AlertDialog === 'undefined') {
+      const dialog = new Adw.MessageDialog({ transientFor: this._window, heading, closeResponse: 'cancel' });
+      dialog.add_response('cancel', 'Cancel');
+      dialog.add_response('ok', 'Ok');
+      dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
+      dialog.connect('response', (_dialog, response) => {
+        onResponse(response);
+        dialog.close();
+      });
+      dialog.present();
+      return;
+    }
+
+    const dialog = new Adw.AlertDialog({ heading, closeResponse: 'cancel' });
+    dialog.add_response('cancel', 'Cancel');
+    dialog.add_response('ok', 'Ok');
+    dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
+    dialog.choose(this._window, null, () => {});
+    dialog.connect('response', (_dialog, response) => {
+      onResponse(response);
+      dialog.close();
+    });
+  }
+
   private _saveRadios(): void {
     this._settings?.set_strv(SETTINGS_KEYS.RADIOS_LIST, formatRadios(this._radios));
     // a removed default radio must not linger in settings
@@ -214,24 +251,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       removeButton.connect('clicked', () => {
         const radioName: string = currentRadio()?.radioName ?? '';
         writeLog({ message: `[RadiosPage] Remove button clicked for radio: ${radioName}`, type: 'INFO' });
-        const dialog = new Adw.AlertDialog({
-          heading: _(`Are you sure you want to delete ${radioName} ?`),
-          closeResponse: 'cancel',
-        });
-        dialog.add_response('cancel', 'Cancel');
-        dialog.add_response('ok', 'Ok');
-        dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
-        dialog.choose(this._window, null, () => {});
-        dialog.connect('response', (dialog, response) => {
-          if (response === 'ok') {
-            writeLog({ message: `[RadiosPage] User confirmed removal of radio: ${radioName}`, type: 'INFO' });
-            this._removeRadio(radioID);
-            this._reloadRadios(radiosGroup);
-          } else {
-            writeLog({ message: `[RadiosPage] User cancelled removal of radio: ${radioName}`, type: 'INFO' });
-          }
-          dialog.close();
-        });
+        this._confirmRemoveRadio(radioName, radioID, radiosGroup);
       });
       openButton.connect('clicked', () => {
         const uri: string = currentRadio()?.radioUrl ?? '';
