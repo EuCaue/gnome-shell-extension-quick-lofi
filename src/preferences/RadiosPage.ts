@@ -515,6 +515,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       subtitle: result.url,
       subtitleLines: 1,
       useMarkup: false,
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
     // Titles come from YouTube, so they must not be parsed as markup.
     expander.set_tooltip_markup(`<b>${GLib.markup_escape_text(result.title, -1)}</b>`);
@@ -538,7 +539,11 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   // A row with one flat icon button; the button and the row do the same thing.
   private _resultActionRow(title: string, iconName: string): { row: Adw.ActionRow; button: Gtk4.Button } {
-    const row = new Adw.ActionRow({ title, activatable: true });
+    const row = new Adw.ActionRow({
+      title,
+      activatable: true,
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
     const button = new Gtk4.Button({
       iconName,
       tooltipText: title,

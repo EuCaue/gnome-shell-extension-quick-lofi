@@ -36,7 +36,7 @@
         <child>
           <object class="AdwSpinRow" id="fadeDuration">
             <property name="title" translatable="yes">Stop fade</property>
-            <property name="subtitle" translatable="yes">Length of the volume fade when playback stops.</property>
+            <property name="subtitle" translatable="yes">Length of the volume fade when playback stops, in seconds.</property>
             <property name="digits">1</property>
 
             <property name="cursor">
@@ -44,6 +44,17 @@
                 <property name="name">pointer</property>
               </object>
             </property>
+
+            <child type="suffix">
+              <object class="GtkLabel">
+                <property name="label">s</property>
+                <property name="margin-start">6</property>
+                <property name="valign">center</property>
+                <style>
+                  <class name="dim-label"/>
+                </style>
+              </object>
+            </child>
 
             <property name="adjustment">
               <object class="GtkAdjustment">
