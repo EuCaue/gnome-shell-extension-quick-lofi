@@ -532,9 +532,11 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
 
   private _showSearchResults(results: YouTubeSearchResult[]): void {
-    if (results.length === 0) return;
-    this._searchResults = results;
-    for (const result of results) {
+    // A single search can repeat a video; the same merge keeps one row per URL.
+    const merged = mergeSearchResults([], results);
+    if (merged.added.length === 0) return;
+    this._searchResults = merged.results;
+    for (const result of merged.added) {
       const row = this._buildResultRow(result);
       this._searchResultRows.push(row);
       this._searchResultsGroup.add(row);
@@ -607,7 +609,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     label.set_label(_('Show More Results'));
     button.set_sensitive(true);
     if (error) {
-      this._window.add_toast(new Adw.Toast({ title: error, use_markup: false }));
+      this._window.add_toast(new Adw.Toast({ title: _('Could not load more results'), use_markup: false }));
       return;
     }
     const merged = mergeSearchResults(this._searchResults, incoming);
