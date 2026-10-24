@@ -3,7 +3,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS } from '@/shared/constants';
-import { volumeRamp } from '@/shared/fade';
+import { DEFAULT_FADE_DURATION_S, fadeSteps, volumeRamp } from '@/shared/fade';
 import { debug, writeLog } from '@/shared/log';
 import { defaultRadioStep, findRadioById, neighborRadio, parseRadios } from '@/shared/radios';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -17,8 +17,7 @@ type PlayerCommand = {
 
 type NavigationMode = 'auto' | 'radio';
 
-const FADE_STEPS = 10;
-const FADE_STEP_MS = 30;
+const FADE_STEP_MS = 50;
 
 Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
 Gio._promisify(Gio.Subprocess.prototype, 'wait_async', 'wait_finish');
@@ -226,16 +225,29 @@ export default class Player extends GObject.Object {
     this._resolveFadeStep = null;
   }
 
+  // The fade length from the settings, in milliseconds.
+  private _fadeDurationMs(): number {
+    const key = SETTINGS_KEYS.FADE_DURATION;
+    // An extension updated in place can leave the shell with the previous schema
+    // clone; reading a key it does not have aborts the process.
+    if (!this._settings.settings_schema.has_key(key)) return DEFAULT_FADE_DURATION_S * 1000;
+    return this._settings.get_double(key) * 1000;
+  }
+
   private async _fadeOut(proc: Gio.Subprocess): Promise<void> {
     if (this._isFading || !GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) return;
     if (this.getProperty<boolean>('pause')?.data) return;
+
+    const steps = fadeSteps(this._fadeDurationMs(), FADE_STEP_MS);
+    // A duration of 0 stops the playback without a fade.
+    if (steps === 0) return;
 
     // No answer means mpv is gone or stuck: fading would only block on a dead socket.
     const start = this.getProperty<number>('volume')?.data;
     if (start === undefined) return;
     this._isFading = true;
     try {
-      for (const volume of volumeRamp(start, FADE_STEPS)) {
+      for (const volume of volumeRamp(start, steps)) {
         if (this._proc !== proc || !this._isFading) return;
         // Bypasses the volume setting on purpose: the stored volume must survive the fade.
         if (this.sendCommandToMpvSocket(this.createCommand({ command: ['set_property', 'volume', volume] })) === null)
