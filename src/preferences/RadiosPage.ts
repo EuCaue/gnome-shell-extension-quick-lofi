@@ -518,7 +518,65 @@ export class RadiosPage extends Adw.PreferencesPage {
     });
     // Titles come from YouTube, so they must not be parsed as markup.
     expander.set_tooltip_markup(`<b>${GLib.markup_escape_text(result.title, -1)}</b>`);
+
+    const add = this._resultActionRow(_('Add to Radios'), 'list-add-symbolic');
+    const copy = this._resultActionRow(_('Copy Link'), 'copy-symbolic');
+    const open = this._resultActionRow(_('Open in Browser'), 'external-link-symbolic');
+
+    add.button.connect('clicked', () => this._addSearchResult(result, add.row, add.button));
+    add.row.connect('activated', () => this._addSearchResult(result, add.row, add.button));
+    copy.button.connect('clicked', () => this._copySearchResultUrl(result));
+    copy.row.connect('activated', () => this._copySearchResultUrl(result));
+    open.button.connect('clicked', () => this._openSearchResultUrl(result));
+    open.row.connect('activated', () => this._openSearchResultUrl(result));
+
+    expander.add_row(add.row);
+    expander.add_row(copy.row);
+    expander.add_row(open.row);
     return expander;
+  }
+
+  // A row with one flat icon button; the button and the row do the same thing.
+  private _resultActionRow(title: string, iconName: string): { row: Adw.ActionRow; button: Gtk4.Button } {
+    const row = new Adw.ActionRow({ title, activatable: true });
+    const button = new Gtk4.Button({
+      iconName,
+      tooltipText: title,
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    row.add_suffix(button);
+    return { row, button };
+  }
+
+  private _addSearchResult(result: YouTubeSearchResult, row: Adw.ActionRow, button: Gtk4.Button): void {
+    const name = sanitizeRadioName(result.title);
+    if (this._radios.some((radio) => radio.radioUrl === result.url)) {
+      this._window.add_toast(new Adw.Toast({ title: `${_('Already in your radios:')} ${name}`, use_markup: false }));
+    } else {
+      this._addRadio(name, result.url);
+      writeLog({ message: `[RadiosPage] Added radio from YouTube search: ${name}`, type: 'INFO' });
+      this._reloadRadios(this._radiosGroup);
+      this._window.add_toast(new Adw.Toast({ title: `${_('Added')} ${name}`, use_markup: false }));
+    }
+    row.set_sensitive(false);
+    row.set_title(_('Added'));
+    button.set_icon_name('object-select-symbolic');
+  }
+
+  private _copySearchResultUrl(result: YouTubeSearchResult): void {
+    Gdk.Display.get_default()?.get_clipboard().set(result.url);
+    this._window.add_toast(new Adw.Toast({ title: _('Link copied') }));
+  }
+
+  private _openSearchResultUrl(result: YouTubeSearchResult): void {
+    try {
+      Gio.AppInfo.launch_default_for_uri(result.url, null);
+    } catch (e) {
+      writeLog({ message: `[RadiosPage] Failed to open ${result.url}: ${e}`, type: 'ERROR' });
+      logError(e, '[RadiosPage] Failed to open URL');
+    }
   }
 
   // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.
