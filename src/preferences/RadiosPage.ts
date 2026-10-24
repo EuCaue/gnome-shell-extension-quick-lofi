@@ -4,11 +4,11 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk4 from 'gi://Gtk';
-import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { gettext as _, ngettext } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
-import type { YouTubeSearchResult } from '@/preferences/YouTubeResults';
+import { mergeSearchResults, type YouTubeSearchResult } from '@/preferences/YouTubeResults';
 import { searchYouTube } from '@/preferences/YouTubeSearch';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
@@ -17,12 +17,20 @@ import type { Radio } from '@/types';
 
 const SEARCH_RESULTS_LIMIT = 10;
 
+type MoreResultsControl = { button: Gtk4.Button; spinner: Gtk4.Spinner; label: Gtk4.Label };
+
 Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
   private _searchResultRows: Adw.ActionRow[] = [];
+  private _searchResults: YouTubeSearchResult[] = [];
+  private _searchQuery = '';
+  private _searchLimit = SEARCH_RESULTS_LIMIT;
+  private _searchGeneration = 0;
+  private _isLoadingMore = false;
+  private _moreResults: MoreResultsControl | null = null;
   private _isSearching = false;
   static {
     GObject.registerClass(
@@ -465,6 +473,9 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._searchSpinner.set_visible(true);
     this._searchSpinner.set_spinning(true);
     this._clearSearchResults();
+    this._searchQuery = query;
+    this._searchLimit = SEARCH_RESULTS_LIMIT;
+    this._searchGeneration++;
     let results: YouTubeSearchResult[] = [];
     let error = '';
     try {
@@ -487,7 +498,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._searchQueryRow.set_sensitive(true);
     this._searchButton.set_sensitive(true);
     if (error) handleErrorRow(this._searchQueryRow, error);
-    this._showSearchResults(results, query);
+    this._showSearchResults(results);
   }
 
   private _clearSearchResults(): void {
@@ -495,18 +506,104 @@ export class RadiosPage extends Adw.PreferencesPage {
       this._searchResultsGroup.remove(row);
     }
     this._searchResultRows = [];
+    this._searchResults = [];
+    this._removeMoreResultsControl();
     this._searchResultsGroup.set_visible(false);
   }
 
-  private _showSearchResults(results: YouTubeSearchResult[], query: string): void {
+  private _showSearchResults(results: YouTubeSearchResult[]): void {
     if (results.length === 0) return;
-    this._searchResultsGroup.set_description(_(`${results.length} results for “${query}”`));
+    this._searchResults = results;
     for (const result of results) {
       const row = this._buildResultRow(result);
       this._searchResultRows.push(row);
       this._searchResultsGroup.add(row);
     }
+    this._updateResultsDescription();
+    this._addMoreResultsControl();
     this._searchResultsGroup.set_visible(true);
+  }
+
+  private _updateResultsDescription(): void {
+    const count = this._searchResults.length;
+    // ngettext picks the plural form but does not fill in the number.
+    this._searchResultsGroup.set_description(ngettext('%d result', '%d results', count).replace('%d', String(count)));
+  }
+
+  private _buildMoreResultsControl(): MoreResultsControl {
+    const spinner = new Gtk4.Spinner({ visible: false, valign: Gtk4.Align.CENTER });
+    const label = new Gtk4.Label({ label: _('Show More Results') });
+    const box = new Gtk4.Box({ spacing: 8, halign: Gtk4.Align.CENTER });
+    box.append(spinner);
+    box.append(label);
+    const button = new Gtk4.Button({
+      child: box,
+      halign: Gtk4.Align.CENTER,
+      marginTop: 10,
+      marginBottom: 10,
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    button.connect('clicked', () => this._handleShowMoreResults());
+    return { button, spinner, label };
+  }
+
+  private _addMoreResultsControl(): void {
+    if (this._moreResults) return;
+    this._moreResults = this._buildMoreResultsControl();
+    this._searchResultsGroup.add(this._moreResults.button);
+  }
+
+  private _removeMoreResultsControl(): void {
+    if (!this._moreResults) return;
+    this._searchResultsGroup.remove(this._moreResults.button);
+    this._moreResults = null;
+  }
+
+  private async _handleShowMoreResults(): Promise<void> {
+    if (this._isLoadingMore || !this._moreResults) return;
+    const query = this._searchQuery;
+    const generation = this._searchGeneration;
+    if (!query) return;
+    this._isLoadingMore = true;
+    const { button, spinner, label } = this._moreResults;
+    button.set_sensitive(false);
+    spinner.set_visible(true);
+    spinner.set_spinning(true);
+    label.set_label(_('Loading…'));
+    let incoming: YouTubeSearchResult[] = [];
+    let error = '';
+    const limit = this._searchLimit + SEARCH_RESULTS_LIMIT;
+    try {
+      incoming = await searchYouTube(query, limit, this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER));
+    } catch (e) {
+      writeLog({ message: `[RadiosPage] YouTube search failed: ${e}`, type: 'ERROR' });
+      error = e instanceof Error ? e.message : String(e);
+    }
+    this._isLoadingMore = false;
+    // The window may have closed, or a new search may have replaced the list.
+    if (!this._settings || generation !== this._searchGeneration) return;
+    spinner.set_spinning(false);
+    spinner.set_visible(false);
+    label.set_label(_('Show More Results'));
+    button.set_sensitive(true);
+    if (error) {
+      this._window.add_toast(new Adw.Toast({ title: error, use_markup: false }));
+      return;
+    }
+    const merged = mergeSearchResults(this._searchResults, incoming);
+    if (merged.added.length === 0) {
+      this._removeMoreResultsControl();
+      this._window.add_toast(new Adw.Toast({ title: _('No more results'), use_markup: false }));
+      return;
+    }
+    this._searchResults = merged.results;
+    this._searchLimit = limit;
+    for (const result of merged.added) {
+      const row = this._buildResultRow(result);
+      this._searchResultRows.push(row);
+      this._searchResultsGroup.add(row);
+    }
+    this._updateResultsDescription();
   }
 
   private _buildResultRow(result: YouTubeSearchResult): Adw.ActionRow {
