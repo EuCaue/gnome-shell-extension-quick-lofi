@@ -3,6 +3,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS } from '@/shared/constants';
+import { volumeRamp } from '@/shared/fade';
 import { debug, writeLog } from '@/shared/log';
 import { defaultRadioStep, findRadioById, neighborRadio, parseRadios } from '@/shared/radios';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -15,6 +16,9 @@ type PlayerCommand = {
 };
 
 type NavigationMode = 'auto' | 'radio';
+
+const FADE_STEPS = 10;
+const FADE_STEP_MS = 30;
 
 Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
 Gio._promisify(Gio.Subprocess.prototype, 'wait_async', 'wait_finish');
@@ -49,6 +53,11 @@ export default class Player extends GObject.Object {
   private _mpris: MprisController | null = null;
   private _positionTimerId: number | null = null;
   private _lastMediaTitle: string | null = null;
+  private _isFading = false;
+  private _fadeTimerId: number | null = null;
+  private _resolveFadeStep: (() => void) | null = null;
+  // Bumped by every start/stop request so a start waiting on a fade knows it was superseded.
+  private _playGeneration = 0;
 
   private _canNotifySocketError: boolean = false;
   private _socketNotifyTimerId: number | null = null;
@@ -190,10 +199,63 @@ export default class Player extends GObject.Object {
     this.sendCommandToMpvSocket(command);
   }
 
-  public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
+  public stopPlayer(radio?: Partial<Radio>): Promise<void> {
+    this._playGeneration++;
+    return this._stop(radio);
+  }
+
+  private _waitFadeStep(): Promise<void> {
+    return new Promise((resolve) => {
+      this._resolveFadeStep = resolve;
+      this._fadeTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, FADE_STEP_MS, () => {
+        this._fadeTimerId = null;
+        this._resolveFadeStep = null;
+        resolve();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+  }
+
+  private _cancelFade(): void {
+    this._isFading = false;
+    if (this._fadeTimerId !== null) {
+      GLib.source_remove(this._fadeTimerId);
+      this._fadeTimerId = null;
+    }
+    this._resolveFadeStep?.();
+    this._resolveFadeStep = null;
+  }
+
+  private async _fadeOut(proc: Gio.Subprocess): Promise<void> {
+    if (this._isFading || !GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) return;
+    if (this.getProperty<boolean>('pause')?.data) return;
+
+    const start = this.getProperty<number>('volume')?.data ?? this._settings.get_int(SETTINGS_KEYS.VOLUME);
+    this._isFading = true;
+    try {
+      for (const volume of volumeRamp(start, FADE_STEPS)) {
+        if (this._proc !== proc || !this._isFading) return;
+        // Bypasses the volume setting on purpose: the stored volume must survive the fade.
+        this.sendCommandToMpvSocket(this.createCommand({ command: ['set_property', 'volume', volume] }));
+        await this._waitFadeStep();
+      }
+    } finally {
+      this._isFading = false;
+    }
+  }
+
+  private async _stop(radio?: Partial<Radio>, fade = true): Promise<void> {
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
     }).catch(log);
+
+    const fadingProc = this._proc;
+    if (fade && fadingProc) {
+      await this._fadeOut(fadingProc);
+      // Another stop already took this process down while we were fading.
+      if (this._proc !== fadingProc) return;
+    }
+
     this._keepReading = false;
     this._canNotifySocketError = false;
 
@@ -361,7 +423,9 @@ export default class Player extends GObject.Object {
     await readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
-    await this.stopPlayer(radio);
+    const generation = ++this._playGeneration;
+    await this._stop(radio);
+    if (generation !== this._playGeneration) return;
 
     this._canNotifySocketError = false;
 
@@ -532,7 +596,9 @@ export default class Player extends GObject.Object {
       this._mpris.destroy();
       this._mpris = null;
     }
-    this.stopPlayer();
+    this._playGeneration++;
+    this._cancelFade();
+    this._stop(undefined, false);
     _instance = null;
   }
 }
