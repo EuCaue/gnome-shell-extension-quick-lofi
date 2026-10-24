@@ -8,16 +8,22 @@ import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
+import type { YouTubeSearchResult } from '@/preferences/YouTubeResults';
+import { searchYouTube } from '@/preferences/YouTubeSearch';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { createRadio, findRadioById, formatRadios, parseRadios, sanitizeRadioName } from '@/shared/radios';
 import type { Radio } from '@/types';
+
+const SEARCH_RESULTS_LIMIT = 10;
 
 Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
+  private _searchResults: YouTubeSearchResult[] = [];
+  private _isSearching = false;
   static {
     GObject.registerClass(
       {
@@ -30,6 +36,10 @@ export class RadiosPage extends Adw.PreferencesPage {
           'defaultRadioRow',
           'playDefaultRadioOnStartupRow',
           'playDefaultRadioOnUnlockRow',
+          'searchQueryRow',
+          'searchButton',
+          'searchResultsRow',
+          'addSearchResultButton',
         ],
       },
       this,
@@ -41,6 +51,10 @@ export class RadiosPage extends Adw.PreferencesPage {
   private declare _defaultRadioRow: Adw.ComboRow;
   private declare _playDefaultRadioOnStartupRow: Adw.SwitchRow;
   private declare _playDefaultRadioOnUnlockRow: Adw.SwitchRow;
+  private declare _searchQueryRow: Adw.EntryRow;
+  private declare _searchButton: Gtk4.Button;
+  private declare _searchResultsRow: Adw.ComboRow;
+  private declare _addSearchResultButton: Gtk4.Button;
   private _isSyncingDefaultRadio = false;
 
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
@@ -438,6 +452,57 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._nameRadioRow.set_text('');
     this._urlRadioRow.set_text('');
     this._reloadRadios(this._radiosGroup);
+  }
+
+  // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.
+  async _handleSearchYouTube(): Promise<void> {
+    const query = this._searchQueryRow.text.trim();
+    if (this._isSearching || !query) return;
+    this._isSearching = true;
+    this._searchQueryRow.set_sensitive(false);
+    this._searchButton.set_sensitive(false);
+    this._searchQueryRow.set_title(_('Searching…'));
+    let results: YouTubeSearchResult[] = [];
+    let error = '';
+    try {
+      results = await searchYouTube(
+        query,
+        SEARCH_RESULTS_LIMIT,
+        this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+      );
+      if (results.length === 0) error = _('No results found');
+    } catch (e) {
+      writeLog({ message: `[RadiosPage] YouTube search failed: ${e}`, type: 'ERROR' });
+      error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._isSearching = false;
+      this._searchQueryRow.set_title(_('Search'));
+      this._searchQueryRow.set_sensitive(true);
+      this._searchButton.set_sensitive(true);
+    }
+    // The window may have closed while yt-dlp was running.
+    if (!this._settings) return;
+    if (error) handleErrorRow(this._searchQueryRow, error);
+    this._showSearchResults(results);
+  }
+
+  private _showSearchResults(results: YouTubeSearchResult[]): void {
+    this._searchResults = results;
+    this._searchResultsRow.set_model(Gtk4.StringList.new(results.map((result) => result.title)));
+    this._searchResultsRow.set_visible(results.length > 0);
+    this._addSearchResultButton.set_visible(results.length > 0);
+  }
+
+  // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.
+  _handleAddSearchResult(): void {
+    const result = this._searchResults[this._searchResultsRow.get_selected()];
+    if (!result) return;
+    const name = sanitizeRadioName(result.title);
+    this._addRadio(name, result.url);
+    writeLog({ message: `[RadiosPage] Added radio from YouTube search: ${name}`, type: 'INFO' });
+    this._reloadRadios(this._radiosGroup);
+    // Titles come from YouTube, so they must not be parsed as markup.
+    this._window.add_toast(new Adw.Toast({ title: `${_('Added')} ${name}`, use_markup: false }));
   }
 
   // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.

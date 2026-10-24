@@ -99,5 +99,61 @@
       </object>
     </child>
 
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Search YouTube</property>
+        <property name="description" translatable="yes">Find videos and add them as radios.</property>
+        <child>
+          <object class="AdwEntryRow" id="searchQueryRow">
+            <property name="title" translatable="yes">Search</property>
+            <signal name="entry-activated" handler="_handleSearchYouTube" swapped="no" />
+            <child type="suffix">
+              <object class="GtkButton" id="searchButton">
+                <signal name="clicked" handler="_handleSearchYouTube" swapped="no" />
+                <property name="icon-name">system-search-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Search</property>
+                <property name="valign">center</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwComboRow" id="searchResultsRow">
+            <property name="title" translatable="yes">Result</property>
+            <property name="visible">false</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="addSearchResultButton">
+            <signal name="clicked" handler="_handleAddSearchResult" swapped="no" />
+            <property name="label" translatable="yes">Add Result</property>
+            <property name="icon-name">list-add-symbolic</property>
+            <property name="visible">false</property>
+            <property name="halign">3</property>
+            <property name="valign">3</property>
+            <property name="margin-top">10</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
   </template>
 </interface>
