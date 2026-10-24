@@ -479,10 +479,10 @@ export class RadiosPage extends Adw.PreferencesPage {
       error = e instanceof Error ? e.message : String(e);
     }
     this._isSearching = false;
-    this._searchSpinner.set_spinning(false);
-    this._searchSpinner.set_visible(false);
     // The window may have closed while yt-dlp was running.
     if (!this._settings) return;
+    this._searchSpinner.set_spinning(false);
+    this._searchSpinner.set_visible(false);
     this._searchQueryRow.set_title(_('Search'));
     this._searchQueryRow.set_sensitive(true);
     this._searchButton.set_sensitive(true);
