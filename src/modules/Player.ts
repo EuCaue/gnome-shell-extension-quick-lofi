@@ -55,7 +55,6 @@ export default class Player extends GObject.Object {
   private _isFading = false;
   private _fadeTimerId: number | null = null;
   private _resolveFadeStep: (() => void) | null = null;
-  // Bumped by every start/stop request so a start waiting on a fade knows it was superseded.
   private _playGeneration = 0;
 
   private _canNotifySocketError: boolean = false;
@@ -225,7 +224,6 @@ export default class Player extends GObject.Object {
     this._resolveFadeStep = null;
   }
 
-  // The fade length from the settings, in milliseconds.
   private _fadeDurationMs(): number {
     const key = SETTINGS_KEYS.FADE_DURATION;
     // An extension updated in place can leave the shell with the previous schema
@@ -239,7 +237,6 @@ export default class Player extends GObject.Object {
     if (this.getProperty<boolean>('pause')?.data) return;
 
     const steps = fadeSteps(this._fadeDurationMs(), FADE_STEP_MS);
-    // A duration of 0 stops the playback without a fade.
     if (steps === 0) return;
 
     // No answer means mpv is gone or stuck: fading would only block on a dead socket.
@@ -266,7 +263,6 @@ export default class Player extends GObject.Object {
     }).catch(log);
 
     const fadingProc = this._proc;
-    // A newer start, stop or destroy owns the process now; it decides about fading.
     if (fade && fadingProc && generation === this._playGeneration) {
       // Stop reading first: an mpv error line during the fade would call stopPlayer and drop a pending start.
       this._keepReading = false;

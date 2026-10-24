@@ -534,7 +534,6 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
 
   private _showSearchResults(results: YouTubeSearchResult[]): void {
-    // A single search can repeat a video; the same merge keeps one row per URL.
     const merged = mergeSearchResults([], results);
     if (merged.added.length === 0) return;
     this._searchResults = merged.results;
@@ -651,10 +650,8 @@ export class RadiosPage extends Adw.PreferencesPage {
     addButton.connect('clicked', () => this._addSearchResult(result, addButton));
     addButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Add to Radios')]);
     row.add_suffix(addButton);
-    // Clicking the row background triggers the primary control.
     row.set_activatable_widget(addButton);
 
-    // The menu items are actions, so they need an action group on the button.
     const actions = new Gio.SimpleActionGroup();
     const copyAction = new Gio.SimpleAction({ name: 'copy' });
     copyAction.connect('activate', () => this._copySearchResultUrl(result));

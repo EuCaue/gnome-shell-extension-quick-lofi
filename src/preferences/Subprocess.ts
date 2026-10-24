@@ -3,7 +3,6 @@ import GLib from 'gi://GLib';
 
 Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
 
-// stdout of a finished process, whether it exited with 0, and whether it was killed for taking too long.
 export type RunResult = { stdout: string; succeeded: boolean; timedOut: boolean };
 
 export async function run(argv: string[], timeoutSeconds: number): Promise<RunResult> {

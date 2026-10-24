@@ -6,7 +6,6 @@ import { cookiesFromBrowserValue } from '@/shared/settings';
 
 const SEARCH_TIMEOUT_SECONDS = 20;
 
-// Throws an Error whose message is shown to the user as is.
 export async function searchYouTube(
   query: string,
   limit: number,
