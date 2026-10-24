@@ -34,6 +34,31 @@
         </child>
 
         <child>
+          <object class="AdwSpinRow" id="fadeDuration">
+            <property name="title" translatable="yes">Stop fade</property>
+            <property name="subtitle" translatable="yes">Length of the volume fade when playback stops.</property>
+            <property name="digits">1</property>
+
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+
+            <property name="adjustment">
+              <object class="GtkAdjustment">
+                <property name="value" bind-source="fadeDuration" bind-property="value"
+                  bind-flags="sync-create" />
+                <property name="lower">0</property>
+                <property name="upper">3</property>
+                <property name="step-increment">0.1</property>
+                <property name="page-increment">0.5</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
           <object class="AdwSwitchRow" id="enableMpris">
             <property name="title" translatable="yes">Enable MPRIS Integration</property>
             <property name="cursor">
