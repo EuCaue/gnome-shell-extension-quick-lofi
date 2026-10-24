@@ -15,3 +15,19 @@ export function parseYouTubeSearchOutput(stdout: string): YouTubeSearchResult[] 
   }
   return results;
 }
+
+// Appends the results whose URL is not listed yet. `added` holds only the new
+// ones, so `added.length > 0` tells whether the fetch brought anything new.
+export function mergeSearchResults(
+  existing: YouTubeSearchResult[],
+  incoming: YouTubeSearchResult[],
+): { results: YouTubeSearchResult[]; added: YouTubeSearchResult[] } {
+  const seen = new Set(existing.map((result) => result.url));
+  const added: YouTubeSearchResult[] = [];
+  for (const result of incoming) {
+    if (seen.has(result.url)) continue;
+    seen.add(result.url);
+    added.push(result);
+  }
+  return { results: [...existing, ...added], added };
+}
