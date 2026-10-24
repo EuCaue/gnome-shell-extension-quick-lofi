@@ -230,13 +230,16 @@ export default class Player extends GObject.Object {
     if (this._isFading || !GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) return;
     if (this.getProperty<boolean>('pause')?.data) return;
 
-    const start = this.getProperty<number>('volume')?.data ?? this._settings.get_int(SETTINGS_KEYS.VOLUME);
+    // No answer means mpv is gone or stuck: fading would only block on a dead socket.
+    const start = this.getProperty<number>('volume')?.data;
+    if (start === undefined) return;
     this._isFading = true;
     try {
       for (const volume of volumeRamp(start, FADE_STEPS)) {
         if (this._proc !== proc || !this._isFading) return;
         // Bypasses the volume setting on purpose: the stored volume must survive the fade.
-        this.sendCommandToMpvSocket(this.createCommand({ command: ['set_property', 'volume', volume] }));
+        if (this.sendCommandToMpvSocket(this.createCommand({ command: ['set_property', 'volume', volume] })) === null)
+          return;
         await this._waitFadeStep();
       }
     } finally {
@@ -245,12 +248,17 @@ export default class Player extends GObject.Object {
   }
 
   private async _stop(radio?: Partial<Radio>, fade = true): Promise<void> {
+    const generation = this._playGeneration;
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
     }).catch(log);
 
     const fadingProc = this._proc;
-    if (fade && fadingProc) {
+    // A newer start, stop or destroy owns the process now; it decides about fading.
+    if (fade && fadingProc && generation === this._playGeneration) {
+      // Stop reading first: an mpv error line during the fade would call stopPlayer and drop a pending start.
+      this._keepReading = false;
+      this._cancellable?.cancel();
       await this._fadeOut(fadingProc);
       // Another stop already took this process down while we were fading.
       if (this._proc !== fadingProc) return;
@@ -282,6 +290,7 @@ export default class Player extends GObject.Object {
     }
 
     if (this._proc) {
+      this._cancelFade();
       const proc = this._proc;
       this._proc = null;
 
