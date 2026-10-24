@@ -474,14 +474,13 @@ export class RadiosPage extends Adw.PreferencesPage {
     } catch (e) {
       writeLog({ message: `[RadiosPage] YouTube search failed: ${e}`, type: 'ERROR' });
       error = e instanceof Error ? e.message : String(e);
-    } finally {
-      this._isSearching = false;
-      this._searchQueryRow.set_title(_('Search'));
-      this._searchQueryRow.set_sensitive(true);
-      this._searchButton.set_sensitive(true);
     }
+    this._isSearching = false;
     // The window may have closed while yt-dlp was running.
     if (!this._settings) return;
+    this._searchQueryRow.set_title(_('Search'));
+    this._searchQueryRow.set_sensitive(true);
+    this._searchButton.set_sensitive(true);
     if (error) handleErrorRow(this._searchQueryRow, error);
     this._showSearchResults(results);
   }
@@ -498,6 +497,10 @@ export class RadiosPage extends Adw.PreferencesPage {
     const result = this._searchResults[this._searchResultsRow.get_selected()];
     if (!result) return;
     const name = sanitizeRadioName(result.title);
+    if (this._radios.some((radio) => radio.radioUrl === result.url)) {
+      this._window.add_toast(new Adw.Toast({ title: `${_('Already in your radios:')} ${name}`, use_markup: false }));
+      return;
+    }
     this._addRadio(name, result.url);
     writeLog({ message: `[RadiosPage] Added radio from YouTube search: ${name}`, type: 'INFO' });
     this._reloadRadios(this._radiosGroup);
