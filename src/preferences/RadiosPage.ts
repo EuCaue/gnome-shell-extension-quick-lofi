@@ -22,7 +22,7 @@ Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
-  private _searchResultRows: Adw.ExpanderRow[] = [];
+  private _searchResultRows: Adw.ActionRow[] = [];
   private _isSearching = false;
   static {
     GObject.registerClass(
@@ -509,53 +509,54 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._searchResultsGroup.set_visible(true);
   }
 
-  private _buildResultRow(result: YouTubeSearchResult): Adw.ExpanderRow {
-    const expander = new Adw.ExpanderRow({
+  private _buildResultRow(result: YouTubeSearchResult): Adw.ActionRow {
+    const row = new Adw.ActionRow({
       title: result.title,
       subtitle: result.url,
       subtitleLines: 1,
       useMarkup: false,
       cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
-    // Titles come from YouTube, so they must not be parsed as markup.
-    expander.set_tooltip_markup(`<b>${GLib.markup_escape_text(result.title, -1)}</b>`);
+    // The title comes from YouTube, so it must never be parsed as markup.
+    row.set_tooltip_text(result.title);
 
-    const add = this._resultActionRow(_('Add to Radios'), 'list-add-symbolic');
-    const copy = this._resultActionRow(_('Copy Link'), 'copy-symbolic');
-    const open = this._resultActionRow(_('Open in Browser'), 'external-link-symbolic');
-
-    add.button.connect('clicked', () => this._addSearchResult(result, add.row, add.button));
-    add.row.connect('activated', () => this._addSearchResult(result, add.row, add.button));
-    copy.button.connect('clicked', () => this._copySearchResultUrl(result));
-    copy.row.connect('activated', () => this._copySearchResultUrl(result));
-    open.button.connect('clicked', () => this._openSearchResultUrl(result));
-    open.row.connect('activated', () => this._openSearchResultUrl(result));
-
-    expander.add_row(add.row);
-    expander.add_row(copy.row);
-    expander.add_row(open.row);
-    return expander;
-  }
-
-  // A row with one flat icon button; the button and the row do the same thing.
-  private _resultActionRow(title: string, iconName: string): { row: Adw.ActionRow; button: Gtk4.Button } {
-    const row = new Adw.ActionRow({
-      title,
-      activatable: true,
-      cursor: new Gdk.Cursor({ name: 'pointer' }),
-    });
-    const button = new Gtk4.Button({
-      iconName,
-      tooltipText: title,
+    const addButton = new Gtk4.Button({
+      iconName: 'list-add-symbolic',
+      tooltipText: _('Add to Radios'),
       valign: Gtk4.Align.CENTER,
       cssClasses: ['flat'],
       cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
-    row.add_suffix(button);
-    return { row, button };
+    addButton.connect('clicked', () => this._addSearchResult(result, addButton));
+    row.add_suffix(addButton);
+    // Clicking the row background triggers the primary control.
+    row.set_activatable_widget(addButton);
+
+    // The menu items are actions, so they need an action group on the button.
+    const actions = new Gio.SimpleActionGroup();
+    const copyAction = new Gio.SimpleAction({ name: 'copy' });
+    copyAction.connect('activate', () => this._copySearchResultUrl(result));
+    actions.add_action(copyAction);
+    const openAction = new Gio.SimpleAction({ name: 'open' });
+    openAction.connect('activate', () => this._openSearchResultUrl(result));
+    actions.add_action(openAction);
+    const menu = new Gio.Menu();
+    menu.append(_('Copy Link'), 'result.copy');
+    menu.append(_('Open in Browser'), 'result.open');
+    const menuButton = new Gtk4.MenuButton({
+      iconName: 'view-more-symbolic',
+      tooltipText: _('More Actions'),
+      menuModel: menu,
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    menuButton.insert_action_group('result', actions);
+    row.add_suffix(menuButton);
+    return row;
   }
 
-  private _addSearchResult(result: YouTubeSearchResult, row: Adw.ActionRow, button: Gtk4.Button): void {
+  private _addSearchResult(result: YouTubeSearchResult, addButton: Gtk4.Button): void {
     const name = sanitizeRadioName(result.title);
     if (this._radios.some((radio) => radio.radioUrl === result.url)) {
       this._window.add_toast(new Adw.Toast({ title: `${_('Already in your radios:')} ${name}`, use_markup: false }));
@@ -565,9 +566,9 @@ export class RadiosPage extends Adw.PreferencesPage {
       this._reloadRadios(this._radiosGroup);
       this._window.add_toast(new Adw.Toast({ title: `${_('Added')} ${name}`, use_markup: false }));
     }
-    row.set_sensitive(false);
-    row.set_title(_('Added'));
-    button.set_icon_name('object-select-symbolic');
+    addButton.set_icon_name('object-select-symbolic');
+    addButton.set_tooltip_text(_('Added'));
+    addButton.set_sensitive(false);
   }
 
   private _copySearchResultUrl(result: YouTubeSearchResult): void {
