@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mergeSearchResults, parseYouTubeSearchOutput } from '../src/preferences/YouTubeResults.ts';
+import { mergeSearchResults, parseYouTubeSearchOutput, youtubeKey } from '../src/preferences/YouTubeResults.ts';
+
+test('same video id across url forms', () => {
+  const id = youtubeKey('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10');
+  assert.equal(id, 'dQw4w9WgXcQ');
+  assert.equal(youtubeKey('https://youtu.be/dQw4w9WgXcQ?si=x'), id);
+  assert.equal(youtubeKey('https://www.youtube.com/shorts/dQw4w9WgXcQ'), id);
+  assert.equal(youtubeKey('https://example.com/stream.mp3'), 'https://example.com/stream.mp3');
+});
 
 test('parses title and url lines', () => {
   const stdout = 'A Title\thttps://www.youtube.com/watch?v=abc\nB Title\thttps://www.youtube.com/watch?v=def\n';

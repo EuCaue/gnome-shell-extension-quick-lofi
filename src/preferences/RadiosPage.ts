@@ -8,7 +8,7 @@ import { gettext as _, ngettext } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
-import { mergeSearchResults, type YouTubeSearchResult } from '@/preferences/YouTubeResults';
+import { mergeSearchResults, type YouTubeSearchResult, youtubeKey } from '@/preferences/YouTubeResults';
 import { searchYouTube } from '@/preferences/YouTubeSearch';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
@@ -639,15 +639,17 @@ export class RadiosPage extends Adw.PreferencesPage {
     });
     row.set_tooltip_text(result.title);
 
+    const saved = this._radios.find((radio) => youtubeKey(radio.radioUrl) === youtubeKey(result.url));
     const addButton = new Gtk4.Button({
-      iconName: 'list-add-symbolic',
-      tooltipText: _('Add to Radios'),
+      iconName: saved ? 'object-select-symbolic' : 'list-add-symbolic',
+      tooltipText: saved ? `${_('Already in your radios:')} ${saved.radioName}` : _('Add to Radios'),
       valign: Gtk4.Align.CENTER,
       cssClasses: ['flat'],
       cursor: new Gdk.Cursor({ name: 'pointer' }),
+      sensitive: !saved,
     });
     addButton.connect('clicked', () => this._addSearchResult(result, addButton));
-    addButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Add to Radios')]);
+    addButton.update_property([Gtk4.AccessibleProperty.LABEL], [saved ? _('Added') : _('Add to Radios')]);
     row.add_suffix(addButton);
     row.set_activatable_widget(addButton);
 
@@ -677,7 +679,7 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   private _addSearchResult(result: YouTubeSearchResult, addButton: Gtk4.Button): void {
     const name = sanitizeRadioName(result.title);
-    if (this._radios.some((radio) => radio.radioUrl === result.url)) {
+    if (this._radios.some((radio) => youtubeKey(radio.radioUrl) === youtubeKey(result.url))) {
       this._window.add_toast(new Adw.Toast({ title: `${_('Already in your radios:')} ${name}`, use_markup: false }));
     } else {
       this._addRadio(name, result.url);
