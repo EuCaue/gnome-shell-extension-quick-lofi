@@ -235,14 +235,14 @@ export default class Player extends GObject.Object {
     const steps = fadeSteps(this._fadeDurationMs(), FADE_STEP_MS);
     if (steps === 0) return;
 
-    // No answer means mpv is gone or stuck: fading would only block on a dead socket.
+    // No reply: mpv is gone or stuck. Fading would block on a dead socket.
     const start = this.getProperty<number>('volume')?.data;
     if (start === undefined) return;
     this._isFading = true;
     try {
       for (const volume of volumeRamp(start, steps)) {
         if (this._proc !== proc || !this._isFading) return;
-        // Bypasses the volume setting on purpose: the stored volume must survive the fade.
+        // Skips the volume setting on purpose so the stored volume survives the fade.
         if (this.sendCommandToMpvSocket(this.createCommand({ command: ['set_property', 'volume', volume] })) === null)
           return;
         await this._waitFadeStep();
@@ -260,11 +260,10 @@ export default class Player extends GObject.Object {
 
     const fadingProc = this._proc;
     if (fade && fadingProc && generation === this._playGeneration) {
-      // Stop reading first: an mpv error line during the fade would call stopPlayer and drop a pending start.
+      // Stop reading first. An mpv error line during the fade would call stopPlayer and drop a pending start.
       this._keepReading = false;
       this._cancellable?.cancel();
       await this._fadeOut(fadingProc);
-      // Another stop already took this process down while we were fading.
       if (this._proc !== fadingProc) return;
     }
 

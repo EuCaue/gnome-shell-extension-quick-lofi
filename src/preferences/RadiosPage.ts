@@ -108,7 +108,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       }
     };
 
-    // GNOME 45 ships libadwaita 1.4, which has no AdwAlertDialog.
+    // GNOME 45 ships libadwaita 1.4: no AdwAlertDialog.
     if (typeof Adw.AlertDialog === 'undefined') {
       const dialog = new Adw.MessageDialog({ transientFor: this._window, heading, closeResponse: 'cancel' });
       dialog.add_response('cancel', 'Cancel');
@@ -511,7 +511,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       error = e instanceof Error ? e.message : String(e);
     }
     this._isSearching = false;
-    // The window may have closed while yt-dlp was running.
+    // Window may have closed during yt-dlp.
     if (!this._settings) return;
     this._searchSpinner.set_spinning(false);
     this._searchSpinner.set_visible(false);
@@ -548,7 +548,7 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   private _updateResultsDescription(): void {
     const count = this._searchResults.length;
-    // ngettext picks the plural form but does not fill in the number.
+    // ngettext does not fill in %d.
     this._searchResultsGroup.set_description(ngettext('%d result', '%d results', count).replace('%d', String(count)));
   }
 
@@ -602,7 +602,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       error = e instanceof Error ? e.message : String(e);
     }
     this._isLoadingMore = false;
-    // The window may have closed, or a new search may have replaced the list.
+    // Window closed, or a newer search replaced the list.
     if (!this._settings || generation !== this._searchGeneration) return;
     spinner.set_spinning(false);
     spinner.set_visible(false);
@@ -629,6 +629,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
 
   private _buildResultRow(result: YouTubeSearchResult): Adw.ActionRow {
+    // YouTube title is untrusted text: never parse it as markup.
     const row = new Adw.ActionRow({
       title: result.title,
       subtitle: result.url,
@@ -636,7 +637,6 @@ export class RadiosPage extends Adw.PreferencesPage {
       useMarkup: false,
       cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
-    // The title comes from YouTube, so it must never be parsed as markup.
     row.set_tooltip_text(result.title);
 
     const addButton = new Gtk4.Button({
