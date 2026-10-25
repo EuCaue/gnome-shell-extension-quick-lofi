@@ -3,6 +3,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS } from '@/shared/constants';
+import { fadeDurationSeconds, fadeSteps, volumeRamp } from '@/shared/fade';
 import { debug, writeLog } from '@/shared/log';
 import { defaultRadioStep, findRadioById, neighborRadio, parseRadios } from '@/shared/radios';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -15,6 +16,8 @@ type PlayerCommand = {
 };
 
 type NavigationMode = 'auto' | 'radio';
+
+const FADE_STEP_MS = 50;
 
 Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async', 'read_line_finish_utf8');
 Gio._promisify(Gio.Subprocess.prototype, 'wait_async', 'wait_finish');
@@ -49,6 +52,10 @@ export default class Player extends GObject.Object {
   private _mpris: MprisController | null = null;
   private _positionTimerId: number | null = null;
   private _lastMediaTitle: string | null = null;
+  private _isFading = false;
+  private _fadeTimerId: number | null = null;
+  private _resolveFadeStep: (() => void) | null = null;
+  private _playGeneration = 0;
 
   private _canNotifySocketError: boolean = false;
   private _socketNotifyTimerId: number | null = null;
@@ -190,10 +197,76 @@ export default class Player extends GObject.Object {
     this.sendCommandToMpvSocket(command);
   }
 
-  public async stopPlayer(radio?: Partial<Radio>): Promise<void> {
+  public stopPlayer(radio?: Partial<Radio>): Promise<void> {
+    this._playGeneration++;
+    return this._stop(radio);
+  }
+
+  private _waitFadeStep(): Promise<void> {
+    return new Promise((resolve) => {
+      this._resolveFadeStep = resolve;
+      this._fadeTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, FADE_STEP_MS, () => {
+        this._fadeTimerId = null;
+        this._resolveFadeStep = null;
+        resolve();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+  }
+
+  private _cancelFade(): void {
+    this._isFading = false;
+    if (this._fadeTimerId !== null) {
+      GLib.source_remove(this._fadeTimerId);
+      this._fadeTimerId = null;
+    }
+    this._resolveFadeStep?.();
+    this._resolveFadeStep = null;
+  }
+
+  private _fadeDurationMs(): number {
+    return fadeDurationSeconds(this._settings, SETTINGS_KEYS.FADE_DURATION) * 1000;
+  }
+
+  private async _fadeOut(proc: Gio.Subprocess): Promise<void> {
+    if (this._isFading || !GLib.file_test(this._mpvSocket, GLib.FileTest.EXISTS)) return;
+    if (this.getProperty<boolean>('pause')?.data) return;
+
+    const steps = fadeSteps(this._fadeDurationMs(), FADE_STEP_MS);
+    if (steps === 0) return;
+
+    // No reply: mpv is gone or stuck. Fading would block on a dead socket.
+    const start = this.getProperty<number>('volume')?.data;
+    if (start === undefined) return;
+    this._isFading = true;
+    try {
+      for (const volume of volumeRamp(start, steps)) {
+        if (this._proc !== proc || !this._isFading) return;
+        // Skips the volume setting on purpose so the stored volume survives the fade.
+        if (this.sendCommandToMpvSocket(this.createCommand({ command: ['set_property', 'volume', volume] })) === null)
+          return;
+        await this._waitFadeStep();
+      }
+    } finally {
+      this._isFading = false;
+    }
+  }
+
+  private async _stop(radio?: Partial<Radio>, fade = true): Promise<void> {
+    const generation = this._playGeneration;
     await writeLog({
       message: `Stopping radio: ID: ${radio?.id} Name: ${radio?.radioName} ${radio?.radioUrl}`,
     }).catch(log);
+
+    const fadingProc = this._proc;
+    if (fade && fadingProc && generation === this._playGeneration) {
+      // Stop reading first. An mpv error line during the fade would call stopPlayer and drop a pending start.
+      this._keepReading = false;
+      this._cancellable?.cancel();
+      await this._fadeOut(fadingProc);
+      if (this._proc !== fadingProc) return;
+    }
+
     this._keepReading = false;
     this._canNotifySocketError = false;
 
@@ -220,6 +293,7 @@ export default class Player extends GObject.Object {
     }
 
     if (this._proc) {
+      this._cancelFade();
       const proc = this._proc;
       this._proc = null;
 
@@ -361,7 +435,9 @@ export default class Player extends GObject.Object {
     await readLine();
   }
   public async startPlayer(radio: Radio): Promise<void> {
-    await this.stopPlayer(radio);
+    const generation = ++this._playGeneration;
+    await this._stop(radio);
+    if (generation !== this._playGeneration) return;
 
     this._canNotifySocketError = false;
 
@@ -532,7 +608,9 @@ export default class Player extends GObject.Object {
       this._mpris.destroy();
       this._mpris = null;
     }
-    this.stopPlayer();
+    this._playGeneration++;
+    this._cancelFade();
+    this._stop(undefined, false);
     _instance = null;
   }
 }

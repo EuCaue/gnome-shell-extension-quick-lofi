@@ -7,6 +7,12 @@
       <description>Volume to set when playing lofi</description>
     </key>
 
+    <key name="fade-duration" type="d">
+      <default>1.0</default>
+      <summary>Stop fade</summary>
+      <description>Length of the volume fade when playback stops, in seconds. Set it to 0 to stop without a fade.</description>
+    </key>
+
     <key name="radios" type="as">
       <default>['Lofi Radio - https://play.streamafrica.net/lofiradio', 'Lofi Hunter - https://live.hunter.fm/lofi_high', 'Lofi Hip-hop - http://hyades.shoutca.st:8043/stream']</default>
       <summary>Radios</summary>

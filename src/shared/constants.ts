@@ -43,6 +43,7 @@ export const SETTINGS_KEYS = {
   SET_POPUP_WIDTH: 'set-popup-width',
   SET_POPUP_HEIGHT: 'set-popup-height',
   VOLUME: 'volume',
+  FADE_DURATION: 'fade-duration',
   ENABLE_DEBUG: 'enable-debug',
   ENABLE_MPRIS: 'enable-mpris',
   MPV_ARGUMENTS: 'mpv-arguments',
