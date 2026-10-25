@@ -148,7 +148,7 @@ npm run run:dev
 
 This replaces your installed copy of the extension with the dev build. Your current session keeps running the previous version until you log out, so test inside the nested window.
 
-`debug()` messages show up in that terminal.
+Calls to `debug()` from `src/shared/log.ts` print to the same terminal with the `[ QUICK LOFI DEBUG ]` prefix. Production builds remove them.
 
 `scripts/seed-radios.json` has radios for edge cases: a working stream, YouTube, an offline tone, a broken URL, a missing file and odd names. Load them into the installed extension with:
 
