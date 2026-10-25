@@ -31,7 +31,10 @@ export async function searchYouTube(
   if (out.timedOut) throw new Error('Search timed out');
 
   const results = parseYouTubeSearchOutput(out.stdout);
-  if (!out.succeeded && results.length === 0) throw new Error('Search failed');
+  if (!out.succeeded && results.length === 0) {
+    writeLog({ message: `[YouTubeSearch] "${query}" failed, stderr: ${out.stderr.trim()}`, type: 'ERROR' });
+    throw new Error('Search failed');
+  }
   writeLog({ message: `[YouTubeSearch] "${query}" -> ${results.length} results`, type: 'INFO' });
   return results;
 }

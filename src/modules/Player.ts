@@ -3,7 +3,7 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import * as Main from '@girs/gnome-shell/ui/main';
 import { SETTINGS_KEYS } from '@/shared/constants';
-import { DEFAULT_FADE_DURATION_S, fadeSteps, volumeRamp } from '@/shared/fade';
+import { fadeDurationSeconds, fadeSteps, volumeRamp } from '@/shared/fade';
 import { debug, writeLog } from '@/shared/log';
 import { defaultRadioStep, findRadioById, neighborRadio, parseRadios } from '@/shared/radios';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -225,11 +225,7 @@ export default class Player extends GObject.Object {
   }
 
   private _fadeDurationMs(): number {
-    const key = SETTINGS_KEYS.FADE_DURATION;
-    // An extension updated in place can leave the shell with the previous schema
-    // clone; reading a key it does not have aborts the process.
-    if (!this._settings.settings_schema.has_key(key)) return DEFAULT_FADE_DURATION_S * 1000;
-    return this._settings.get_double(key) * 1000;
+    return fadeDurationSeconds(this._settings, SETTINGS_KEYS.FADE_DURATION) * 1000;
   }
 
   private async _fadeOut(proc: Gio.Subprocess): Promise<void> {

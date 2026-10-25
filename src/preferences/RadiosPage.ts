@@ -54,17 +54,17 @@ export class RadiosPage extends Adw.PreferencesPage {
       this,
     );
   }
-  declare private _radiosGroup: Adw.PreferencesGroup;
-  declare private _nameRadioRow: Adw.EntryRow;
-  declare private _urlRadioRow: Adw.EntryRow;
-  declare private _defaultRadioRow: Adw.ComboRow;
-  declare private _playDefaultRadioOnStartupRow: Adw.SwitchRow;
-  declare private _playDefaultRadioOnUnlockRow: Adw.SwitchRow;
-  declare private _searchQueryRow: Adw.EntryRow;
-  declare private _searchButton: Gtk4.Button;
-  declare private _searchResultsGroup: Adw.PreferencesGroup;
-  declare private _searchResultsList: Gtk4.ListBox;
-  declare private _searchSpinner: Gtk4.Spinner;
+  private declare _radiosGroup: Adw.PreferencesGroup;
+  private declare _nameRadioRow: Adw.EntryRow;
+  private declare _urlRadioRow: Adw.EntryRow;
+  private declare _defaultRadioRow: Adw.ComboRow;
+  private declare _playDefaultRadioOnStartupRow: Adw.SwitchRow;
+  private declare _playDefaultRadioOnUnlockRow: Adw.SwitchRow;
+  private declare _searchQueryRow: Adw.EntryRow;
+  private declare _searchButton: Gtk4.Button;
+  private declare _searchResultsGroup: Adw.PreferencesGroup;
+  private declare _searchResultsList: Gtk4.ListBox;
+  private declare _searchSpinner: Gtk4.Spinner;
   private _isSyncingDefaultRadio = false;
 
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
@@ -484,7 +484,6 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._reloadRadios(this._radiosGroup);
   }
 
-  // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.
   async _handleSearchYouTube(): Promise<void> {
     const query = this._searchQueryRow.text.trim();
     if (this._isSearching || !query) return;

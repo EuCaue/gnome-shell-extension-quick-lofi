@@ -7,7 +7,7 @@ import Gtk from 'gi://Gtk';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
 import { SETTINGS_KEYS, SHORTCUTS } from '@/shared/constants';
-import { DEFAULT_FADE_DURATION_S } from '@/shared/fade';
+import { fadeDurationSeconds } from '@/shared/fade';
 import { debug, writeLog } from '@/shared/log';
 import { formatCookiesFromBrowser, parseCookiesFromBrowser } from '@/shared/settings';
 import type { Shortcut } from '@/types';
@@ -238,19 +238,19 @@ export class PlayerPage extends Adw.PreferencesPage {
       this,
     );
   }
-  declare private _playerGroup: Adw.PreferencesGroup;
-  declare private _advancedGroup: Adw.PreferencesGroup;
-  declare private _shortcutsGroup: Adw.PreferencesGroup;
-  declare private _volumeLevel: Adw.SpinRow;
-  declare private _fadeDuration: Adw.SpinRow;
-  declare private _enableMpris: Adw.SwitchRow;
-  declare private _enableMiniPlayer: Adw.SwitchRow;
-  declare private _showMiniPlayerTitle: Adw.SwitchRow;
-  declare private _mpvArguments: Adw.EntryRow;
-  declare private _cookiesFromBrowser: Adw.ComboRow;
-  declare private _browsers: Gtk.StringList;
-  declare private _customCookiesFromBrowser: Adw.EntryRow;
-  declare private _cookiesFromBrowserInfo: Gtk.Button;
+  private declare _playerGroup: Adw.PreferencesGroup;
+  private declare _advancedGroup: Adw.PreferencesGroup;
+  private declare _shortcutsGroup: Adw.PreferencesGroup;
+  private declare _volumeLevel: Adw.SpinRow;
+  private declare _fadeDuration: Adw.SpinRow;
+  private declare _enableMpris: Adw.SwitchRow;
+  private declare _enableMiniPlayer: Adw.SwitchRow;
+  private declare _showMiniPlayerTitle: Adw.SwitchRow;
+  private declare _mpvArguments: Adw.EntryRow;
+  private declare _cookiesFromBrowser: Adw.ComboRow;
+  private declare _browsers: Gtk.StringList;
+  private declare _customCookiesFromBrowser: Adw.EntryRow;
+  private declare _cookiesFromBrowserInfo: Gtk.Button;
 
   private _handleShortcuts() {
     writeLog({ message: '[PlayerPage] Setting up keyboard shortcuts', type: 'INFO' });
@@ -483,10 +483,9 @@ These are passed directly to the player on startup.
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
+    this._fadeDuration.set_value(fadeDurationSeconds(this._settings, SETTINGS_KEYS.FADE_DURATION));
     if (this._settings.settings_schema.has_key(SETTINGS_KEYS.FADE_DURATION)) {
       this._settings.bind(SETTINGS_KEYS.FADE_DURATION, this._fadeDuration, 'value', Gio.SettingsBindFlags.DEFAULT);
-    } else {
-      this._fadeDuration.set_value(DEFAULT_FADE_DURATION_S);
     }
     this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(
