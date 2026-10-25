@@ -7,6 +7,7 @@ import Gtk from 'gi://Gtk';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { ShortcutButton } from '@/preferences/ShortcutButton';
 import { SETTINGS_KEYS, SHORTCUTS } from '@/shared/constants';
+import { fadeDurationSeconds } from '@/shared/fade';
 import { debug, writeLog } from '@/shared/log';
 import { formatCookiesFromBrowser, parseCookiesFromBrowser } from '@/shared/settings';
 import type { Shortcut } from '@/types';
@@ -220,6 +221,7 @@ export class PlayerPage extends Adw.PreferencesPage {
         Template: 'resource:///org/gnome/Shell/Extensions/quick-lofi/preferences/PlayerPage.ui',
         InternalChildren: [
           'volumeLevel',
+          'fadeDuration',
           'playerGroup',
           'advancedGroup',
           'shortcutsGroup',
@@ -240,6 +242,7 @@ export class PlayerPage extends Adw.PreferencesPage {
   private declare _advancedGroup: Adw.PreferencesGroup;
   private declare _shortcutsGroup: Adw.PreferencesGroup;
   private declare _volumeLevel: Adw.SpinRow;
+  private declare _fadeDuration: Adw.SpinRow;
   private declare _enableMpris: Adw.SwitchRow;
   private declare _enableMiniPlayer: Adw.SwitchRow;
   private declare _showMiniPlayerTitle: Adw.SwitchRow;
@@ -480,6 +483,10 @@ These are passed directly to the player on startup.
     super();
     writeLog({ message: '[PlayerPage] Initializing player preferences page', type: 'INFO' });
     this._settings.bind(SETTINGS_KEYS.VOLUME, this._volumeLevel, 'value', Gio.SettingsBindFlags.DEFAULT);
+    this._fadeDuration.set_value(fadeDurationSeconds(this._settings, SETTINGS_KEYS.FADE_DURATION));
+    if (this._settings.settings_schema.has_key(SETTINGS_KEYS.FADE_DURATION)) {
+      this._settings.bind(SETTINGS_KEYS.FADE_DURATION, this._fadeDuration, 'value', Gio.SettingsBindFlags.DEFAULT);
+    }
     this._settings.bind(SETTINGS_KEYS.ENABLE_MPRIS, this._enableMpris, 'active', Gio.SettingsBindFlags.DEFAULT);
     this._settings.bind(
       SETTINGS_KEYS.ENABLE_MINI_PLAYER,

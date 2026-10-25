@@ -131,7 +131,6 @@ export class MprisController {
     try {
       this._mprisImplId = registerObject(
         this._mprisPath,
-        // @ts-expect-error type error
         this._nodeInfo.interfaces[0],
         this._handleMediaPlayer2MethodCall.bind(this),
         this._handleMediaPlayer2GetProperty.bind(this),
@@ -140,7 +139,6 @@ export class MprisController {
 
       this._playerImplId = registerObject(
         this._mprisPath,
-        // @ts-expect-error type error
         this._nodeInfo.interfaces[1],
         this._handlePlayerMethodCall.bind(this),
         this._handlePlayerGetProperty.bind(this),
@@ -485,7 +483,6 @@ export class MprisController {
       const changedProperties = GLib.Variant.new_array(new GLib.VariantType('{sv}'), changedPropertiesList);
       const invalidatedProperties = new GLib.Variant('as', []);
       const signalParameters = GLib.Variant.new_tuple([
-        //@ts-expect-error type error
         new GLib.Variant('s', 'org.mpris.MediaPlayer2.Player'),
         changedProperties,
         invalidatedProperties,

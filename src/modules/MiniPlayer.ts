@@ -11,6 +11,7 @@ import { writeLog } from '@/shared/log';
 import { findRadioById, parseRadios } from '@/shared/radios';
 import { clickAction, getExtSettings } from '@/shared/settings';
 import type { Radio } from '@/types';
+import { boxOrientation } from './BoxOrientation';
 import type { ClickActions } from './ClickActions';
 import { formatTime } from './IndicatorView';
 import Player from './Player';
@@ -79,12 +80,12 @@ export default class MiniPlayer {
     this._miniPlayerItem.style = MINI_PLAYER_ITEM_STYLE;
 
     const miniPlayerBoxLayout = new St.BoxLayout({
-      vertical: true,
+      ...boxOrientation({ vertical: true }),
       x_expand: true,
     });
 
     const radioBox = new St.BoxLayout({
-      vertical: true,
+      ...boxOrientation({ vertical: true }),
       x_align: Clutter.ActorAlign.CENTER,
       x_expand: true,
       style: 'margin-bottom: 6px;',
@@ -127,7 +128,7 @@ export default class MiniPlayer {
     timeTrackingBoxWrapper.add_style_class_name('time-slider-row');
 
     const timeTrackingBox = new St.BoxLayout({
-      vertical: false,
+      ...boxOrientation({ vertical: false }),
       x_expand: true,
     });
 
@@ -194,7 +195,7 @@ export default class MiniPlayer {
     timeTrackingBoxWrapper.add_child(timeTrackingBox);
 
     const controlsBox = new St.BoxLayout({
-      vertical: false,
+      ...boxOrientation({ vertical: false }),
       marginBottom: 5,
       xAlign: Clutter.ActorAlign.CENTER,
       x_expand: true,

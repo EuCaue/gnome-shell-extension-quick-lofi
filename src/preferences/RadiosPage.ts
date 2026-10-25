@@ -4,20 +4,34 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk4 from 'gi://Gtk';
-import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { gettext as _, ngettext } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
+import { mergeSearchResults, type YouTubeSearchResult, youtubeKey } from '@/preferences/YouTubeResults';
+import { searchYouTube } from '@/preferences/YouTubeSearch';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { createRadio, findRadioById, formatRadios, parseRadios, sanitizeRadioName } from '@/shared/radios';
 import type { Radio } from '@/types';
+
+const SEARCH_RESULTS_LIMIT = 10;
+
+type MoreResultsControl = { button: Gtk4.Button; spinner: Gtk4.Spinner; label: Gtk4.Label };
 
 Gio._promisify(Gtk4.FileDialog.prototype, 'open', 'open_finish');
 
 export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
+  private _searchResultRows: Adw.ActionRow[] = [];
+  private _searchResults: YouTubeSearchResult[] = [];
+  private _searchQuery = '';
+  private _searchLimit = SEARCH_RESULTS_LIMIT;
+  private _searchGeneration = 0;
+  private _isLoadingMore = false;
+  private _moreResults: MoreResultsControl | null = null;
+  private _isSearching = false;
   static {
     GObject.registerClass(
       {
@@ -30,6 +44,11 @@ export class RadiosPage extends Adw.PreferencesPage {
           'defaultRadioRow',
           'playDefaultRadioOnStartupRow',
           'playDefaultRadioOnUnlockRow',
+          'searchQueryRow',
+          'searchButton',
+          'searchResultsGroup',
+          'searchResultsList',
+          'searchSpinner',
         ],
       },
       this,
@@ -41,6 +60,11 @@ export class RadiosPage extends Adw.PreferencesPage {
   private declare _defaultRadioRow: Adw.ComboRow;
   private declare _playDefaultRadioOnStartupRow: Adw.SwitchRow;
   private declare _playDefaultRadioOnUnlockRow: Adw.SwitchRow;
+  private declare _searchQueryRow: Adw.EntryRow;
+  private declare _searchButton: Gtk4.Button;
+  private declare _searchResultsGroup: Adw.PreferencesGroup;
+  private declare _searchResultsList: Gtk4.ListBox;
+  private declare _searchSpinner: Gtk4.Spinner;
   private _isSyncingDefaultRadio = false;
 
   private _updateRadio(index: number, field: 'radioUrl' | 'radioName', content: string): boolean {
@@ -70,6 +94,43 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   private _radioIndex(radioID: string): number {
     return this._radios.findIndex((radio) => radio.id === radioID);
+  }
+
+  private _confirmRemoveRadio(radioName: string, radioID: string, radiosGroup: Adw.PreferencesGroup): void {
+    const heading = _(`Are you sure you want to delete ${radioName} ?`);
+    const onResponse = (response: string) => {
+      if (response === 'ok') {
+        writeLog({ message: `[RadiosPage] User confirmed removal of radio: ${radioName}`, type: 'INFO' });
+        this._removeRadio(radioID);
+        this._reloadRadios(radiosGroup);
+      } else {
+        writeLog({ message: `[RadiosPage] User cancelled removal of radio: ${radioName}`, type: 'INFO' });
+      }
+    };
+
+    // GNOME 45 ships libadwaita 1.4: no AdwAlertDialog.
+    if (typeof Adw.AlertDialog === 'undefined') {
+      const dialog = new Adw.MessageDialog({ transientFor: this._window, heading, closeResponse: 'cancel' });
+      dialog.add_response('cancel', 'Cancel');
+      dialog.add_response('ok', 'Ok');
+      dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
+      dialog.connect('response', (_dialog, response) => {
+        onResponse(response);
+        dialog.close();
+      });
+      dialog.present();
+      return;
+    }
+
+    const dialog = new Adw.AlertDialog({ heading, closeResponse: 'cancel' });
+    dialog.add_response('cancel', 'Cancel');
+    dialog.add_response('ok', 'Ok');
+    dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
+    dialog.choose(this._window, null, () => {});
+    dialog.connect('response', (_dialog, response) => {
+      onResponse(response);
+      dialog.close();
+    });
   }
 
   private _saveRadios(): void {
@@ -192,24 +253,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       removeButton.connect('clicked', () => {
         const radioName: string = currentRadio()?.radioName ?? '';
         writeLog({ message: `[RadiosPage] Remove button clicked for radio: ${radioName}`, type: 'INFO' });
-        const dialog = new Adw.AlertDialog({
-          heading: _(`Are you sure you want to delete ${radioName} ?`),
-          closeResponse: 'cancel',
-        });
-        dialog.add_response('cancel', 'Cancel');
-        dialog.add_response('ok', 'Ok');
-        dialog.set_response_appearance('ok', Adw.ResponseAppearance.DESTRUCTIVE);
-        dialog.choose(this._window, null, () => {});
-        dialog.connect('response', (dialog, response) => {
-          if (response === 'ok') {
-            writeLog({ message: `[RadiosPage] User confirmed removal of radio: ${radioName}`, type: 'INFO' });
-            this._removeRadio(radioID);
-            this._reloadRadios(radiosGroup);
-          } else {
-            writeLog({ message: `[RadiosPage] User cancelled removal of radio: ${radioName}`, type: 'INFO' });
-          }
-          dialog.close();
-        });
+        this._confirmRemoveRadio(radioName, radioID, radiosGroup);
       });
       openButton.connect('clicked', () => {
         const uri: string = currentRadio()?.radioUrl ?? '';
@@ -438,6 +482,229 @@ export class RadiosPage extends Adw.PreferencesPage {
     this._nameRadioRow.set_text('');
     this._urlRadioRow.set_text('');
     this._reloadRadios(this._radiosGroup);
+  }
+
+  async _handleSearchYouTube(): Promise<void> {
+    const query = this._searchQueryRow.text.trim();
+    if (this._isSearching || !query) return;
+    this._isSearching = true;
+    this._searchQueryRow.set_sensitive(false);
+    this._searchButton.set_sensitive(false);
+    this._searchQueryRow.set_title(_('Searching…'));
+    this._searchSpinner.set_visible(true);
+    this._searchSpinner.set_spinning(true);
+    this._clearSearchResults();
+    this._searchQuery = query;
+    this._searchLimit = SEARCH_RESULTS_LIMIT;
+    this._searchGeneration++;
+    let results: YouTubeSearchResult[] = [];
+    let error = '';
+    try {
+      results = await searchYouTube(
+        query,
+        SEARCH_RESULTS_LIMIT,
+        this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+      );
+      if (results.length === 0) error = _('No results found');
+    } catch (e) {
+      writeLog({ message: `[RadiosPage] YouTube search failed: ${e}`, type: 'ERROR' });
+      error = e instanceof Error ? e.message : String(e);
+    }
+    this._isSearching = false;
+    // Window may have closed during yt-dlp.
+    if (!this._settings) return;
+    this._searchSpinner.set_spinning(false);
+    this._searchSpinner.set_visible(false);
+    this._searchQueryRow.set_title(_('Search'));
+    this._searchQueryRow.set_sensitive(true);
+    this._searchButton.set_sensitive(true);
+    if (error) handleErrorRow(this._searchQueryRow, error);
+    this._showSearchResults(results);
+  }
+
+  private _clearSearchResults(): void {
+    for (const row of this._searchResultRows) {
+      this._searchResultsList.remove(row);
+    }
+    this._searchResultRows = [];
+    this._searchResults = [];
+    this._removeMoreResultsControl();
+    this._searchResultsGroup.set_visible(false);
+  }
+
+  private _showSearchResults(results: YouTubeSearchResult[]): void {
+    const merged = mergeSearchResults([], results);
+    if (merged.added.length === 0) return;
+    this._searchResults = merged.results;
+    for (const result of merged.added) {
+      const row = this._buildResultRow(result);
+      this._searchResultRows.push(row);
+      this._searchResultsList.append(row);
+    }
+    this._updateResultsDescription();
+    this._addMoreResultsControl();
+    this._searchResultsGroup.set_visible(true);
+  }
+
+  private _updateResultsDescription(): void {
+    const count = this._searchResults.length;
+    // ngettext does not fill in %d.
+    this._searchResultsGroup.set_description(ngettext('%d result', '%d results', count).replace('%d', String(count)));
+  }
+
+  private _buildMoreResultsControl(): MoreResultsControl {
+    const spinner = new Gtk4.Spinner({ visible: false, valign: Gtk4.Align.CENTER });
+    const label = new Gtk4.Label({ label: _('Show More Results') });
+    const box = new Gtk4.Box({ spacing: 8, halign: Gtk4.Align.CENTER });
+    box.append(spinner);
+    box.append(label);
+    const button = new Gtk4.Button({
+      child: box,
+      halign: Gtk4.Align.CENTER,
+      marginTop: 10,
+      marginBottom: 10,
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    button.connect('clicked', () => this._handleShowMoreResults());
+    return { button, spinner, label };
+  }
+
+  private _addMoreResultsControl(): void {
+    if (this._moreResults) return;
+    this._moreResults = this._buildMoreResultsControl();
+    this._searchResultsGroup.add(this._moreResults.button);
+  }
+
+  private _removeMoreResultsControl(): void {
+    if (!this._moreResults) return;
+    this._searchResultsGroup.remove(this._moreResults.button);
+    this._moreResults = null;
+  }
+
+  private async _handleShowMoreResults(): Promise<void> {
+    if (this._isLoadingMore || !this._moreResults) return;
+    const query = this._searchQuery;
+    const generation = this._searchGeneration;
+    if (!query) return;
+    this._isLoadingMore = true;
+    const { button, spinner, label } = this._moreResults;
+    button.set_sensitive(false);
+    spinner.set_visible(true);
+    spinner.set_spinning(true);
+    label.set_label(_('Loading…'));
+    let incoming: YouTubeSearchResult[] = [];
+    let error = '';
+    const limit = this._searchLimit + SEARCH_RESULTS_LIMIT;
+    try {
+      incoming = await searchYouTube(query, limit, this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER));
+    } catch (e) {
+      writeLog({ message: `[RadiosPage] YouTube search failed: ${e}`, type: 'ERROR' });
+      error = e instanceof Error ? e.message : String(e);
+    }
+    this._isLoadingMore = false;
+    // Window closed, or a newer search replaced the list.
+    if (!this._settings || generation !== this._searchGeneration) return;
+    spinner.set_spinning(false);
+    spinner.set_visible(false);
+    label.set_label(_('Show More Results'));
+    button.set_sensitive(true);
+    if (error) {
+      this._window.add_toast(new Adw.Toast({ title: _('Could not load more results'), use_markup: false }));
+      return;
+    }
+    const merged = mergeSearchResults(this._searchResults, incoming);
+    if (merged.added.length === 0) {
+      this._removeMoreResultsControl();
+      this._window.add_toast(new Adw.Toast({ title: _('No more results'), use_markup: false }));
+      return;
+    }
+    this._searchResults = merged.results;
+    this._searchLimit = limit;
+    for (const result of merged.added) {
+      const row = this._buildResultRow(result);
+      this._searchResultRows.push(row);
+      this._searchResultsList.append(row);
+    }
+    this._updateResultsDescription();
+  }
+
+  private _buildResultRow(result: YouTubeSearchResult): Adw.ActionRow {
+    // YouTube title is untrusted text: never parse it as markup.
+    const row = new Adw.ActionRow({
+      title: result.title,
+      subtitle: result.url,
+      subtitleLines: 1,
+      useMarkup: false,
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    row.set_tooltip_text(result.title);
+
+    const saved = this._radios.find((radio) => youtubeKey(radio.radioUrl) === youtubeKey(result.url));
+    const addButton = new Gtk4.Button({
+      iconName: saved ? 'object-select-symbolic' : 'list-add-symbolic',
+      tooltipText: saved ? `${_('Already in your radios:')} ${saved.radioName}` : _('Add to Radios'),
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+      sensitive: !saved,
+    });
+    addButton.connect('clicked', () => this._addSearchResult(result, addButton));
+    addButton.update_property([Gtk4.AccessibleProperty.LABEL], [saved ? _('Added') : _('Add to Radios')]);
+    row.add_suffix(addButton);
+    row.set_activatable_widget(addButton);
+
+    const actions = new Gio.SimpleActionGroup();
+    const copyAction = new Gio.SimpleAction({ name: 'copy' });
+    copyAction.connect('activate', () => this._copySearchResultUrl(result));
+    actions.add_action(copyAction);
+    const openAction = new Gio.SimpleAction({ name: 'open' });
+    openAction.connect('activate', () => this._openSearchResultUrl(result));
+    actions.add_action(openAction);
+    const menu = new Gio.Menu();
+    menu.append(_('Copy Link'), 'result.copy');
+    menu.append(_('Open in Browser'), 'result.open');
+    const menuButton = new Gtk4.MenuButton({
+      iconName: 'view-more-symbolic',
+      tooltipText: _('More Actions'),
+      menuModel: menu,
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    menuButton.insert_action_group('result', actions);
+    menuButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('More Actions')]);
+    row.add_suffix(menuButton);
+    return row;
+  }
+
+  private _addSearchResult(result: YouTubeSearchResult, addButton: Gtk4.Button): void {
+    const name = sanitizeRadioName(result.title);
+    if (this._radios.some((radio) => youtubeKey(radio.radioUrl) === youtubeKey(result.url))) {
+      this._window.add_toast(new Adw.Toast({ title: `${_('Already in your radios:')} ${name}`, use_markup: false }));
+    } else {
+      this._addRadio(name, result.url);
+      writeLog({ message: `[RadiosPage] Added radio from YouTube search: ${name}`, type: 'INFO' });
+      this._reloadRadios(this._radiosGroup);
+      this._window.add_toast(new Adw.Toast({ title: `${_('Added')} ${name}`, use_markup: false }));
+    }
+    addButton.set_icon_name('object-select-symbolic');
+    addButton.set_tooltip_text(_('Added'));
+    addButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Added')]);
+    addButton.set_sensitive(false);
+  }
+
+  private _copySearchResultUrl(result: YouTubeSearchResult): void {
+    Gdk.Display.get_default()?.get_clipboard().set(result.url);
+    this._window.add_toast(new Adw.Toast({ title: _('Link copied') }));
+  }
+
+  private _openSearchResultUrl(result: YouTubeSearchResult): void {
+    try {
+      Gio.AppInfo.launch_default_for_uri(result.url, null);
+    } catch (e) {
+      writeLog({ message: `[RadiosPage] Failed to open ${result.url}: ${e}`, type: 'ERROR' });
+      logError(e, '[RadiosPage] Failed to open URL');
+    }
   }
 
   // Template callback (RadiosPage.ui), so not private: Biome would flag it unused.

@@ -99,5 +99,65 @@
       </object>
     </child>
 
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Search YouTube</property>
+        <property name="description" translatable="yes">Find videos and add them as radios.</property>
+        <child>
+          <object class="AdwEntryRow" id="searchQueryRow">
+            <property name="title" translatable="yes">Search</property>
+            <signal name="entry-activated" handler="_handleSearchYouTube" swapped="no" />
+            <child type="suffix">
+              <object class="GtkSpinner" id="searchSpinner">
+                <property name="visible">false</property>
+                <property name="valign">center</property>
+              </object>
+            </child>
+            <child type="suffix">
+              <object class="GtkButton" id="searchButton">
+                <signal name="clicked" handler="_handleSearchYouTube" swapped="no" />
+                <property name="icon-name">system-search-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Search</property>
+                <property name="valign">center</property>
+                <property name="cursor">
+                  <object class="GdkCursor">
+                    <property name="name">pointer</property>
+                  </object>
+                </property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup" id="searchResultsGroup">
+        <property name="title" translatable="yes">Search Results</property>
+        <property name="visible">false</property>
+        <child>
+          <object class="GtkScrolledWindow" id="searchResultsScroll">
+            <property name="hscrollbar-policy">2</property>
+            <property name="vscrollbar-policy">1</property>
+            <property name="min-content-height">640</property>
+            <property name="max-content-height">640</property>
+            <property name="propagate-natural-height">true</property>
+            <property name="has-frame">false</property>
+            <child>
+              <object class="GtkListBox" id="searchResultsList">
+                <property name="selection-mode">0</property>
+                <style>
+                  <class name="boxed-list"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+
   </template>
 </interface>

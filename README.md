@@ -132,9 +132,8 @@ You need Node, npm, the GLib dev tools, `mpv` and GNOME Shell. On GNOME 49 or ne
 Development happens on `develop`. `master` only receives releases.
 
 ```bash
-git clone https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
+git clone -b develop https://github.com/EuCaue/gnome-shell-extension-quick-lofi.git
 cd gnome-shell-extension-quick-lofi
-git checkout develop
 
 # Check system tools, install dependencies and make a dev build
 npm run setup
@@ -151,14 +150,37 @@ This replaces your installed copy of the extension with the dev build. Your curr
 
 Calls to `debug()` from `src/shared/log.ts` print to the same terminal with the `[ QUICK LOFI DEBUG ]` prefix. Production builds remove them.
 
-`radios-test.json` has stations for edge cases: a broken URL, a local path and unusual names. Load them into the installed extension with:
+`scripts/seed-radios.json` has radios for edge cases: a working stream, YouTube, an offline tone, a broken URL, a missing file and odd names. Load them into the installed extension with:
 
 ```bash
-# Add the test stations
+# Add the sample radios (running it again replaces them)
 npm run radios -- --add
 
-# Remove only the test stations
+# Remove only the sample radios
 npm run radios -- --remove
+```
+
+### Test on other GNOME versions
+
+Each supported GNOME version (45 to 51) runs headless in its own container, one at a time. It needs `podman` or `docker`.
+
+```bash
+# Run the checks on GNOME 45 and 50 (no arguments runs every version)
+npm run gnome:test -- 45 50
+
+# Open GNOME 45 in a window with your build installed
+npm run gnome:open -- 45
+
+# Delete the container images (about 1.5 GB each)
+npm run gnome:clean
+```
+
+Results go to `.shell-test/<version>/`. Missing images are built on the first run. `QL_ENGINE=docker` picks docker over podman.
+
+GitHub runs the same checks on every pull request. To run them locally, use [act](https://github.com/nektos/act) (docker only):
+
+```bash
+npm run gnome:act -- --matrix gnome:50
 ```
 
 ### Before you open a pull request

@@ -13,11 +13,13 @@ import { debug, writeLog } from '@/shared/log';
 import { findRadioById, parseRadios, radioItemStep } from '@/shared/radios';
 import { clickAction } from '@/shared/settings';
 import type { QuickLofiExtension, Radio } from '@/types';
+import { boxOrientation } from './BoxOrientation';
 import { ClickActions } from './ClickActions';
 import { buildIndicatorStatus, buildPopupStyles } from './IndicatorView';
 import MiniPLayer from './MiniPlayer';
 import { MprisController } from './Mpris';
 import Player from './Player';
+import { setScrollChild } from './ScrollView';
 import { createTooltip } from './Tooltip';
 
 export default class Indicator extends PanelMenu.Button {
@@ -334,7 +336,7 @@ export default class Indicator extends PanelMenu.Button {
     const separator = new PopupMenu.PopupSeparatorMenuItem();
     const volumeLevel = this._extension._settings.get_int(SETTINGS_KEYS.VOLUME);
     const volumePopupItem = new PopupMenu.PopupBaseMenuItem({ reactive: true, can_focus: true });
-    const volumeBoxLayout = new St.BoxLayout({ vertical: true, x_expand: true });
+    const volumeBoxLayout = new St.BoxLayout({ ...boxOrientation({ vertical: true }), x_expand: true });
     const volumeSlider = new Slider.Slider(volumeLevel / 100);
     volumeSlider.add_style_class_name('volume-slider');
     volumeSlider.can_focus = true;
@@ -389,7 +391,8 @@ export default class Indicator extends PanelMenu.Button {
         this._extension._settings.set_int(SETTINGS_KEYS.VOLUME, Number(currentVolume));
       }),
     });
-    this.signalsHandlers.push({
+    // menuSignals, not signalsHandlers: this handler touches widgets that die when the menu is rebuilt
+    this.menuSignals.push({
       emitter: this._extension._settings,
       signalID: this._extension._settings.connect(`changed::${SETTINGS_KEYS.VOLUME}`, (settings, key) => {
         const volume = settings.get_int(key);
@@ -407,7 +410,7 @@ export default class Indicator extends PanelMenu.Button {
   private _createMenuItems(): void {
     this._scrollView = new St.ScrollView();
     this._popupSection = new PopupMenu.PopupMenuSection();
-    this._scrollView.add_child(this._popupSection.actor);
+    setScrollChild(this._scrollView, this._popupSection.actor);
     const isPaused = this.mpvPlayer.getProperty('pause') ?? { data: false };
     const currentRadioPlayingID: string = this._extension._settings.get_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING);
     this._radios.forEach((radio) => {
@@ -429,7 +432,6 @@ export default class Indicator extends PanelMenu.Button {
         emitter: menuItem,
         signalID: menuItem.connect('activate', (item, event) => {
           // the menu closes from an AFTER 'activate' handler; stopping here keeps it open (openPrefs closes it)
-          // @ts-expect-error nothing
           GObject.signal_stop_emission_by_name(item, 'activate');
           //  NOTE: MOUSE BUTTONS IDS
           // 1 -> LMB
