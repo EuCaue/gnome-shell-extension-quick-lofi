@@ -66,10 +66,13 @@ export default class Indicator extends PanelMenu.Button {
     this._createMenu();
     this._bindSettingsChangeEvents();
     // runs after PanelMenu.Button's own handler, which resets `menu.actor.style`
-    // @ts-expect-error nothing
-    this.menu.connect('open-state-changed', (_menu, open: boolean) => {
-      this._handlePopupSize();
-      if (open) statusTooltip.hide();
+    this.signalsHandlers.push({
+      emitter: this.menu,
+      // @ts-expect-error nothing
+      signalID: this.menu.connect('open-state-changed', (_menu, open: boolean) => {
+        this._handlePopupSize();
+        if (open) statusTooltip.hide();
+      }),
     });
     this._handleButtonClick();
     writeLog({ message: '[Indicator] Indicator initialized successfully', type: 'INFO' });
@@ -457,6 +460,8 @@ export default class Indicator extends PanelMenu.Button {
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.destroy();
     this._miniPlayer.dispose();
+    this._scrollView.destroy();
+    this._scrollView = null;
     if (this._volumeFocusId) {
       GLib.source_remove(this._volumeFocusId);
       this._volumeFocusId = null;
