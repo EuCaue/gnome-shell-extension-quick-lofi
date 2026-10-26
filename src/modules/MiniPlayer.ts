@@ -43,6 +43,7 @@ export default class MiniPlayer {
   private _playbackStoppedSignalId: number | null = null;
   private _radioChangedSignalId: number | null = null;
   private _mediaTitleChangedSignalId: number | null = null;
+  private _settingsSignalIds: Array<number> = [];
 
   public static getInstance(): MiniPlayer {
     if (!MiniPlayer._instance) {
@@ -111,13 +112,17 @@ export default class MiniPlayer {
 
     this._playlistItemTooltip = createTooltip(this.currentPlaylistItem).label;
 
-    this._settings.connect(`changed::${SETTINGS_KEYS.SHOW_MINI_PLAYER_TITLE}`, () => {
-      this._updateTitleVisibility();
-    });
+    this._settingsSignalIds.push(
+      this._settings.connect(`changed::${SETTINGS_KEYS.SHOW_MINI_PLAYER_TITLE}`, () => {
+        this._updateTitleVisibility();
+      }),
+    );
 
-    this._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MINI_PLAYER}`, () => {
-      this._updateTitleVisibility();
-    });
+    this._settingsSignalIds.push(
+      this._settings.connect(`changed::${SETTINGS_KEYS.ENABLE_MINI_PLAYER}`, () => {
+        this._updateTitleVisibility();
+      }),
+    );
 
     radioBox.add_child(this.currentRadio);
     radioBox.add_child(this.currentPlaylistItem);
@@ -426,6 +431,10 @@ export default class MiniPlayer {
     writeLog({ message: '[MiniPlayer] Disposing mini player', type: 'INFO' });
 
     this._disconnectPlayerSignals();
+    for (const signalId of this._settingsSignalIds) {
+      this._settings.disconnect(signalId);
+    }
+    this._settingsSignalIds = [];
 
     if (this._miniPlayerItem) {
       this._miniPlayerItem.destroy();
