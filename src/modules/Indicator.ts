@@ -460,8 +460,6 @@ export default class Indicator extends PanelMenu.Button {
     this._extension._settings.set_string(SETTINGS_KEYS.CURRENT_RADIO_PLAYING, '');
     this.mpvPlayer.destroy();
     this._miniPlayer.dispose();
-    this._scrollView.destroy();
-    this._scrollView = null;
     if (this._volumeFocusId) {
       GLib.source_remove(this._volumeFocusId);
       this._volumeFocusId = null;
@@ -476,6 +474,10 @@ export default class Indicator extends PanelMenu.Button {
     });
     this.signalsHandlers = [];
     this.menuSignals = [];
+    // Destroy owned widgets last: `_scrollView` holds the widgets the handlers above
+    // are connected to, so destroying it first would disconnect from disposed objects.
+    this._scrollView.destroy();
+    this._scrollView = null;
     this.destroy();
     writeLog({ message: '[Indicator] Indicator disposed successfully', type: 'INFO' });
   }
