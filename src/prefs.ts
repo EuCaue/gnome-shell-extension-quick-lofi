@@ -3,10 +3,12 @@ import Gdk from 'gi://Gdk';
 import type Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { ExtensionPreferences } from '@girs/gnome-shell/extensions/prefs';
+import { clearErrorRowTimers } from '@/preferences/EntryRow';
 import '@/preferences/Resources';
 import { InterfacePage } from '@/preferences/InterfacePage';
 import { PlayerPage } from '@/preferences/PlayerPage';
 import { RadiosPage } from '@/preferences/RadiosPage';
+import { cancelPendingRuns } from '@/preferences/Subprocess';
 import { getExtSettings } from '@/shared/settings';
 
 export default class GnomeRectanglePreferences extends ExtensionPreferences {
@@ -22,6 +24,10 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
 
     window.connect('close-request', () => {
       this._settings = null;
+      // Remove main loop sources per the EGO review guidelines: timers must not
+      // survive the preferences window.
+      cancelPendingRuns();
+      clearErrorRowTimers();
     });
 
     window.add(new RadiosPage(this._settings, window));
