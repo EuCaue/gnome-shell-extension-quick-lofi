@@ -189,6 +189,8 @@ npm run gnome:act -- --matrix gnome:50
 npm run lint
 npm run typecheck
 npm test
+npm run build:prod
+npm run shexli
 ```
 
 `npm test` runs the logic tests in `tests/` with Node's test runner and does not need GNOME. `npm run check` also lints and formats, but it writes the fixes to your files.
