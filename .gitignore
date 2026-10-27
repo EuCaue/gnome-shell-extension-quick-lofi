@@ -5,3 +5,4 @@ bun.lockb
 *.zip
 schemas/gschemas.compiled
 .shell-test
+.shexli
