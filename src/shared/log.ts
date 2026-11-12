@@ -18,8 +18,14 @@ export type Log = {
   type?: 'LOG' | 'ERROR' | 'WARN' | 'INFO';
 };
 export async function writeLog({ message, type = 'LOG' }: Log) {
+  let settings: Gio.Settings;
   try {
-    const settings: Gio.Settings = getExtSettings();
+    settings = getExtSettings();
+  } catch (_e) {
+    // disable() resets the settings cache while an async stop may still be finishing
+    return;
+  }
+  try {
     if (settings.get_boolean(SETTINGS_KEYS.ENABLE_DEBUG)) {
       const filepath: string = GLib.build_filenamev([GLib.get_tmp_dir(), `/quick-lofi-${GLib.get_user_name()}.log`]);
       const file: Gio.File = Gio.File.new_for_path(filepath);

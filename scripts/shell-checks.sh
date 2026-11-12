@@ -64,7 +64,7 @@ prefs_window='global.get_window_actors().some(a => a.meta_window.get_wm_class() 
 
 js_errors() {
   local hits
-  hits=$(grep -hE 'JS ERROR|Exception in callback|Gjs-CRITICAL|JS WARNING.*quick-lofi|Unhandled promise rejection|quick-lofi@eucaue.*(Error|error)' "$WORK/shell.log" "$WORK/bus.log" || true)
+  hits=$(grep -hE 'JS ERROR|Exception in callback|Gjs-CRITICAL|JS WARNING.*quick-lofi|Unhandled promise rejection|quick-lofi@eucaue.*(Error|error)|Error while writing log' "$WORK/shell.log" "$WORK/bus.log" || true)
   [[ -z "$hits" ]] || { head -5 <<<"$hits"; return 1; }
 }
 
