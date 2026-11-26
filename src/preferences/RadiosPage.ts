@@ -674,6 +674,26 @@ export class RadiosPage extends Adw.PreferencesPage {
     menuButton.insert_action_group('result', actions);
     menuButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('More Actions')]);
     row.add_suffix(menuButton);
+
+    const contextClick = new Gtk4.GestureClick({ button: Gdk.BUTTON_SECONDARY });
+    contextClick.connect('pressed', (gesture: Gtk4.GestureClick) => {
+      // The gesture lives on the row, so it also sees clicks on its buttons.
+      // HIG forbids assigning secondary actions to buttons themselves.
+      const [, x, y] = gesture.get_point(null);
+      for (const button of [addButton, menuButton]) {
+        const [, bounds] = button.compute_bounds(row);
+        if (
+          x >= bounds.get_x() &&
+          x <= bounds.get_x() + bounds.get_width() &&
+          y >= bounds.get_y() &&
+          y <= bounds.get_y() + bounds.get_height()
+        ) {
+          return;
+        }
+      }
+      menuButton.popup();
+    });
+    row.add_controller(contextClick);
     return row;
   }
 
