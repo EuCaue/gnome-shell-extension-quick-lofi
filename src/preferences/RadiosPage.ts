@@ -741,10 +741,10 @@ export class RadiosPage extends Adw.PreferencesPage {
     timeLabel.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview time')]);
 
     const box = new Gtk4.Box({ spacing: 8, valign: Gtk4.Align.CENTER, hexpand: true });
-    box.append(progress);
-    box.append(timeLabel);
     box.append(playButton);
     box.append(stopButton);
+    box.append(progress);
+    box.append(timeLabel);
 
     const row = new Adw.ActionRow({
       useMarkup: false,

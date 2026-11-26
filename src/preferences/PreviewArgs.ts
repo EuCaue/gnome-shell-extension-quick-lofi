@@ -1,4 +1,4 @@
-export const PREVIEW_SECONDS = 30;
+export const PREVIEW_SECONDS = 120;
 // mpv property expansion uses ${...}; it is not a JavaScript template literal.
 // biome-ignore lint/suspicious/noTemplateCurlyInString: mpv property expansion syntax.
 export const PREVIEW_STATUS_TEMPLATE = '--term-status-msg=QLOFI T=${=time-pos:} D=${=duration:}\\n';

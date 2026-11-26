@@ -9,6 +9,10 @@ import {
   previewFailed,
 } from '../src/preferences/PreviewArgs.ts';
 
+test('preview lasts two minutes', () => {
+  assert.equal(PREVIEW_SECONDS, 120);
+});
+
 test('preview argv has its own short-lived mpv', () => {
   const argv = buildPreviewArgv('https://youtu.be/abc', null, null, 50);
   assert.equal(argv[0], 'mpv');
