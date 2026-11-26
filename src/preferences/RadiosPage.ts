@@ -724,9 +724,7 @@ export class RadiosPage extends Adw.PreferencesPage {
     stopButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Stop Preview')]);
 
     const row = new Adw.ActionRow({
-      title: _('Preview'),
-      subtitle: _('Previewing…'),
-      subtitleLines: 1,
+      title: _('Previewing'),
       useMarkup: false,
       selectable: false,
     });
