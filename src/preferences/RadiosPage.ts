@@ -27,7 +27,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
   private _searchResultRows: Adw.ActionRow[] = [];
-  private _previewRow: Adw.ActionRow | null = null;
+  private _previewRow: Adw.PreferencesRow | null = null;
   private _previewProgress: Gtk4.ProgressBar | null = null;
   private _previewTime: Gtk4.Label | null = null;
   private _searchResults: YouTubeSearchResult[] = [];
@@ -707,24 +707,13 @@ export class RadiosPage extends Adw.PreferencesPage {
     return row;
   }
 
-  private _buildPreviewRow(result: YouTubeSearchResult, sourceRow: Adw.ActionRow): Adw.ActionRow {
-    const playButton = new Gtk4.Button({
-      iconName: 'media-playback-start-symbolic',
-      tooltipText: _('Preview'),
-      valign: Gtk4.Align.CENTER,
-      cssClasses: ['flat'],
-    });
-    playButton.connect('clicked', () => this._startPreview(result, sourceRow));
-    playButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview')]);
-
+  private _buildPreviewRow(result: YouTubeSearchResult): Adw.PreferencesRow {
     const stopButton = new Gtk4.Button({
-      iconName: 'media-playback-stop-symbolic',
-      tooltipText: _('Stop Preview'),
+      label: _('Stop'),
       valign: Gtk4.Align.CENTER,
       cssClasses: ['flat'],
     });
     stopButton.connect('clicked', () => this._stopPreview());
-    stopButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Stop Preview')]);
 
     const progress = new Gtk4.ProgressBar({
       hexpand: true,
@@ -740,18 +729,22 @@ export class RadiosPage extends Adw.PreferencesPage {
     });
     timeLabel.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview time')]);
 
-    const box = new Gtk4.Box({ spacing: 8, valign: Gtk4.Align.CENTER, hexpand: true });
-    box.append(playButton);
+    const box = new Gtk4.Box({
+      spacing: 8,
+      hexpand: true,
+      valign: Gtk4.Align.CENTER,
+      marginStart: 12,
+      marginEnd: 12,
+    });
     box.append(stopButton);
     box.append(progress);
     box.append(timeLabel);
 
-    const row = new Adw.ActionRow({
-      useMarkup: false,
+    const row = new Adw.PreferencesRow({
       selectable: false,
+      child: box,
     });
     row.set_tooltip_text(result.title);
-    row.add_suffix(box);
     this._previewProgress = progress;
     this._previewTime = timeLabel;
     return row;
@@ -759,7 +752,7 @@ export class RadiosPage extends Adw.PreferencesPage {
 
   private _startPreview(result: YouTubeSearchResult, sourceRow: Adw.ActionRow): void {
     this._stopPreview();
-    const row = this._buildPreviewRow(result, sourceRow);
+    const row = this._buildPreviewRow(result);
     this._searchResultsList.insert(row, this._searchResultRows.indexOf(sourceRow) + 1);
     this._previewRow = row;
     let firstPosition: number | null = null;
