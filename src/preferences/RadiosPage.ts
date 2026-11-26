@@ -7,6 +7,7 @@ import Gtk4 from 'gi://Gtk';
 import { gettext as _, ngettext } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
+import { startPreview, stopPreview } from '@/preferences/PreviewPlayer';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
 import { mergeSearchResults, type YouTubeSearchResult, youtubeKey } from '@/preferences/YouTubeResults';
 import { searchYouTube } from '@/preferences/YouTubeSearch';
@@ -25,6 +26,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
   private _searchResultRows: Adw.ActionRow[] = [];
+  private _previewRow: Adw.ActionRow | null = null;
   private _searchResults: YouTubeSearchResult[] = [];
   private _searchQuery = '';
   private _searchLimit = SEARCH_RESULTS_LIMIT;
@@ -523,6 +525,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
 
   private _clearSearchResults(): void {
+    this._stopPreview();
     for (const row of this._searchResultRows) {
       this._searchResultsList.remove(row);
     }
@@ -660,9 +663,13 @@ export class RadiosPage extends Adw.PreferencesPage {
     const openAction = new Gio.SimpleAction({ name: 'open' });
     openAction.connect('activate', () => this._openSearchResultUrl(result));
     actions.add_action(openAction);
+    const previewAction = new Gio.SimpleAction({ name: 'preview' });
+    previewAction.connect('activate', () => this._startPreview(result, row));
+    actions.add_action(previewAction);
     const menu = new Gio.Menu();
     menu.append(_('Copy Link'), 'result.copy');
     menu.append(_('Open in Browser'), 'result.open');
+    menu.append(_('Preview'), 'result.preview');
     const menuButton = new Gtk4.MenuButton({
       iconName: 'view-more-symbolic',
       tooltipText: _('More Actions'),
@@ -695,6 +702,64 @@ export class RadiosPage extends Adw.PreferencesPage {
     });
     row.add_controller(contextClick);
     return row;
+  }
+
+  private _buildPreviewRow(result: YouTubeSearchResult, sourceRow: Adw.ActionRow): Adw.ActionRow {
+    const playButton = new Gtk4.Button({
+      iconName: 'media-playback-start-symbolic',
+      tooltipText: _('Preview'),
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+    });
+    playButton.connect('clicked', () => this._startPreview(result, sourceRow));
+    playButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview')]);
+
+    const stopButton = new Gtk4.Button({
+      iconName: 'media-playback-stop-symbolic',
+      tooltipText: _('Stop Preview'),
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+    });
+    stopButton.connect('clicked', () => this._stopPreview());
+    stopButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Stop Preview')]);
+
+    const row = new Adw.ActionRow({
+      title: _('Preview'),
+      subtitle: _('Previewing…'),
+      subtitleLines: 1,
+      useMarkup: false,
+      selectable: false,
+    });
+    row.set_tooltip_text(result.title);
+    row.add_suffix(playButton);
+    row.add_suffix(stopButton);
+    return row;
+  }
+
+  private _startPreview(result: YouTubeSearchResult, sourceRow: Adw.ActionRow): void {
+    this._stopPreview();
+    const row = this._buildPreviewRow(result, sourceRow);
+    this._searchResultsList.insert(row, this._searchResultRows.indexOf(sourceRow) + 1);
+    this._previewRow = row;
+    startPreview(result.url, this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER), (error) => {
+      if (!this._settings) return;
+      this._clearPreviewRow(error);
+    });
+  }
+
+  private _stopPreview(): void {
+    stopPreview();
+    this._clearPreviewRow();
+  }
+
+  private _clearPreviewRow(error?: string): void {
+    if (this._previewRow) {
+      this._searchResultsList.remove(this._previewRow);
+      this._previewRow = null;
+    }
+    if (error) {
+      this._window.add_toast(new Adw.Toast({ title: error, use_markup: false }));
+    }
   }
 
   private _addSearchResult(result: YouTubeSearchResult, addButton: Gtk4.Button): void {
