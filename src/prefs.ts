@@ -7,6 +7,7 @@ import { clearErrorRowTimers } from '@/preferences/EntryRow';
 import '@/preferences/Resources';
 import { InterfacePage } from '@/preferences/InterfacePage';
 import { PlayerPage } from '@/preferences/PlayerPage';
+import { stopPreview } from '@/preferences/PreviewPlayer';
 import { RadiosPage } from '@/preferences/RadiosPage';
 import { cancelPendingRuns } from '@/preferences/Subprocess';
 import { getExtSettings } from '@/shared/settings';
@@ -27,6 +28,7 @@ export default class GnomeRectanglePreferences extends ExtensionPreferences {
       // Remove main loop sources per the EGO review guidelines: timers must not
       // survive the preferences window.
       cancelPendingRuns();
+      stopPreview();
       clearErrorRowTimers();
     });
 
