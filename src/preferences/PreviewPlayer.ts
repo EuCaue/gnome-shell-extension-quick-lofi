@@ -1,7 +1,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { buildPreviewArgv, parsePreviewStatus, previewFailed } from '@/preferences/PreviewArgs';
+import { buildPreviewArgv, parsePreviewStatus, PREVIEW_SECONDS, previewFailed } from '@/preferences/PreviewArgs';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -13,6 +13,7 @@ const MPRIS_IFACE = 'org.mpris.MediaPlayer2.Player';
 let _proc: Gio.Subprocess | null = null;
 let _stream: Gio.DataInputStream | null = null;
 let _cancellable: Gio.Cancellable | null = null;
+let _timeoutId: number | null = null;
 let _onFinished: ((error?: string) => void) | null = null;
 let _onProgress: ((elapsed: number, duration: number | null) => void) | null = null;
 let _wasPlaying = false;
@@ -77,6 +78,12 @@ function finish(error?: string): void {
   const callback = _onFinished;
   _onFinished = null;
   callback?.(error);
+}
+
+function clearPreviewTimeout(): void {
+  if (_timeoutId === null) return;
+  GLib.Source.remove(_timeoutId);
+  _timeoutId = null;
 }
 
 export function isPreviewing(): boolean {
@@ -152,6 +159,12 @@ export function startPreview(
   });
   _stream = stream;
   readStatus(stream, proc, _cancellable);
+  _timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, PREVIEW_SECONDS, () => {
+    _timeoutId = null;
+    finish();
+    stopPreview();
+    return GLib.SOURCE_REMOVE;
+  });
 
   proc.wait_async(null, (_source, res) => {
     try {
@@ -162,6 +175,7 @@ export function startPreview(
     if (_proc !== proc) return;
     const failed = previewFailed(proc.get_exit_status(), proc.get_if_signaled());
     _proc = null;
+    clearPreviewTimeout();
     _cancellable?.cancel();
     _cancellable = null;
     _onProgress = null;
@@ -172,6 +186,7 @@ export function startPreview(
 }
 
 export function stopPreview(): void {
+  clearPreviewTimeout();
   _onFinished = null;
   _onProgress = null;
   _cancellable?.cancel();

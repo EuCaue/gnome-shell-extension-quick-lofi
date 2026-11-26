@@ -18,7 +18,10 @@ test('preview argv has its own short-lived mpv', () => {
   assert.equal(argv[0], 'mpv');
   assert.equal(argv.includes('--no-video'), true);
   assert.equal(argv.includes('--loop-playlist=no'), true);
-  assert.equal(argv.includes(`--length=${PREVIEW_SECONDS}`), true);
+  assert.equal(
+    argv.some((arg) => arg.startsWith('--length=')),
+    false,
+  );
   assert.equal(
     argv.some((arg) => arg.startsWith('--input-ipc-server')),
     false,

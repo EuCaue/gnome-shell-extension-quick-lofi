@@ -52,7 +52,6 @@ export function buildPreviewArgv(
     `--volume=${volume}`,
     PREVIEW_STATUS_TEMPLATE,
     '--ytdl-format=bestaudio/best',
-    `--length=${PREVIEW_SECONDS}`,
     '--loop-playlist=no',
     ...cookiesArgs,
     '--',
