@@ -7,6 +7,8 @@ import Gtk4 from 'gi://Gtk';
 import { gettext as _, ngettext } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
+import { formatPreviewTime, previewElapsedSince, PREVIEW_SECONDS } from '@/preferences/PreviewArgs';
+import { startPreview, stopPreview } from '@/preferences/PreviewPlayer';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
 import { mergeSearchResults, type YouTubeSearchResult, youtubeKey } from '@/preferences/YouTubeResults';
 import { searchYouTube } from '@/preferences/YouTubeSearch';
@@ -25,6 +27,9 @@ export class RadiosPage extends Adw.PreferencesPage {
   private _radios: Array<Radio> = [];
   private _isDetectingName = false;
   private _searchResultRows: Adw.ActionRow[] = [];
+  private _previewRow: Adw.PreferencesRow | null = null;
+  private _previewProgress: Gtk4.ProgressBar | null = null;
+  private _previewTime: Gtk4.Label | null = null;
   private _searchResults: YouTubeSearchResult[] = [];
   private _searchQuery = '';
   private _searchLimit = SEARCH_RESULTS_LIMIT;
@@ -523,6 +528,7 @@ export class RadiosPage extends Adw.PreferencesPage {
   }
 
   private _clearSearchResults(): void {
+    this._stopPreview();
     for (const row of this._searchResultRows) {
       this._searchResultsList.remove(row);
     }
@@ -660,9 +666,13 @@ export class RadiosPage extends Adw.PreferencesPage {
     const openAction = new Gio.SimpleAction({ name: 'open' });
     openAction.connect('activate', () => this._openSearchResultUrl(result));
     actions.add_action(openAction);
+    const previewAction = new Gio.SimpleAction({ name: 'preview' });
+    previewAction.connect('activate', () => this._startPreview(result, row));
+    actions.add_action(previewAction);
     const menu = new Gio.Menu();
     menu.append(_('Copy Link'), 'result.copy');
     menu.append(_('Open in Browser'), 'result.open');
+    menu.append(_('Preview'), 'result.preview');
     const menuButton = new Gtk4.MenuButton({
       iconName: 'view-more-symbolic',
       tooltipText: _('More Actions'),
@@ -674,7 +684,113 @@ export class RadiosPage extends Adw.PreferencesPage {
     menuButton.insert_action_group('result', actions);
     menuButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('More Actions')]);
     row.add_suffix(menuButton);
+
+    const contextClick = new Gtk4.GestureClick({ button: Gdk.BUTTON_SECONDARY });
+    contextClick.connect('pressed', (gesture: Gtk4.GestureClick) => {
+      // The gesture lives on the row, so it also sees clicks on its buttons.
+      // HIG forbids assigning secondary actions to buttons themselves.
+      const [, x, y] = gesture.get_point(null);
+      for (const button of [addButton, menuButton]) {
+        const [, bounds] = button.compute_bounds(row);
+        if (
+          x >= bounds.get_x() &&
+          x <= bounds.get_x() + bounds.get_width() &&
+          y >= bounds.get_y() &&
+          y <= bounds.get_y() + bounds.get_height()
+        ) {
+          return;
+        }
+      }
+      menuButton.popup();
+    });
+    row.add_controller(contextClick);
     return row;
+  }
+
+  private _buildPreviewRow(result: YouTubeSearchResult): Adw.PreferencesRow {
+    const stopButton = new Gtk4.Button({
+      label: _('Stop'),
+      valign: Gtk4.Align.CENTER,
+      cssClasses: ['flat'],
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
+    });
+    stopButton.connect('clicked', () => this._stopPreview());
+
+    const progress = new Gtk4.ProgressBar({
+      hexpand: true,
+      valign: Gtk4.Align.CENTER,
+      fraction: 0,
+    });
+    progress.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview progress')]);
+
+    const timeLabel = new Gtk4.Label({
+      label: `${formatPreviewTime(0)} / ${formatPreviewTime(PREVIEW_SECONDS)}`,
+      cssClasses: ['dim-label'],
+      valign: Gtk4.Align.CENTER,
+    });
+    timeLabel.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview time')]);
+
+    const box = new Gtk4.Box({
+      spacing: 8,
+      hexpand: true,
+      valign: Gtk4.Align.CENTER,
+      marginStart: 12,
+      marginEnd: 12,
+    });
+    box.append(stopButton);
+    box.append(progress);
+    box.append(timeLabel);
+
+    const row = new Adw.PreferencesRow({
+      selectable: false,
+      child: box,
+    });
+    row.set_tooltip_text(result.title);
+    this._previewProgress = progress;
+    this._previewTime = timeLabel;
+    return row;
+  }
+
+  private _startPreview(result: YouTubeSearchResult, sourceRow: Adw.ActionRow): void {
+    this._stopPreview();
+    const row = this._buildPreviewRow(result);
+    this._searchResultsList.insert(row, this._searchResultRows.indexOf(sourceRow) + 1);
+    this._previewRow = row;
+    let firstPosition: number | null = null;
+    startPreview(
+      result.url,
+      this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+      (elapsed: number, duration: number | null) => {
+        if (!this._settings || this._previewRow !== row) return;
+        if (firstPosition === null) firstPosition = elapsed;
+        const played = previewElapsedSince(elapsed, firstPosition);
+        const total = Math.min(duration ?? PREVIEW_SECONDS, PREVIEW_SECONDS);
+        const fraction = total > 0 ? Math.min(1, played / total) : 0;
+        this._previewProgress?.set_fraction(fraction);
+        this._previewTime?.set_label(`${formatPreviewTime(played)} / ${formatPreviewTime(total)}`);
+      },
+      (error) => {
+        if (!this._settings) return;
+        this._clearPreviewRow(error);
+      },
+    );
+  }
+
+  private _stopPreview(): void {
+    stopPreview();
+    this._clearPreviewRow();
+  }
+
+  private _clearPreviewRow(error?: string): void {
+    if (this._previewRow) {
+      this._searchResultsList.remove(this._previewRow);
+      this._previewRow = null;
+      this._previewProgress = null;
+      this._previewTime = null;
+    }
+    if (error) {
+      this._window.add_toast(new Adw.Toast({ title: error, use_markup: false }));
+    }
   }
 
   private _addSearchResult(result: YouTubeSearchResult, addButton: Gtk4.Button): void {

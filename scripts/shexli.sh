@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Runs shexli over the release ZIP with an error-only gate.
+# EGO-M-004 is exempted only while shell-version stays within 45-51, because
+# shexli 0.2.1 hardcodes major > 50 as a future release and GNOME 51 is shipped.
 # Usage: shexli.sh [--ci]
 set -uo pipefail
 
@@ -49,6 +51,41 @@ if [[ -n "$TOOL_ERROR" ]] || ! python3 -c "import json;json.load(open('$OUT/shex
   exit 0
 fi
 
+cp "$OUT/shexli.json" "$OUT/shexli.raw.json"
+rm -f "$OUT/shexli.bypass"
+python3 - "$OUT/shexli.json" "$ZIP_ABS" "$OUT/shexli.bypass" <<'PY'
+import json
+import sys
+import zipfile
+
+report_path, zip_path, marker_path = sys.argv[1:4]
+with open(report_path) as fh:
+    data = json.load(fh)
+with zipfile.ZipFile(zip_path) as zf:
+    meta = json.loads(zf.read("metadata.json"))
+
+versions = meta.get("shell-version", [])
+allowed = {str(version) for version in range(45, 52)}
+if "51" in versions and len(versions) == len(set(versions)) and all(v in allowed for v in versions):
+    original = data.get("findings", [])
+    findings = [
+        finding for finding in original
+        if not (finding.get("rule_id") == "EGO-M-004" and finding.get("severity") == "error")
+    ]
+    if len(findings) != len(original):
+        data["findings"] = findings
+        counts: dict[str, int] = {}
+        for finding in findings:
+            severity = finding.get("severity", "unknown")
+            counts[severity] = counts.get(severity, 0) + 1
+        data["summary"]["severity_counts"] = counts
+        data["summary"]["finding_count"] = len(findings)
+        with open(report_path, "w") as fh:
+            json.dump(data, fh, indent=2)
+        with open(marker_path, "w"):
+            pass
+PY
+
 STATUS_LINE="$(python3 - "$OUT/shexli.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -83,6 +120,10 @@ for f in d.get("findings", [])[:10]:
     msg = (f.get("message") or "").replace("|", "\\|").replace("\n", " ")[:160]
     print(f"| {f.get('rule_id','')} | {f.get('severity','')} | `{loc}` | {msg} |")
 PY
+  if [[ -f "$OUT/shexli.bypass" ]]; then
+    echo "" >>"$GITHUB_STEP_SUMMARY"
+    echo "EGO-M-004 for shell-version 51 is exempted by scripts/shexli.sh; raw report: shexli.raw.json." >>"$GITHUB_STEP_SUMMARY"
+  fi
 fi
 
 if [[ "${ERRORS:-0}" -gt 0 ]]; then
