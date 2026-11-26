@@ -1,6 +1,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import { buildPreviewArgv } from '@/preferences/PreviewArgs';
+import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
+import { buildPreviewArgv, previewFailed } from '@/preferences/PreviewArgs';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -96,7 +97,7 @@ export function startPreview(url: string, cookiesFromBrowser: string, onFinished
   } catch (e) {
     writeLog({ message: `[PreviewPlayer] failed to start mpv: ${e}`, type: 'ERROR' });
     resumeShell();
-    finish(String(e));
+    finish(_('Preview failed'));
     return;
   }
   _proc = proc;
@@ -108,9 +109,10 @@ export function startPreview(url: string, cookiesFromBrowser: string, onFinished
       writeLog({ message: `[PreviewPlayer] mpv exited with error: ${e}`, type: 'WARN' });
     }
     if (_proc !== proc) return;
+    const failed = previewFailed(proc.get_exit_status(), proc.get_if_signaled());
     _proc = null;
     resumeShell();
-    finish();
+    finish(failed ? _('Preview failed') : undefined);
   });
 }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildPreviewArgv, PREVIEW_SECONDS } from '../src/preferences/PreviewArgs.ts';
+import { buildPreviewArgv, PREVIEW_SECONDS, previewFailed } from '../src/preferences/PreviewArgs.ts';
 
 test('preview argv has its own short-lived mpv', () => {
   const argv = buildPreviewArgv('https://youtu.be/abc', null, null, 50);
@@ -21,6 +21,12 @@ test('preview argv mirrors browser cookies when configured', () => {
   assert.equal(argv.includes('--ytdl-raw-options-add=js-runtimes=node'), true);
   assert.equal(argv.includes('--ytdl-raw-options-add=remote-components=ejs:github'), true);
   assert.equal(argv.includes('--volume=50'), true);
+});
+
+test('preview failure is detected for nonzero exit or signal', () => {
+  assert.equal(previewFailed(0, false), false);
+  assert.equal(previewFailed(2, false), true);
+  assert.equal(previewFailed(0, true), true);
 });
 
 test('preview argv falls back to deno and omits cookies when absent', () => {

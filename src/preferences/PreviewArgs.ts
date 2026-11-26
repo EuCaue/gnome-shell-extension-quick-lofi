@@ -1,5 +1,9 @@
 export const PREVIEW_SECONDS = 30;
 
+export function previewFailed(exitStatus: number, signaled: boolean): boolean {
+  return signaled || exitStatus !== 0;
+}
+
 export function buildPreviewArgv(
   url: string,
   cookiesValue: string | null,
