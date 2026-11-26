@@ -712,6 +712,7 @@ export class RadiosPage extends Adw.PreferencesPage {
       label: _('Stop'),
       valign: Gtk4.Align.CENTER,
       cssClasses: ['flat'],
+      cursor: new Gdk.Cursor({ name: 'pointer' }),
     });
     stopButton.connect('clicked', () => this._stopPreview());
 
