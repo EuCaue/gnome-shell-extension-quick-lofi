@@ -7,6 +7,7 @@ import Gtk4 from 'gi://Gtk';
 import { gettext as _, ngettext } from '@girs/gnome-shell/extensions/prefs';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
 import { detectRadioName } from '@/preferences/RadioNameProbe';
+import { formatPreviewTime, previewElapsedSince, PREVIEW_SECONDS } from '@/preferences/PreviewArgs';
 import { startPreview, stopPreview } from '@/preferences/PreviewPlayer';
 import { expandHome, isPlayable, isUri } from '@/preferences/RadioSource';
 import { mergeSearchResults, type YouTubeSearchResult, youtubeKey } from '@/preferences/YouTubeResults';
@@ -27,6 +28,8 @@ export class RadiosPage extends Adw.PreferencesPage {
   private _isDetectingName = false;
   private _searchResultRows: Adw.ActionRow[] = [];
   private _previewRow: Adw.ActionRow | null = null;
+  private _previewProgress: Gtk4.ProgressBar | null = null;
+  private _previewTime: Gtk4.Label | null = null;
   private _searchResults: YouTubeSearchResult[] = [];
   private _searchQuery = '';
   private _searchLimit = SEARCH_RESULTS_LIMIT;
@@ -723,14 +726,34 @@ export class RadiosPage extends Adw.PreferencesPage {
     stopButton.connect('clicked', () => this._stopPreview());
     stopButton.update_property([Gtk4.AccessibleProperty.LABEL], [_('Stop Preview')]);
 
+    const progress = new Gtk4.ProgressBar({
+      hexpand: true,
+      valign: Gtk4.Align.CENTER,
+      fraction: 0,
+    });
+    progress.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview progress')]);
+
+    const timeLabel = new Gtk4.Label({
+      label: `${formatPreviewTime(0)} / ${formatPreviewTime(PREVIEW_SECONDS)}`,
+      cssClasses: ['dim-label'],
+      valign: Gtk4.Align.CENTER,
+    });
+    timeLabel.update_property([Gtk4.AccessibleProperty.LABEL], [_('Preview time')]);
+
+    const box = new Gtk4.Box({ spacing: 8, valign: Gtk4.Align.CENTER, hexpand: true });
+    box.append(progress);
+    box.append(timeLabel);
+    box.append(playButton);
+    box.append(stopButton);
+
     const row = new Adw.ActionRow({
-      title: _('Previewing'),
       useMarkup: false,
       selectable: false,
     });
     row.set_tooltip_text(result.title);
-    row.add_suffix(playButton);
-    row.add_suffix(stopButton);
+    row.add_suffix(box);
+    this._previewProgress = progress;
+    this._previewTime = timeLabel;
     return row;
   }
 
@@ -739,10 +762,24 @@ export class RadiosPage extends Adw.PreferencesPage {
     const row = this._buildPreviewRow(result, sourceRow);
     this._searchResultsList.insert(row, this._searchResultRows.indexOf(sourceRow) + 1);
     this._previewRow = row;
-    startPreview(result.url, this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER), (error) => {
-      if (!this._settings) return;
-      this._clearPreviewRow(error);
-    });
+    let firstPosition: number | null = null;
+    startPreview(
+      result.url,
+      this._settings.get_string(SETTINGS_KEYS.COOKIES_FROM_BROWSER),
+      (elapsed: number, duration: number | null) => {
+        if (!this._settings || this._previewRow !== row) return;
+        if (firstPosition === null) firstPosition = elapsed;
+        const played = previewElapsedSince(elapsed, firstPosition);
+        const total = Math.min(duration ?? PREVIEW_SECONDS, PREVIEW_SECONDS);
+        const fraction = total > 0 ? Math.min(1, played / total) : 0;
+        this._previewProgress?.set_fraction(fraction);
+        this._previewTime?.set_label(`${formatPreviewTime(played)} / ${formatPreviewTime(total)}`);
+      },
+      (error) => {
+        if (!this._settings) return;
+        this._clearPreviewRow(error);
+      },
+    );
   }
 
   private _stopPreview(): void {
@@ -754,6 +791,8 @@ export class RadiosPage extends Adw.PreferencesPage {
     if (this._previewRow) {
       this._searchResultsList.remove(this._previewRow);
       this._previewRow = null;
+      this._previewProgress = null;
+      this._previewTime = null;
     }
     if (error) {
       this._window.add_toast(new Adw.Toast({ title: error, use_markup: false }));

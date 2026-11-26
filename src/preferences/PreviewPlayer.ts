@@ -1,7 +1,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import { gettext as _ } from '@girs/gnome-shell/extensions/prefs';
-import { buildPreviewArgv, previewFailed } from '@/preferences/PreviewArgs';
+import { buildPreviewArgv, parsePreviewStatus, previewFailed } from '@/preferences/PreviewArgs';
 import { SETTINGS_KEYS } from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { cookiesFromBrowserValue, getExtSettings } from '@/shared/settings';
@@ -11,7 +11,10 @@ const MPRIS_PATH = '/org/mpris/MediaPlayer2';
 const MPRIS_IFACE = 'org.mpris.MediaPlayer2.Player';
 
 let _proc: Gio.Subprocess | null = null;
+let _stream: Gio.DataInputStream | null = null;
+let _cancellable: Gio.Cancellable | null = null;
 let _onFinished: ((error?: string) => void) | null = null;
+let _onProgress: ((elapsed: number, duration: number | null) => void) | null = null;
 let _wasPlaying = false;
 let _proxy: Gio.DBusProxy | null = null;
 
@@ -80,7 +83,43 @@ export function isPreviewing(): boolean {
   return _proc !== null;
 }
 
-export function startPreview(url: string, cookiesFromBrowser: string, onFinished: (error?: string) => void): void {
+function closeStream(stream: Gio.DataInputStream | null): void {
+  if (!stream || _stream !== stream) return;
+  _stream = null;
+  try {
+    stream.close(null);
+  } catch {
+    // The pipe may already be closed by mpv exiting.
+  }
+}
+
+function readStatus(stream: Gio.DataInputStream, proc: Gio.Subprocess, cancellable: Gio.Cancellable): void {
+  stream.read_line_async(GLib.PRIORITY_DEFAULT, cancellable, (_source, res) => {
+    let line: string | null;
+    try {
+      [line] = stream.read_line_finish_utf8(res);
+    } catch {
+      // Cancelled on stop or the pipe closed at EOF.
+      closeStream(stream);
+      return;
+    }
+    if (line === null) {
+      closeStream(stream);
+      return;
+    }
+    if (_proc !== proc) return;
+    const status = parsePreviewStatus(line);
+    if (status) _onProgress?.(status.elapsed, status.duration);
+    readStatus(stream, proc, cancellable);
+  });
+}
+
+export function startPreview(
+  url: string,
+  cookiesFromBrowser: string,
+  onProgress: (elapsed: number, duration: number | null) => void,
+  onFinished: (error?: string) => void,
+): void {
   if (_proc) stopPreview();
 
   const settings = getExtSettings();
@@ -89,18 +128,30 @@ export function startPreview(url: string, cookiesFromBrowser: string, onFinished
   const argv = buildPreviewArgv(url, cookiesValue, jsRuntime, settings.get_int(SETTINGS_KEYS.VOLUME));
 
   _onFinished = onFinished;
+  _onProgress = onProgress;
+  _cancellable = new Gio.Cancellable();
   pauseShell();
 
   let proc: Gio.Subprocess;
   try {
-    proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
+    proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE);
   } catch (e) {
     writeLog({ message: `[PreviewPlayer] failed to start mpv: ${e}`, type: 'ERROR' });
+    _cancellable.cancel();
+    _cancellable = null;
+    _onProgress = null;
     resumeShell();
     finish(_('Preview failed'));
     return;
   }
   _proc = proc;
+
+  const stream = new Gio.DataInputStream({
+    base_stream: proc.get_stdout_pipe(),
+    newlineType: Gio.DataStreamNewlineType.ANY,
+  });
+  _stream = stream;
+  readStatus(stream, proc, _cancellable);
 
   proc.wait_async(null, (_source, res) => {
     try {
@@ -111,6 +162,10 @@ export function startPreview(url: string, cookiesFromBrowser: string, onFinished
     if (_proc !== proc) return;
     const failed = previewFailed(proc.get_exit_status(), proc.get_if_signaled());
     _proc = null;
+    _cancellable?.cancel();
+    _cancellable = null;
+    _onProgress = null;
+    closeStream(_stream);
     resumeShell();
     finish(failed ? _('Preview failed') : undefined);
   });
@@ -118,6 +173,10 @@ export function startPreview(url: string, cookiesFromBrowser: string, onFinished
 
 export function stopPreview(): void {
   _onFinished = null;
+  _onProgress = null;
+  _cancellable?.cancel();
+  _cancellable = null;
+  closeStream(_stream);
   const proc = _proc;
   _proc = null;
   if (proc) proc.force_exit();
