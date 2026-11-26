@@ -33,6 +33,7 @@
     "gnome:clean": "bash ./scripts/shell-image.sh --clean",
     "gnome:test": "bash ./scripts/shell-test.sh",
     "gnome:open": "bash ./scripts/shell-open.sh",
+    "shexli": "bash ./scripts/shexli.sh",
     "gnome:act": "act workflow_dispatch -W .github/workflows/gnome-versions.yml"
   },
   "repository": {
