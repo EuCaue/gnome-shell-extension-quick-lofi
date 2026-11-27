@@ -61,14 +61,14 @@ test('one list offers every action, including the ones saved by older versions',
 });
 
 test('schema has indicator scroll actions with volume defaults', () => {
-  assert.deepEqual(schemaDefault(SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS), ['none', 'none']);
+  assert.deepEqual(schemaDefault(SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS), ['increaseVolume', 'decreaseVolume']);
 });
 
 test('clickAction falls back for a short scroll list', () => {
   const key = SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS;
-  const settings = fakeSettings({ [key]: ['next'] }, { [key]: ['none', 'none'] });
+  const settings = fakeSettings({ [key]: ['next'] }, { [key]: ['increaseVolume', 'decreaseVolume'] });
   assert.equal(clickAction(settings, key, 1), 'next');
-  assert.equal(clickAction(settings, key, 2), 'none');
+  assert.equal(clickAction(settings, key, 2), 'decreaseVolume');
 });
 
 test('scroll actions are known and keyboard-backed', () => {

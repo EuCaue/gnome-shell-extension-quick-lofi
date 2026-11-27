@@ -156,7 +156,7 @@
       <description>Specifies which actions are triggered when the user clicks the indicator.</description>
     </key>
     <key name="indicator-scroll-actions" type="as">
-      <default>['none', 'none']</default>
+      <default>['increaseVolume', 'decreaseVolume']</default>
       <summary>Indicator scroll actions</summary>
       <description>Actions for scrolling up and down over the indicator.</description>
     </key>
