@@ -29,6 +29,7 @@ export const SETTINGS_KEYS = {
   PLAY_DEFAULT_RADIO_ON_STARTUP: 'play-default-radio-on-startup',
   PLAY_DEFAULT_RADIO_ON_UNLOCK: 'play-default-radio-on-unlock',
   INDICATOR_ACTIONS: 'indicator-actions',
+  INDICATOR_SCROLL_ACTIONS: 'indicator-scroll-actions',
   RADIO_ITEM_ACTIONS: 'radio-item-actions',
   MINI_PLAYER_PREV_ACTIONS: 'mini-player-prev-actions',
   MINI_PLAYER_PLAY_ACTIONS: 'mini-player-play-actions',
@@ -68,10 +69,25 @@ export const CLICK_ACTIONS_NAMES = new Map([
   ['openPrefs', 'Open Preferences'],
   ['playPauseDefaultRadio', 'Toggle Default Radio'],
   ['stopDefaultRadio', 'Stop Default Radio'],
+  ['increaseVolume', 'Increase Volume'],
+  ['decreaseVolume', 'Decrease Volume'],
 ] as const);
 export type ClickActionKey = typeof CLICK_ACTIONS_NAMES extends Map<infer K, any> ? K : never;
 // Hidden where the menu is already open (radios, mini player).
 export const MENU_HIDDEN_CLICK_ACTIONS: readonly ClickActionKey[] = ['showPopupMenu'];
+// Scroll actions must also be available from the keyboard shortcuts above.
+export const SCROLL_ACTIONS: readonly string[] = [
+  'none',
+  'playPause',
+  'stopPlayer',
+  'next',
+  'nextRadio',
+  'prev',
+  'prevRadio',
+  'increaseVolume',
+  'decreaseVolume',
+];
+export const SCROLL_THROTTLE_MS = 150;
 
 // ffmpeg container formats (from `ffmpeg -formats`)
 export const ffmpegFormats = new Set([
