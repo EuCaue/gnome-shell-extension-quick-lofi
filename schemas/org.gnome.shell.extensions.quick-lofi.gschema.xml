@@ -155,6 +155,11 @@
       <summary>Configure the behavior of indicator clicks.</summary>
       <description>Specifies which actions are triggered when the user clicks the indicator.</description>
     </key>
+    <key name="indicator-scroll-actions" type="as">
+      <default>['increaseVolume', 'decreaseVolume']</default>
+      <summary>Indicator scroll actions</summary>
+      <description>Actions for scrolling up and down over the indicator.</description>
+    </key>
     <key name="radio-item-actions" type="as">
       <default>['playPause', 'restart', 'stopPlayer']</default>
       <summary>Radio click actions</summary>

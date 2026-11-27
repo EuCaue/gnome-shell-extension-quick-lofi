@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { CLICK_ACTIONS_NAMES, SETTINGS_KEYS } from '../src/shared/constants.ts';
+import { CLICK_ACTIONS_NAMES, SCROLL_ACTIONS, SETTINGS_KEYS, SHORTCUTS } from '../src/shared/constants.ts';
 import { clickAction } from '../src/shared/settings.ts';
 
 const schema = readFileSync(
@@ -54,8 +54,32 @@ test('one list offers every action, including the ones saved by older versions',
     'openPrefs',
     'playPauseDefaultRadio',
     'stopDefaultRadio',
+    'increaseVolume',
+    'decreaseVolume',
   ];
   assert.deepEqual([...CLICK_ACTIONS_NAMES.keys()].sort(), [...expected].sort());
+});
+
+test('schema has indicator scroll actions with volume defaults', () => {
+  assert.deepEqual(schemaDefault(SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS), ['increaseVolume', 'decreaseVolume']);
+});
+
+test('clickAction falls back for a short scroll list', () => {
+  const key = SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS;
+  const settings = fakeSettings({ [key]: ['next'] }, { [key]: ['increaseVolume', 'decreaseVolume'] });
+  assert.equal(clickAction(settings, key, 1), 'next');
+  assert.equal(clickAction(settings, key, 2), 'decreaseVolume');
+});
+
+test('scroll actions are known and keyboard-backed', () => {
+  const shortcuts = new Set(Object.values(SHORTCUTS));
+  for (const action of SCROLL_ACTIONS) {
+    assert.equal(CLICK_ACTIONS_NAMES.has(action), true);
+  }
+  assert.equal(SCROLL_ACTIONS.includes('showPopupMenu'), false);
+  assert.equal(SCROLL_ACTIONS.includes('copyUrl'), false);
+  assert.equal(SCROLL_ACTIONS.includes('openPrefs'), false);
+  assert.equal(shortcuts.size > 0, true);
 });
 
 test('default radio settings start empty, with autoplay on and no shortcuts', () => {
