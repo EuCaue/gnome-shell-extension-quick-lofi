@@ -8,10 +8,11 @@ import * as Main from '@girs/gnome-shell/ui/main';
 import * as PanelMenu from '@girs/gnome-shell/ui/panelMenu';
 import * as PopupMenu from '@girs/gnome-shell/ui/popupMenu';
 import * as Slider from '@girs/gnome-shell/ui/slider';
-import { ICONS, SETTINGS_KEYS } from '@/shared/constants';
+import { ICONS, SCROLL_ACTIONS, SCROLL_THROTTLE_MS, SETTINGS_KEYS } from '@/shared/constants';
 import { debug, writeLog } from '@/shared/log';
 import { findRadioById, parseRadios, radioItemStep } from '@/shared/radios';
 import { clickAction } from '@/shared/settings';
+import { shouldHandleScroll } from '@/shared/volume';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { boxOrientation } from './BoxOrientation';
 import { ClickActions } from './ClickActions';
@@ -41,6 +42,7 @@ export default class Indicator extends PanelMenu.Button {
   private _scrollView: St.ScrollView;
   private _statusLabel: St.Label;
   private _playback = { paused: false, position: 0, duration: 0 };
+  private _lastScrollMs = 0;
 
   constructor(ext: QuickLofiExtension) {
     super(0.0, 'Quick Lofi');
@@ -75,6 +77,7 @@ export default class Indicator extends PanelMenu.Button {
       }),
     });
     this._handleButtonClick();
+    this._handleScroll();
     writeLog({ message: '[Indicator] Indicator initialized successfully', type: 'INFO' });
   }
 
@@ -312,6 +315,35 @@ export default class Indicator extends PanelMenu.Button {
       writeLog({ message: `[Indicator] Button ${mouseBtn} clicked, action: ${action}`, type: 'INFO' });
       if (action) this._clickActions.run(action);
       return Clutter.EVENT_STOP;
+    });
+  }
+
+  private _handleScroll(): void {
+    this.signalsHandlers.push({
+      emitter: this,
+      signalID: this.connect('scroll-event', (_actor, event: Clutter.Event) => {
+        const direction = event.get_scroll_direction();
+        let index: 0 | 1 | null = null;
+        if (direction === Clutter.ScrollDirection.UP) index = 0;
+        else if (direction === Clutter.ScrollDirection.DOWN) index = 1;
+        else if (direction === Clutter.ScrollDirection.SMOOTH) {
+          const delta = event.get_scroll_delta()[1];
+          if (delta < 0) index = 0;
+          else if (delta > 0) index = 1;
+        }
+        if (index === null) return Clutter.EVENT_PROPAGATE;
+
+        const nowMs = GLib.get_monotonic_time() / 1000;
+        if (!shouldHandleScroll(nowMs, this._lastScrollMs, SCROLL_THROTTLE_MS)) return Clutter.EVENT_STOP;
+        this._lastScrollMs = nowMs;
+
+        const action = clickAction(this._extension._settings, SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS, index + 1);
+        writeLog({ message: `[Indicator] Scroll ${index === 0 ? 'up' : 'down'}, action: ${action}`, type: 'INFO' });
+        if (action && SCROLL_ACTIONS.includes(action) && this._clickActions.run(action)) {
+          return Clutter.EVENT_STOP;
+        }
+        return Clutter.EVENT_PROPAGATE;
+      }),
     });
   }
 
