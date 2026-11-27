@@ -47,6 +47,35 @@
 
     <child>
       <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Indicator Scroll Actions</property>
+        <property name="description" translatable="yes">Choose what scrolling over the indicator does.</property>
+
+        <child>
+          <object class="AdwComboRow" id="scrollUpActionRow">
+            <property name="title" translatable="yes">Scroll up action</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwComboRow" id="scrollDownActionRow">
+            <property name="title" translatable="yes">Scroll down action</property>
+            <property name="cursor">
+              <object class="GdkCursor">
+                <property name="name">pointer</property>
+              </object>
+            </property>
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
         <property name="title" translatable="yes">Radio Click Actions</property>
         <property name="description" translatable="yes">Configure what happens when you click a radio.</property>
         <child>
