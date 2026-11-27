@@ -4,7 +4,13 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 import { handleErrorRow, setEntryRowText } from '@/preferences/EntryRow';
-import { CLICK_ACTIONS_NAMES, type ClickActionKey, MENU_HIDDEN_CLICK_ACTIONS, SETTINGS_KEYS } from '@/shared/constants';
+import {
+  CLICK_ACTIONS_NAMES,
+  type ClickActionKey,
+  MENU_HIDDEN_CLICK_ACTIONS,
+  SCROLL_ACTIONS,
+  SETTINGS_KEYS,
+} from '@/shared/constants';
 import { writeLog } from '@/shared/log';
 import { clickAction } from '@/shared/settings';
 
@@ -26,6 +32,8 @@ export class InterfacePage extends Adw.PreferencesPage {
           'leftClickRow',
           'middleClickRow',
           'rightClickRow',
+          'scrollUpActionRow',
+          'scrollDownActionRow',
           'radioLeftClickRow',
           'radioMiddleClickRow',
           'radioRightClickRow',
@@ -56,6 +64,8 @@ export class InterfacePage extends Adw.PreferencesPage {
   private declare _leftClickRow: Adw.ComboRow;
   private declare _middleClickRow: Adw.ComboRow;
   private declare _rightClickRow: Adw.ComboRow;
+  private declare _scrollUpActionRow: Adw.ComboRow;
+  private declare _scrollDownActionRow: Adw.ComboRow;
   private declare _radioLeftClickRow: Adw.ComboRow;
   private declare _radioMiddleClickRow: Adw.ComboRow;
   private declare _radioRightClickRow: Adw.ComboRow;
@@ -119,6 +129,26 @@ export class InterfacePage extends Adw.PreferencesPage {
     });
   }
 
+  private _bindScrollActions(key: string, rows: Adw.ComboRow[]): void {
+    const actions = SCROLL_ACTIONS;
+    const labels = actions.map((action) => CLICK_ACTIONS_NAMES.get(action as ClickActionKey));
+    const defaults = this._settings.get_default_value(key).deepUnpack() as string[];
+
+    rows.forEach((row, index) => {
+      row.set_model(Gtk.StringList.new(labels));
+      const position = actions.indexOf(clickAction(this._settings, key, index + 1));
+      if (position >= 0) row.set_selected(position);
+
+      row.connect('notify::selected', () => {
+        const current = this._settings.get_strv(key);
+        const updated = defaults.map((action, i) => current[i] ?? action);
+        updated[index] = actions[row.get_selected()];
+        writeLog({ message: `[InterfacePage] Setting ${key} to: ${updated.join(', ')}`, type: 'INFO' });
+        this._settings.set_strv(key, updated);
+      });
+    });
+  }
+
   constructor(private _settings: Gio.Settings) {
     super();
     writeLog({ message: '[InterfacePage] Initializing interface preferences page', type: 'INFO' });
@@ -172,6 +202,10 @@ export class InterfacePage extends Adw.PreferencesPage {
       this._leftClickRow,
       this._middleClickRow,
       this._rightClickRow,
+    ]);
+    this._bindScrollActions(SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS, [
+      this._scrollUpActionRow,
+      this._scrollDownActionRow,
     ]);
     this._bindClickActions(
       SETTINGS_KEYS.RADIO_ITEM_ACTIONS,
