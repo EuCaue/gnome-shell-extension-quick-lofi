@@ -12,7 +12,7 @@ import { ICONS, SCROLL_ACTIONS, SCROLL_THROTTLE_MS, SETTINGS_KEYS } from '@/shar
 import { debug, writeLog } from '@/shared/log';
 import { findRadioById, parseRadios, radioItemStep } from '@/shared/radios';
 import { clickAction } from '@/shared/settings';
-import { shouldHandleScroll } from '@/shared/volume';
+import { shouldConsumeScroll, shouldHandleScroll } from '@/shared/volume';
 import type { QuickLofiExtension, Radio } from '@/types';
 import { boxOrientation } from './BoxOrientation';
 import { ClickActions } from './ClickActions';
@@ -333,16 +333,19 @@ export default class Indicator extends PanelMenu.Button {
         }
         if (index === null) return Clutter.EVENT_PROPAGATE;
 
+        const action = clickAction(this._extension._settings, SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS, index + 1);
+        if (!action || !SCROLL_ACTIONS.includes(action)) return Clutter.EVENT_PROPAGATE;
+
         const nowMs = GLib.get_monotonic_time() / 1000;
-        if (!shouldHandleScroll(nowMs, this._lastScrollMs, SCROLL_THROTTLE_MS)) return Clutter.EVENT_STOP;
+        const throttleOk = shouldHandleScroll(nowMs, this._lastScrollMs, SCROLL_THROTTLE_MS);
+        if (!throttleOk) return Clutter.EVENT_PROPAGATE;
         this._lastScrollMs = nowMs;
 
-        const action = clickAction(this._extension._settings, SETTINGS_KEYS.INDICATOR_SCROLL_ACTIONS, index + 1);
         writeLog({ message: `[Indicator] Scroll ${index === 0 ? 'up' : 'down'}, action: ${action}`, type: 'INFO' });
-        if (action && SCROLL_ACTIONS.includes(action) && this._clickActions.run(action)) {
-          return Clutter.EVENT_STOP;
-        }
-        return Clutter.EVENT_PROPAGATE;
+        const ran = this._clickActions.run(action);
+        return shouldConsumeScroll(action, SCROLL_ACTIONS, throttleOk, ran)
+          ? Clutter.EVENT_STOP
+          : Clutter.EVENT_PROPAGATE;
       }),
     });
   }
